@@ -1,0 +1,53 @@
+{
+	"name": "@svelte-docsmith/monorepo",
+	"version": "1.0.0",
+	"description": "Monorepo for svelte-docsmith",
+	"main": "index.js",
+	"private": true,
+	"scripts": {
+		"ci:publish": "turbo run build --filter=svelte-docsmith && changeset publish",
+		"build": "turbo run build",
+		"test": "turbo run test",
+		"test:unit": "turbo run test:unit",
+		"test:coverage": "turbo run test:coverage",
+		"typecheck": "turbo run typecheck",
+		"check": "turbo run check",
+		"check:watch": "turbo run check:watch",
+		"format": "turbo run format",
+		"lint": "turbo run lint",
+		"dev": "turbo run dev",
+		"preview": "turbo run preview",
+		"size": "turbo run size --filter=svelte-docsmith"
+	},
+	"keywords": [],
+	"author": {
+		"name": "George Daskalakis",
+		"email": "george.dask97@gmail.com",
+		"url": "https://github.com/geodask"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/geodask/svelte-docsmith.git",
+		"directory": "packages/svelte-docsmith"
+	},
+	"license": "MIT",
+	"packageManager": "pnpm@10.6.4",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild"
+		]
+	},
+	"devDependencies": {
+		"@changesets/cli": "^2.27.1",
+		"@eslint/compat": "^1.2.5",
+		"@eslint/js": "^9.18.0",
+		"eslint": "^9.18.0",
+		"eslint-config-prettier": "^10.0.1",
+		"eslint-plugin-svelte": "^3.0.0",
+		"globals": "^16.0.0",
+		"prettier": "^3.5.3",
+		"prettier-plugin-svelte": "^3.3.3",
+		"turbo": "^2.5.2",
+		"typescript-eslint": "^8.20.0"
+	}
+}
