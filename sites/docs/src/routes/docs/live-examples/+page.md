@@ -6,31 +6,26 @@ order: 2
 ---
 
 <script>
+	import { LiveExample } from 'svelte-docsmith';
 	import Counter from '$lib/examples/counter.svelte';
+	import counterSource from '$lib/examples/counter.svelte?source';
 </script>
 
 ## A real, running component
 
 The button below is a real Svelte component running as part of this app — not a
-screenshot, not a sandboxed iframe. Click it:
+screenshot, not a sandboxed iframe. Click it, then open the source:
 
-<div class="not-prose my-6 flex justify-center rounded-lg border border-border bg-muted/30 p-8">
+<LiveExample source={counterSource}>
 	<Counter />
-</div>
+</LiveExample>
 
-And here is its source:
+## Single source of truth
 
-```svelte
-<script lang="ts">
-	let count = $state(0);
-</script>
+The rendered component and the source panel above both come from **one file**,
+`counter.svelte`. It is imported twice — once as a component (rendered) and once
+as `?source` (highlighted at build time by a Vite plugin) — so the demo and its
+code can never drift.
 
-<button onclick={() => count++}>
-	clicked {count}
-	{count === 1 ? 'time' : 'times'}
-</button>
-```
-
-This is the manual form of the feature. The build-time plugin (next) will pair
-the rendered component and its source from a single file, so they can never
-drift.
+A remark convention (` ```svelte example `) to remove even the import lines is a
+planned refinement.
