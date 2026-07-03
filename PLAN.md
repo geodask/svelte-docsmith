@@ -13,7 +13,7 @@ Prepared 2026-07-03, revised same day after review. This is a planning document,
 - [x] Milestone 1 — Stabilize: interrupted migration fixed, dep declarations audited, CI gate added; `typecheck`/`test`/`build` green at root
 - [x] Milestone 2 — Modernize: Svelte/Kit stable bumps, Vite 6→7, Vite 7→8 (separate), Tailwind v4; visual QA passed
 - [x] Milestone 3 — Pipeline: `@shikijs/rehype` swap, velite nav generation, FSD flattened in `sites/docs`
-- [ ] Milestone 4 — API + content: README-driven API design implemented, `index.ts` populated per §6.2, 3–5 real doc pages
+- [x] Milestone 4 — API + content: README-driven API design implemented, `index.ts` populated per §6.2, 3–5 real doc pages
 - [ ] Milestone 5 — Build-time live examples v1
 - [ ] Milestone 6 — Packaging (`/preprocess` entry, config schema) + fresh-project adoption test
 - [ ] Milestone 7 — Stretch (CLI or playground-v2 exploration)
