@@ -39,11 +39,6 @@
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
-		"./internal": {
-			"types": "./dist/internal.d.ts",
-			"svelte": "./dist/internal.js",
-			"default": "./dist/internal.js"
-		},
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {
@@ -74,26 +69,17 @@
 		"svelte-check": "^4.7.1",
 		"tailwindcss": "^4.3.2",
 		"typescript": "^5.0.0",
-		"velite": "^0.2.2",
 		"vite": "^8.1.3",
 		"vitest": "^4.1.9"
 	},
 	"dependencies": {
-		"@hbsnow/rehype-sectionize": "^1.0.7",
 		"@lucide/svelte": "^0.488.0",
-		"@tailwindcss/typography": "^0.5.16",
 		"bits-ui": "^1.3.19",
 		"clsx": "^2.1.1",
 		"esm-env": "^1.2.2",
-		"mdsvex": "^0.12.3",
 		"mode-watcher": "1.0.2",
-		"rehype-autolink-headings": "^7.1.0",
-		"rehype-slug": "^6.0.0",
-		"shiki": "^3.2.2",
 		"tailwind-merge": "^3.2.0",
-		"tailwind-variants": "^1.0.0",
-		"tailwindcss-animate": "^1.0.7",
-		"unified": "^11.0.5"
+		"tailwind-variants": "^1.0.0"
 	},
 	"keywords": [
 		"svelte",

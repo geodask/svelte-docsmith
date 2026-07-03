@@ -1,23 +1,17 @@
 <script lang="ts">
-	import { Alert } from 'svelte-docsmith/internal';
-	import { Construction } from '@lucide/svelte';
-
-	const content = {
-		icon: Construction,
-		title: 'Development in Progress',
-		description:
-			'The library is currently in active development. Each minor release may contain breaking changes until it reaches a stable v1.0 release.'
-	};
-
-	const Icon = content.icon;
+	import Construction from '@lucide/svelte/icons/construction';
 </script>
 
-<Alert.Root
-	class="text-start bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 rounded-md"
+<div
+	role="alert"
+	class="flex gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-4 text-start text-yellow-600 dark:text-yellow-400"
 >
-	<Icon class="!text-yellow-600 dark:text-yellow-400" size={18} />
-	<Alert.Title>{content.title}</Alert.Title>
-	<Alert.Description>
-		{content.description}
-	</Alert.Description>
-</Alert.Root>
+	<Construction class="mt-0.5 shrink-0" size={18} />
+	<div>
+		<p class="font-medium">Development in Progress</p>
+		<p class="text-sm">
+			The library is currently in active development. Each minor release may contain breaking
+			changes until it reaches a stable v1.0 release.
+		</p>
+	</div>
+</div>
