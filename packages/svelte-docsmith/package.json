@@ -62,21 +62,21 @@
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^4.0.0",
 		"@sveltejs/adapter-vercel": "^5.7.0",
-		"@sveltejs/kit": "^2.16.0",
-		"@sveltejs/package": "^2.0.0",
+		"@sveltejs/kit": "^2.69.1",
+		"@sveltejs/package": "^2.5.8",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.4",
-		"@vitest/coverage-v8": "3.1.1",
+		"@vitest/coverage-v8": "4.1.9",
 		"jsdom": "^26.0.0",
 		"publint": "^0.3.2",
-		"svelte": "^5.0.0",
-		"svelte-check": "^4.0.0",
+		"svelte": "^5.56.4",
+		"svelte-check": "^4.7.1",
 		"tailwindcss": "^3.4.17",
 		"typescript": "^5.0.0",
 		"velite": "^0.2.2",
 		"vite": "^6.2.5",
-		"vitest": "^3.0.0"
+		"vitest": "^4.1.9"
 	},
 	"dependencies": {
 		"@hbsnow/rehype-sectionize": "^1.0.7",
