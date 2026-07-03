@@ -39,6 +39,11 @@
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./internal": {
+			"types": "./dist/internal.d.ts",
+			"svelte": "./dist/internal.js",
+			"default": "./dist/internal.js"
+		},
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {

@@ -1,10 +1,6 @@
 <script lang="ts">
-	import { version } from '$shared/config/version';
-	import Github from '$shared/ui/icons/github.svelte';
-	import { Badge } from '$shared/ui/shadcn/badge';
-	import { Button } from '$shared/ui/shadcn/button';
-	import { Separator } from '$shared/ui/shadcn/separator';
-	import * as Sidebar from '$shared/ui/shadcn/sidebar';
+	import { version } from 'svelte-docsmith/package.json';
+	import { Button, GithubIcon, Separator, Sidebar } from 'svelte-docsmith/internal';
 	import { Moon, Search, Sun } from '@lucide/svelte';
 	import { mode, toggleMode } from 'mode-watcher';
 </script>
@@ -30,7 +26,7 @@
 		target="_blank"
 		href="https://github.com/geodask/svelte-docsmith"
 	>
-		<Github />
+		<GithubIcon />
 	</Button>
 
 	<Button size="icon" variant="ghost" onclick={toggleMode}>

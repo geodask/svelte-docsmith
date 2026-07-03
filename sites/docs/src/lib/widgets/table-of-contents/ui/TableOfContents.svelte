@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$shared/lib/shadcn.js';
-	import type { HighlightedTocItem } from '$shared/lib/toc';
+	import { cn } from 'svelte-docsmith/internal';
+	import type { HighlightedTocItem } from 'svelte-docsmith';
 	import { List } from '@lucide/svelte';
 
 	// Component props - single array of highlighted TOC items
