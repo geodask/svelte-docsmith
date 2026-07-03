@@ -3,7 +3,7 @@
 	import { ScrollArea, Sidebar } from 'svelte-docsmith/internal';
 	import { BookOpenText } from '@lucide/svelte';
 	import type { ComponentProps } from 'svelte';
-	import { data } from '../model';
+	import { data } from '$lib/nav';
 
 	let { ref = $bindable(null), ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 </script>
