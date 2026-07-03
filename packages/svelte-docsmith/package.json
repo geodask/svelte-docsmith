@@ -60,11 +60,11 @@
 		"tailwindcss": "^3.4.17"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^4.0.0",
-		"@sveltejs/adapter-vercel": "^5.7.0",
+		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/adapter-vercel": "^6.3.4",
 		"@sveltejs/kit": "^2.69.1",
 		"@sveltejs/package": "^2.5.8",
-		"@sveltejs/vite-plugin-svelte": "^5.0.0",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.4",
 		"@vitest/coverage-v8": "4.1.9",
@@ -75,7 +75,7 @@
 		"tailwindcss": "^3.4.17",
 		"typescript": "^5.0.0",
 		"velite": "^0.2.2",
-		"vite": "^6.2.5",
+		"vite": "^7.3.6",
 		"vitest": "^4.1.9"
 	},
 	"dependencies": {
