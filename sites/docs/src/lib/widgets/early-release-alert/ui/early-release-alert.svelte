@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Alert from '$shared/ui/shadcn/alert';
+	import { Alert } from 'svelte-docsmith/internal';
 	import { content } from '../config';
 
 	const Icon = content.icon;

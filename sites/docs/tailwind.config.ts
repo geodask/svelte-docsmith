@@ -4,7 +4,12 @@ import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
 	darkMode: ['class'],
-	content: ['./src/**/*.{html,js,svelte,ts}'],
+	content: [
+		'./src/**/*.{html,js,svelte,ts}',
+		// Scan the workspace-linked svelte-docsmith package so its utility
+		// classes are generated (see PLAN.md §2.5 for the consumer-facing story)
+		'../../packages/svelte-docsmith/src/**/*.{html,js,svelte,ts}'
+	],
 	safelist: ['dark'],
 	theme: {
 		container: {

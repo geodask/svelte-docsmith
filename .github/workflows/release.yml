@@ -6,8 +6,15 @@ on:
       - master
 
 jobs:
+  # Gate: publishing must not happen unless typecheck/test/lint/build pass.
+  # Reuses the same checks the CI workflow runs on pull requests.
+  verify:
+    name: Verify
+    uses: ./.github/workflows/ci.yml
+
   release:
     name: Release
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -20,18 +27,17 @@ jobs:
           fetch-depth: 0
 
       - name: Setup PNPM
-        uses: pnpm/action-setup@v3
-        with:
-          version: latest
+        # Version is read from the root package.json "packageManager" field.
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Create Release PR or Publish
         env:

@@ -2,14 +2,9 @@ import { transformerNotationHighlight } from '@shikijs/transformers';
 import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { escapeSvelte, mdsvex } from 'mdsvex';
-import path from 'path';
 import { createHighlighter } from 'shiki';
-import { fileURLToPath } from 'url';
 import rehypeSlug from 'rehype-slug';
 import rehypeSectionize from '@hbsnow/rehype-sectionize';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const highlighter = await createHighlighter({
 	themes: ['github-dark', 'github-light'],
@@ -24,9 +19,9 @@ const config = {
 		mdsvex({
 			extensions: ['.md'],
 			rehypePlugins: [rehypeSlug, [rehypeSectionize, { idPropertyName: 'data-section-id' }]],
-			layout: {
-				docPage: path.join(__dirname, './src/lib/shared/ui/layouts/doc-page.svelte')
-			},
+			// NOTE: the mdsvex layout mapping was removed while there is no markdown
+			// content; it gets re-introduced against the svelte-docsmith package's
+			// DocPage when real doc pages land (PLAN.md milestone 4).
 			highlight: {
 				highlighter: async (code, lang) => {
 					const html = escapeSvelte(
