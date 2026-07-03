@@ -7,25 +7,34 @@ order: 2
 
 ## Install the package
 
-Install `svelte-docsmith` with your package manager of choice:
+Svelte DocSmith is a SvelteKit library. Install it with your package manager of
+choice:
 
 ```bash
 pnpm add -D svelte-docsmith
 ```
 
-## Configuration
+It expects Svelte 5, SvelteKit 2, and Tailwind CSS v4 as peers — the same stack
+this documentation site is built on.
 
-DocSmith reads a small typed config object. A minimal `docsmith.config.json`
-looks like this:
+## The CSS contract
 
-```json
-{
-	"title": "My Library Docs",
-	"github": "https://github.com/you/your-lib",
-	"theme": "github"
-}
+Components are styled with Tailwind and shadcn design tokens. A consumer's
+Tailwind build does not scan `node_modules` by default, so add two things to
+your app's stylesheet:
+
+```css
+@import 'tailwindcss';
+
+/* generate the utility classes the library's components use */
+@source '../node_modules/svelte-docsmith/dist';
 ```
 
-That JSON block is highlighted even though `json` was never in the old
-hardcoded language list — proof the Shiki rehype swap ships the full language
-set.
+You also need the shadcn theme tokens (`--background`, `--primary`, `--radius`,
+…) defined for `:root` and `.dark`. A published `svelte-docsmith/theme.css` and
+a scaffolding command that writes all of this for you are planned.
+
+## Next
+
+With the package installed, continue to the [Quick Start](/docs/quick-start) to
+wire up the pipeline and render your first page.
