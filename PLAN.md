@@ -15,7 +15,7 @@ Prepared 2026-07-03, revised same day after review. This is a planning document,
 - [x] Milestone 3 — Pipeline: `@shikijs/rehype` swap, velite nav generation, FSD flattened in `sites/docs`
 - [x] Milestone 4 — API + content: README-driven API design implemented, `index.ts` populated per §6.2, 3–5 real doc pages
 - [x] Milestone 5 — Build-time live examples v1 (spike + LiveExample component + build-time source highlighting; the remark ` ```svelte example ` convention deferred to M5 polish)
-- [ ] Milestone 6 — Packaging (`/preprocess` entry, config schema) + fresh-project adoption test
+- [x] Milestone 6 — Packaging (`/preprocess` entry, config schema) + fresh-project adoption test: `docsmith()` preprocessor, `exampleSource()` vite plugin, one-import `theme.css`, `defineConfig()`; a fresh `sv create` app adopted the packed tarball following only the README — built and rendered first try (README gaps found by the test were fixed: manual-nav path documented, Tailwind prerequisite stated)
 - [ ] Milestone 7 — Stretch (CLI or playground-v2 exploration)
 
 **Working conventions for implementing agents:**

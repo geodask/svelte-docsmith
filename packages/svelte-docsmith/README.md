@@ -59,13 +59,30 @@ your content's frontmatter, never hand-written:
 </DocsShell>
 ```
 
+`content` accepts any `DocsContentItem[]` — objects with `title`, `path`, and
+optional `section`/`order`. Don't have a content collection yet? A hand-written
+array works on day one:
+
+```ts
+const docs = [
+	{ title: 'Getting Started', path: '/docs/getting-started', section: 'Guides', order: 1 }
+];
+```
+
+To derive it from your pages' frontmatter instead (so the sidebar can never
+drift from the content), point a [velite](https://velite.js.org) collection at
+`src/routes/docs/**/*.md` — this repo's `sites/docs/velite.config.js` is a
+complete working example.
+
 That's it. Add `src/routes/docs/getting-started/+page.md` with frontmatter and
 it appears in the sidebar, styled, highlighted, with breadcrumbs and a TOC.
 
 ## The CSS contract
 
-Components are styled with Tailwind (v4) and shadcn design tokens. The whole
-contract is one import in your app's stylesheet:
+Components are styled with Tailwind (v4) and shadcn design tokens. Your app
+needs Tailwind v4 set up the standard way (`tailwindcss` + the
+`@tailwindcss/vite` plugin, and your stylesheet imported in the root layout).
+After that, the whole contract is one import:
 
 ```css
 @import 'tailwindcss';
