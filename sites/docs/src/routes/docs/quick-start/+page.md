@@ -7,22 +7,19 @@ order: 3
 
 ## Register the markdown pipeline
 
-In `svelte.config.js`, add `.md` to your extensions and run your markdown
-through mdsvex with the DocSmith layout and Shiki highlighting. (A one-call
-`docsmith()` preprocess factory that bundles this is planned.)
+In `svelte.config.js`, add `.md` to your extensions and call `docsmith()` —
+it bundles mdsvex, Shiki highlighting with a generous language set, heading
+anchors, and the DocSmith page layout:
 
 ```js
-import { mdsvex } from 'mdsvex';
+import adapter from '@sveltejs/adapter-auto';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { docsmith } from 'svelte-docsmith/preprocess';
 
 export default {
 	extensions: ['.svelte', '.md'],
-	preprocess: [
-		mdsvex({
-			extensions: ['.md'],
-			layout: './src/lib/doc-layout.svelte'
-			// + rehype-slug, sectionize, and @shikijs/rehype
-		})
-	]
+	preprocess: [vitePreprocess(), docsmith()],
+	kit: { adapter: adapter() }
 };
 ```
 

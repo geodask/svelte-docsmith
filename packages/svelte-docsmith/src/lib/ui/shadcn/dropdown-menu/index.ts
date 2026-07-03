@@ -10,11 +10,13 @@ import Shortcut from './dropdown-menu-shortcut.svelte';
 import SubContent from './dropdown-menu-sub-content.svelte';
 import SubTrigger from './dropdown-menu-sub-trigger.svelte';
 
-const Sub = DropdownMenuPrimitive.Sub;
-const Root = DropdownMenuPrimitive.Root;
-const Trigger = DropdownMenuPrimitive.Trigger;
-const Group = DropdownMenuPrimitive.Group;
-const RadioGroup = DropdownMenuPrimitive.RadioGroup;
+// Explicit annotations so the emitted d.ts names bits-ui's public types
+// instead of an unportable path into its internals.
+const Sub: typeof DropdownMenuPrimitive.Sub = DropdownMenuPrimitive.Sub;
+const Root: typeof DropdownMenuPrimitive.Root = DropdownMenuPrimitive.Root;
+const Trigger: typeof DropdownMenuPrimitive.Trigger = DropdownMenuPrimitive.Trigger;
+const Group: typeof DropdownMenuPrimitive.Group = DropdownMenuPrimitive.Group;
+const RadioGroup: typeof DropdownMenuPrimitive.RadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 export {
 	CheckboxItem,

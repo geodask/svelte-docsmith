@@ -12,6 +12,28 @@ export type DocsmithConfig = {
 };
 
 /**
+ * Validate a {@link DocsmithConfig} at build time. Purely a pass-through for
+ * typed callers; the runtime checks catch untyped or dynamically-built configs
+ * with a real error message instead of a blank header.
+ */
+export function defineConfig(config: DocsmithConfig): DocsmithConfig {
+	if (typeof config !== 'object' || config === null) {
+		throw new Error('[svelte-docsmith] defineConfig expects a config object.');
+	}
+	if (typeof config.title !== 'string' || config.title.trim() === '') {
+		throw new Error(
+			'[svelte-docsmith] config.title is required — the site title shown in the sidebar header.'
+		);
+	}
+	for (const key of ['github', 'version'] as const) {
+		if (config[key] !== undefined && typeof config[key] !== 'string') {
+			throw new Error(`[svelte-docsmith] config.${key} must be a string when set.`);
+		}
+	}
+	return config;
+}
+
+/**
  * The minimal shape `DocsShell` needs from each content entry to build the
  * sidebar. A velite `docs` collection with title/section/order/path frontmatter
  * satisfies this structurally.
