@@ -62,35 +62,48 @@
 	</ScrollArea>
 </div>
 
-<style lang="postcss">
+<style>
+	/*
+	 * Plain CSS (not @apply): these style Shiki's output and ship inside the
+	 * published package, where the consumer's Tailwind theme context isn't
+	 * available to resolve @apply (Tailwind v4 compiles scoped styles in
+	 * isolation). See PLAN.md §2.5.
+	 */
 	:global(pre code) {
-		@apply grow py-4 h-full m-0 block;
+		display: block;
+		flex-grow: 1;
+		height: 100%;
+		margin: 0;
+		padding-block: 1rem;
 	}
 
 	:global(pre span.line) {
-		@apply inline-block w-full px-4;
+		display: inline-block;
+		width: 100%;
+		padding-inline: 1rem;
 	}
 
 	:global(pre span.line.highlighted) {
-		@apply bg-yellow-200/50;
+		background-color: rgb(254 240 138 / 0.5);
 	}
 
 	:global(.dark pre span.line.highlighted) {
-		@apply bg-yellow-400/20;
+		background-color: rgb(250 204 21 / 0.2);
 	}
 
 	:global(pre span.line.diff.add) {
-		@apply bg-green-300/50;
+		background-color: rgb(134 239 172 / 0.5);
 	}
 
 	:global(pre span.line.diff.remove) {
-		@apply bg-red-300/50;
+		background-color: rgb(252 165 165 / 0.5);
 	}
 
 	:global(.dark pre span.line.diff.add) {
-		@apply bg-green-600/20;
+		background-color: rgb(22 163 74 / 0.2);
 	}
+
 	:global(.dark pre span.line.diff.remove) {
-		@apply bg-red-600/20;
+		background-color: rgb(220 38 38 / 0.2);
 	}
 </style>
