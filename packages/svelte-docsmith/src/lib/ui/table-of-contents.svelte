@@ -1,21 +1,22 @@
 <script lang="ts">
-	import { cn } from 'svelte-docsmith/internal';
-	import type { HighlightedTocItem } from 'svelte-docsmith';
-	import { List } from '@lucide/svelte';
+	import { cn } from '$lib/shadcn.js';
+	import type { HighlightedTocItem } from '$lib/toc/index.js';
+	import List from '@lucide/svelte/icons/list';
 
-	// Component props - single array of highlighted TOC items
 	const { items = [] }: { items: HighlightedTocItem[] } = $props();
 </script>
 
-<div class="fixed z-20 lg:w-[16rem] right-8 top-20 hidden lg:block">
-	<div class="font-semibold flex items-center gap-2">
-		<List class="size-5" />
-		On this page
+{#if items.length > 0}
+	<div class="fixed z-20 lg:w-[16rem] right-8 top-20 hidden lg:block">
+		<div class="font-semibold flex items-center gap-2">
+			<List class="size-5" />
+			On this page
+		</div>
+		<div class="text-sm mt-3 pl-1">
+			{@render TocList(items)}
+		</div>
 	</div>
-	<div class="text-sm mt-3 pl-1">
-		{@render TocList(items)}
-	</div>
-</div>
+{/if}
 
 {#snippet TocList(items: HighlightedTocItem[], className: string = '')}
 	{#if items.length > 0}
@@ -27,7 +28,6 @@
 						class={cn(
 							'py-2 h-8 flex flex-1 text-foreground items-center truncate transition-all duration-300 rounded-lg',
 							{
-								// Primary style for focused item (most visible)
 								'text-primary font-semibold bg-primary/10 px-2 -translate-x-4': item.isFocused,
 								'text-primary font-semibold': item.hasFocusedChildren
 							}

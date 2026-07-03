@@ -7,5 +7,13 @@
 	<p class="text-lg text-muted-foreground">
 		A framework for building beautiful documentation sites with Svelte 5 and SvelteKit.
 	</p>
+	<div>
+		<a
+			href="/docs/introduction"
+			class="inline-flex h-10 items-center rounded-md bg-primary px-6 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+		>
+			Get started
+		</a>
+	</div>
 	<EarlyReleaseAlert />
 </div>
