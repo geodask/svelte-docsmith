@@ -40,8 +40,10 @@
 	<DocsSidebar title={config.title} {nav} />
 	<Sidebar.Inset>
 		<DocsHeader {config} />
-		<main class="flex-1 px-8 py-6" bind:this={contentEl}>
-			{@render children()}
+		<main class="flex-1 px-8 py-6 lg:pr-[18rem]" bind:this={contentEl}>
+			<div class="mx-auto max-w-3xl">
+				{@render children()}
+			</div>
 		</main>
 		<TableOfContents items={toc.items} />
 	</Sidebar.Inset>

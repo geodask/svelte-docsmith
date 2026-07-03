@@ -27,7 +27,6 @@
 	"devDependencies": {
 		"@hbsnow/rehype-sectionize": "^1.0.7",
 		"@lucide/svelte": "^0.488.0",
-		"@shikijs/rehype": "^3",
 		"@shikijs/transformers": "^3.3.0",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-vercel": "^6.3.4",
