@@ -1,0 +1,19 @@
+// Tier 1 — assembled experience
+export { default as DocPage } from './ui/layouts/doc-page.svelte';
+export { default as Tabs } from './ui/tabs.svelte';
+export { default as TabItem } from './ui/tab-item.svelte';
+
+// Markdown component map (for mdsvex layout wiring / per-component overrides)
+export * as markdown from './ui/markdown/index.js';
+
+// Tier 2 — parts for customizers
+export * from './toc/index.js';
+export { useClipboard } from './clipboard.svelte.js';
+export {
+	reactiveBreadcrumb,
+	setupReactiveBreadcrumb,
+	type BreadcrumbItem
+} from './breadcrumb.svelte.js';
+
+// Shared types
+export type { WithChildren, WithChildrenOptional } from './types.js';

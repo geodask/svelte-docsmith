@@ -1,5 +1,6 @@
 <script lang="ts">
-	import * as Tabs from '$shared/ui/shadcn/tabs';
+	import * as Tabs from '$lib/ui/shadcn/tabs/index.js';
+	import type { WithChildren } from '$lib/types.js';
 
 	type TabsProps = {
 		items: string[];

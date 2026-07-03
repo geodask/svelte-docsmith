@@ -1,11 +1,11 @@
 <script lang="ts" module>
-	export { code, h2, h3, pre } from '../markdown';
+	export { code, h2, h3, pre } from '../markdown/index.js';
 </script>
 
 <script lang="ts">
-	import { reactiveBreadcrumb, type BreadcrumbItem } from '$shared/lib/breadcrumb.svelte';
-	import { cn } from '$shared/lib/shadcn';
-	import * as Breadcrumb from '$shared/ui/shadcn/breadcrumb';
+	import { reactiveBreadcrumb, type BreadcrumbItem } from '$lib/breadcrumb.svelte.js';
+	import { cn } from '$lib/shadcn.js';
+	import * as Breadcrumb from '$lib/ui/shadcn/breadcrumb/index.js';
 	import type { Snippet } from 'svelte';
 
 	const { children }: { children: Snippet } = $props();
