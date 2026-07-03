@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/*
+ * Tailwind v4. The design tokens (colors, radius, fonts, shadows, keyframes)
+ * still live in tailwind.config.ts and are loaded via @config — the CSS
+ * custom properties below feed them. Porting the config into a CSS-first
+ * `@theme inline` block is a later cleanup (needs a visual-QA pass).
+ */
+@config '../tailwind.config.ts';
+
+/* class-based dark mode: `dark:` applies under a `.dark` ancestor */
+@custom-variant dark (&:is(.dark *));
+
 @layer base {
 	:root {
 		--background: 204 12.2% 91.96%;
