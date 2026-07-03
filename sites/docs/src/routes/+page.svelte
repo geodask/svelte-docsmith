@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { EarlyReleaseAlert } from '$widgets/early-release-alert';
+	import EarlyReleaseAlert from '$lib/components/early-release-alert.svelte';
 </script>
 
 <div class="max-w-2xl mx-auto mt-16 space-y-6 text-center">

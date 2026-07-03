@@ -3,8 +3,8 @@
 	import type { Snippet } from 'svelte';
 	import { ModeWatcher } from 'mode-watcher';
 	import { Sidebar } from 'svelte-docsmith/internal';
-	import { Header } from '$widgets/header';
-	import { MenuSidebar } from '$widgets/menu-sidebar';
+	import Header from '$lib/components/header.svelte';
+	import MenuSidebar from '$lib/components/menu-sidebar.svelte';
 
 	const { children }: { children: Snippet } = $props();
 </script>

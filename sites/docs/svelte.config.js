@@ -42,14 +42,7 @@ const config = {
 		})
 	],
 	kit: {
-		adapter: adapter(),
-		alias: {
-			$pages: 'src/lib/pages',
-			$entities: 'src/lib/entities',
-			$features: 'src/lib/features',
-			$shared: 'src/lib/shared',
-			$widgets: 'src/lib/widgets'
-		}
+		adapter: adapter()
 	}
 };
 
