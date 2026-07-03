@@ -14,7 +14,7 @@ Prepared 2026-07-03, revised same day after review. This is a planning document,
 - [x] Milestone 2 — Modernize: Svelte/Kit stable bumps, Vite 6→7, Vite 7→8 (separate), Tailwind v4; visual QA passed
 - [x] Milestone 3 — Pipeline: `@shikijs/rehype` swap, velite nav generation, FSD flattened in `sites/docs`
 - [x] Milestone 4 — API + content: README-driven API design implemented, `index.ts` populated per §6.2, 3–5 real doc pages
-- [ ] Milestone 5 — Build-time live examples v1
+- [x] Milestone 5 — Build-time live examples v1 (spike + LiveExample component + build-time source highlighting; the remark ` ```svelte example ` convention deferred to M5 polish)
 - [ ] Milestone 6 — Packaging (`/preprocess` entry, config schema) + fresh-project adoption test
 - [ ] Milestone 7 — Stretch (CLI or playground-v2 exploration)
 
