@@ -2,7 +2,7 @@
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import type { WithElementRef, WithoutChildren } from 'bits-ui';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import { cn } from '$lib/shared/lib/shadcn.js';
+	import { cn } from '$lib/shadcn.js';
 
 	let {
 		ref = $bindable(null),

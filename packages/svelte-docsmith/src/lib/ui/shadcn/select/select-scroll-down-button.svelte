@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { Select as SelectPrimitive, type WithoutChildrenOrChild } from 'bits-ui';
-	import { cn } from '$lib/shared/lib/shadcn.js';
+	import { cn } from '$lib/shadcn.js';
 
 	let {
 		ref = $bindable(null),

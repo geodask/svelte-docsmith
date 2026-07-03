@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as Sheet from '$lib/shared/ui/shadcn/sheet/index.js';
-	import { cn } from '$lib/shared/lib/shadcn.js';
+	import * as Sheet from '$lib/ui/shadcn/sheet/index.js';
+	import { cn } from '$lib/shadcn.js';
 	import type { WithElementRef } from 'bits-ui';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { SIDEBAR_WIDTH_MOBILE } from './constants.js';

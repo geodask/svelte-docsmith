@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Link } from '@lucide/svelte';
-	import type { HeadingProps } from './types';
+	import Link from '@lucide/svelte/icons/link';
+	import type { HeadingProps } from './types.js';
 
 	const { children, ...attrs }: HeadingProps = $props();
 </script>

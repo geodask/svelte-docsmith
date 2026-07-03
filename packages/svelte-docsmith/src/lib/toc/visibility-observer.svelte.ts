@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { BROWSER as browser } from 'esm-env';
 import { untrack } from 'svelte';
 import { SvelteMap } from 'svelte/reactivity';
 import { findElements } from './find-elements.js';

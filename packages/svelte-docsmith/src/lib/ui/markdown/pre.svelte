@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { useClipboard } from '$shared/lib/clipboard.svelte';
+	import { useClipboard } from '$lib/clipboard.svelte.js';
 	import type { Snippet } from 'svelte';
-	import { ScrollArea } from '../shadcn/scroll-area';
+	import { ScrollArea } from '../shadcn/scroll-area/index.js';
 
-	import { Check, Copy } from '@lucide/svelte';
-	import { Button } from '../shadcn/button';
+	import Check from '@lucide/svelte/icons/check';
+	import Copy from '@lucide/svelte/icons/copy';
+	import { Button } from '../shadcn/button/index.js';
 	import { fade } from 'svelte/transition';
 
 	const clipboard = useClipboard();
