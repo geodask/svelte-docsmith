@@ -124,3 +124,13 @@ html.dark .shiki,
 html.dark .shiki span {
 	color: var(--shiki-dark) !important;
 }
+
+/*
+ * Shiki dual-theme sets a light background inline (background-color:#fff) and
+ * exposes the dark one as --shiki-dark-bg. Flip to it in dark mode. Regular
+ * code blocks strip Shiki's <pre> (so no var → transparent, and their bg-muted
+ * wrapper shows through); LiveExample keeps Shiki's <pre>, so this darkens it.
+ */
+html.dark .shiki {
+	background-color: var(--shiki-dark-bg, transparent) !important;
+}
