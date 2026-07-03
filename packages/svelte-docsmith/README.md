@@ -17,23 +17,26 @@ content, and a live table of contents — no per-page wiring.
 
 ## Two files and your markdown works
 
-**1. Register the markdown pipeline** in `svelte.config.js`. Today you wire
-mdsvex yourself (copy the config from the docs site); the one-call
-`docsmith()` preprocess factory below is _planned_ for a later milestone:
+**1. Register the markdown pipeline** in `svelte.config.js`. One call bundles
+mdsvex, Shiki highlighting (dual light/dark themes, a generous language set,
+plain-text fallback for unknown languages), heading anchors, and the packaged
+page layout:
 
 ```js
-// svelte.config.js — planned one-call form
+// svelte.config.js
+import adapter from '@sveltejs/adapter-auto';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { docsmith } from 'svelte-docsmith/preprocess';
 
 export default {
 	extensions: ['.svelte', '.md'],
-	preprocess: [
-		docsmith({
-			/* shiki themes, extra rehype plugins */
-		})
-	]
+	preprocess: [vitePreprocess(), docsmith()],
+	kit: { adapter: adapter() }
 };
 ```
+
+`docsmith()` accepts options for Shiki themes and extra languages, a custom
+layout, and extra remark/rehype plugins — see `DocsmithPreprocessOptions`.
 
 **2. Add the shell** in `src/routes/docs/+layout.svelte`. `DocsShell` composes
 the header, sidebar, content area, and table of contents. Nav is derived from
@@ -41,14 +44,13 @@ your content's frontmatter, never hand-written:
 
 ```svelte
 <script lang="ts">
-	import { DocsShell } from 'svelte-docsmith';
+	import { DocsShell, defineConfig } from 'svelte-docsmith';
 	import { docs } from '$content'; // your velite collection
-	import type { DocsmithConfig } from 'svelte-docsmith';
 
-	const config: DocsmithConfig = {
+	const config = defineConfig({
 		title: 'My Library',
 		github: 'https://github.com/you/my-library'
-	};
+	});
 	const { children } = $props();
 </script>
 
@@ -62,19 +64,19 @@ it appears in the sidebar, styled, highlighted, with breadcrumbs and a TOC.
 
 ## The CSS contract
 
-Components are styled with Tailwind and shadcn design tokens. A consumer's
-Tailwind build does not scan `node_modules` by default, so two lines are
-required in your app's CSS (a scaffolding command to automate this is _planned_):
+Components are styled with Tailwind (v4) and shadcn design tokens. The whole
+contract is one import in your app's stylesheet:
 
 ```css
 @import 'tailwindcss';
-
-/* 1. generate the utility classes the library's components use */
-@source '../node_modules/svelte-docsmith/dist';
-
-/* 2. provide the shadcn theme tokens (--background, --primary, ...) */
-/* import svelte-docsmith/theme.css, or define the tokens yourself */
+@import 'svelte-docsmith/theme.css';
 ```
+
+`theme.css` makes Tailwind scan the package (generating the utility classes
+the components use), defines the shadcn theme tokens (`--background`,
+`--primary`, `--radius`, …) for `:root` and `.dark`, and pulls in the
+typography and animation plugins. Override any token by redefining it after
+the import.
 
 ## A doc page
 
@@ -96,15 +98,53 @@ npm install my-library
 `title`/`description`/`section`/`order` drive the sidebar. `section` groups
 pages; `order` sorts within a group.
 
+## Live examples
+
+`LiveExample` renders a real, interactive component next to its own
+syntax-highlighted source — one file, imported twice, so the demo and its code
+can never drift. Add the `exampleSource` Vite plugin:
+
+```js
+// vite.config.js
+import { sveltekit } from '@sveltejs/kit/vite';
+import { exampleSource } from 'svelte-docsmith/vite';
+
+export default { plugins: [exampleSource(), sveltekit()] };
+```
+
+Then, in any doc page:
+
+```svelte
+<script>
+	import { LiveExample } from 'svelte-docsmith';
+	import Counter from '$lib/examples/counter.svelte';
+	import counterSource from '$lib/examples/counter.svelte?source';
+</script>
+
+<LiveExample source={counterSource}>
+	<Counter />
+</LiveExample>
+```
+
 ## What's exported
+
+**Entry points:**
+
+- `svelte-docsmith` — components and runtime utilities
+- `svelte-docsmith/preprocess` — the `docsmith()` preprocessor factory (Node,
+  config time)
+- `svelte-docsmith/vite` — the `exampleSource()` Vite plugin (Node, build time)
+- `svelte-docsmith/theme.css` — the CSS contract
 
 **Assembled experience** — the fast path:
 
 - `DocsShell` — header + sidebar + content + TOC composition
 - `DocPage` — the markdown page layout (breadcrumb + prose)
 - `TableOfContents` — the in-page TOC list
+- `LiveExample` — rendered component + source panel
 - `Tabs`, `TabItem` — tabbed content blocks
-- `DocsmithConfig` — the site-config type
+- `defineConfig`, `DocsmithConfig` — validated site config
+- `navFromContent` — sidebar nav derived from a content collection
 
 **Parts for customisers** — compose your own shell:
 

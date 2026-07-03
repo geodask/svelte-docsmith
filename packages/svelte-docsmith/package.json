@@ -39,6 +39,15 @@
 			"svelte": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
+		"./preprocess": {
+			"types": "./dist/preprocess.d.ts",
+			"default": "./dist/preprocess.js"
+		},
+		"./vite": {
+			"types": "./dist/vite.d.ts",
+			"default": "./dist/vite.js"
+		},
+		"./theme.css": "./dist/theme.css",
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {
@@ -62,6 +71,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.4",
+		"@types/node": "^22",
 		"@vitest/coverage-v8": "4.1.9",
 		"jsdom": "^26.0.0",
 		"publint": "^0.3.2",
@@ -73,13 +83,20 @@
 		"vitest": "^4.1.9"
 	},
 	"dependencies": {
+		"@hbsnow/rehype-sectionize": "^1.0.7",
 		"@lucide/svelte": "^0.488.0",
+		"@shikijs/transformers": "^3.3.0",
+		"@tailwindcss/typography": "^0.5.16",
 		"bits-ui": "^1.3.19",
 		"clsx": "^2.1.1",
 		"esm-env": "^1.2.2",
+		"mdsvex": "^0.12.3",
 		"mode-watcher": "1.0.2",
+		"rehype-slug": "^6.0.0",
+		"shiki": "^3.2.2",
 		"tailwind-merge": "^3.2.0",
-		"tailwind-variants": "^1.0.0"
+		"tailwind-variants": "^1.0.0",
+		"tw-animate-css": "^1.3.4"
 	},
 	"keywords": [
 		"svelte",

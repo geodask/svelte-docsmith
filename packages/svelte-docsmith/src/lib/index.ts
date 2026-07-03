@@ -6,6 +6,7 @@ export { default as LiveExample } from './ui/live-example.svelte';
 export { default as Tabs } from './ui/tabs.svelte';
 export { default as TabItem } from './ui/tab-item.svelte';
 export {
+	defineConfig,
 	navFromContent,
 	type DocsmithConfig,
 	type DocsContentItem,

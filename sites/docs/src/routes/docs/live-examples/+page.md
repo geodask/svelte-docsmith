@@ -24,8 +24,8 @@ screenshot, not a sandboxed iframe. Click it, then open the source:
 
 The rendered component and the source panel above both come from **one file**,
 `counter.svelte`. It is imported twice — once as a component (rendered) and once
-as `?source` (highlighted at build time by a Vite plugin) — so the demo and its
-code can never drift.
+as `?source` (highlighted at build time by the `exampleSource` plugin from
+`svelte-docsmith/vite`) — so the demo and its code can never drift.
 
 A remark convention (` ```svelte example `) to remove even the import lines is a
 planned refinement.

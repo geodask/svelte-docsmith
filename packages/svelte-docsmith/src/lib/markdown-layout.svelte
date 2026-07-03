@@ -1,8 +1,8 @@
 <script lang="ts" module>
-	// mdsvex replaces markdown elements with these components (the exports must
-	// be named after the tags). They come from svelte-docsmith so the docs site
-	// dogfoods the library's markdown renderers, incl. the Shiki-aware <pre>.
-	import { markdown } from 'svelte-docsmith';
+	// mdsvex maps markdown elements to this module's exports (the export names
+	// must match the tag names). `docsmith()` injects this file as the default
+	// layout for every compiled markdown page.
+	import * as markdown from './ui/markdown/index.js';
 	export const pre = markdown.pre;
 	export const code = markdown.code;
 	export const h2 = markdown.h2;

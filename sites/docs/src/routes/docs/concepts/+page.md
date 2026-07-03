@@ -42,9 +42,9 @@ DocSmith deliberately keeps two structures:
 
 ## The highlighting pipeline
 
-Code blocks are highlighted by [Shiki](https://shiki.style) running as a rehype
-plugin on the HAST tree — no fragile string manipulation, and the full language
-set is available, not a hardcoded handful:
+Code blocks are highlighted by [Shiki](https://shiki.style) inside the
+`docsmith()` preprocessor, with a generous default language set — and unknown
+languages fall back to plain text instead of failing the build:
 
 ```python
 def greet(name: str) -> str:

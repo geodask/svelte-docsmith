@@ -19,20 +19,19 @@ this documentation site is built on.
 
 ## The CSS contract
 
-Components are styled with Tailwind and shadcn design tokens. A consumer's
-Tailwind build does not scan `node_modules` by default, so add two things to
-your app's stylesheet:
+Components are styled with Tailwind and shadcn design tokens. The whole
+contract is one import in your app's stylesheet:
 
 ```css
 @import 'tailwindcss';
-
-/* generate the utility classes the library's components use */
-@source '../node_modules/svelte-docsmith/dist';
+@import 'svelte-docsmith/theme.css';
 ```
 
-You also need the shadcn theme tokens (`--background`, `--primary`, `--radius`,
-…) defined for `:root` and `.dark`. A published `svelte-docsmith/theme.css` and
-a scaffolding command that writes all of this for you are planned.
+`theme.css` makes Tailwind scan the package (so the utility classes its
+components use are generated), defines the shadcn theme tokens
+(`--background`, `--primary`, `--radius`, …) for `:root` and `.dark`, and pulls
+in the typography and animation plugins. Override any token by redefining it
+after the import.
 
 ## Next
 
