@@ -37,6 +37,7 @@
 
 		{#if showSource}
 			<div class="source border-t border-border text-sm" use:clipboard.readText>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted Shiki-highlighted source generated at build time -->
 				{@html source}
 			</div>
 		{/if}

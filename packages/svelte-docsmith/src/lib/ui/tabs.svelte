@@ -12,7 +12,7 @@
 
 <Tabs.Root class="border border-muted dark:border-secondary p-2 rounded-lg" {value}>
 	<Tabs.List class="shadow-md ">
-		{#each items as item}
+		{#each items as item (item)}
 			<Tabs.Trigger value={item}>{item}</Tabs.Trigger>
 		{/each}
 	</Tabs.List>

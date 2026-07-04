@@ -25,6 +25,8 @@ export default ts.config(
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {
+				// Parse the TypeScript inside <script lang="ts"> blocks.
+				parser: ts.parser,
 				projectService: true,
 				extraFileExtensions: ['.svelte']
 			}
