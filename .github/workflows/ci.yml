@@ -47,3 +47,16 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Pack the publishable tarball so a reviewer can install exactly what
+      # would ship to npm and run the README adoption steps against it.
+      - name: Pack the library tarball
+        working-directory: packages/svelte-docsmith
+        run: pnpm pack --pack-destination "$RUNNER_TEMP"
+
+      - name: Upload the library tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: svelte-docsmith-tarball
+          path: ${{ runner.temp }}/*.tgz
+          if-no-files-found: error

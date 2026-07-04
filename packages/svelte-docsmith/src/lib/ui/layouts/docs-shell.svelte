@@ -48,7 +48,8 @@
 	let tocItems = $state<TocItem[]>([]);
 
 	$effect(() => {
-		page.url.pathname; // re-run when the route changes
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- read to make the route a reactive dependency
+		page.url.pathname;
 		if (!contentEl) return;
 		tocItems = tocFromContent(contentEl);
 	});

@@ -37,6 +37,7 @@
 
 	$effect(() => {
 		// Close the overlays on navigation.
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions -- read to make the route a reactive dependency
 		page.url.pathname;
 		isMenuOpen = false;
 		isTocOpen = false;
