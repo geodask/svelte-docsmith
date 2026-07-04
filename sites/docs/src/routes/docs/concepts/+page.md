@@ -15,9 +15,9 @@ markdown and they run as part of the same app.
 
 ## Nav is derived, never written
 
-There is no navigation array to maintain. A [velite](https://velite.js.org)
-collection reads each page's frontmatter and `DocsShell` groups the entries into
-the sidebar:
+There is no navigation array to maintain. The `docsmith()` Vite plugin reads
+each page's frontmatter into the `svelte-docsmith/content` module, and
+`DocsShell` groups the entries into the sidebar:
 
 ```ts
 {
@@ -35,8 +35,8 @@ smallest `order` they contain.
 
 DocSmith deliberately keeps two structures:
 
-- **velite** owns build-time structure — the sidebar today, a search index
-  later.
+- The **content index** owns build-time structure — the `docsmith()` Vite plugin
+  scans frontmatter into the sidebar (a search index later).
 - The runtime **TOC engine** owns in-page scroll tracking: it scans the
   rendered headings and highlights the section you are reading.
 

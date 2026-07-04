@@ -7,20 +7,20 @@ The documentation framework for Svelte 5 library authors whose interactive
 examples need to live inside one real, stateful SvelteKit app — not sandboxed as
 isolated islands.
 
-Drop a markdown file under `src/routes/docs/` and you get a styled page with
-syntax highlighting, heading anchors, a sidebar navigation derived from your
-content, and a live table of contents — no per-page wiring.
+Write a markdown file under `src/routes/docs/` and you get a styled page with
+syntax highlighting, heading anchors, a sidebar derived from your content, and a
+live table of contents — no per-page wiring, no content collection to configure.
 
 > **Status: early development.** The public API described here is stabilising
-> milestone by milestone (see `PLAN.md` in the repo). Anything marked _planned_
-> is designed but not yet shipped. Not yet published to npm.
+> milestone by milestone (see `PLAN.md` in the repo). Not yet published to npm.
 
-## Two files and your markdown works
+## Setup
 
-**1. Register the markdown pipeline** in `svelte.config.js`. One call bundles
-mdsvex, Shiki highlighting (dual light/dark themes, a generous language set,
-plain-text fallback for unknown languages), heading anchors, and the packaged
-page layout:
+Three small pieces, once.
+
+**1. The markdown pipeline** — in `svelte.config.js`. One call bundles mdsvex,
+Shiki highlighting (dual light/dark themes, a generous language set, plain-text
+fallback for unknown languages), heading anchors, and the packaged page layout:
 
 ```js
 // svelte.config.js
@@ -35,17 +35,49 @@ export default {
 };
 ```
 
-`docsmith()` accepts options for Shiki themes and extra languages, a custom
-layout, and extra remark/rehype plugins — see `DocsmithPreprocessOptions`.
+**2. The Vite plugin** — in `vite.config.ts`. It scans your doc pages'
+frontmatter into the `svelte-docsmith/content` module (so the sidebar is derived
+from content, never hand-written) and powers `LiveExample`:
 
-**2. Add the shell** in `src/routes/docs/+layout.svelte`. `DocsShell` composes
-the header, sidebar, content area, and table of contents. Nav is derived from
-your content's frontmatter, never hand-written:
+```ts
+// vite.config.ts
+import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
+import { docsmith } from 'svelte-docsmith/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+	plugins: [docsmith(), tailwindcss(), sveltekit()]
+});
+```
+
+By default it scans `src/routes/docs`; pass `docsmith({ content: 'src/routes/guide' })`
+to point elsewhere.
+
+**3. The stylesheet** — in your root `app.css`. Your app needs Tailwind v4 set up
+the standard way (`tailwindcss` + the `@tailwindcss/vite` plugin, stylesheet
+imported in the root layout). After that the whole style contract is one import:
+
+```css
+@import 'tailwindcss';
+@import 'svelte-docsmith/theme.css';
+```
+
+`theme.css` makes Tailwind scan the package, defines the shadcn theme tokens
+(`--background`, `--primary`, `--radius`, …) for `:root` and `.dark`, and pulls
+in the typography and animation plugins. Override any token by redefining it
+after the import.
+
+## The shell
+
+Add `DocsShell` once, in `src/routes/docs/+layout.svelte`. It composes the
+header, sidebar, content area, and table of contents. `docs` is the generated
+content index — no import of a content collection, no alias to configure:
 
 ```svelte
 <script lang="ts">
 	import { DocsShell, defineConfig } from 'svelte-docsmith';
-	import { docs } from '$content'; // your velite collection
+	import { docs } from 'svelte-docsmith/content';
 
 	const config = defineConfig({
 		title: 'My Library',
@@ -59,43 +91,10 @@ your content's frontmatter, never hand-written:
 </DocsShell>
 ```
 
-`content` accepts any `DocsContentItem[]` — objects with `title`, `path`, and
-optional `section`/`order`. Don't have a content collection yet? A hand-written
-array works on day one:
+## Doc pages
 
-```ts
-const docs = [
-	{ title: 'Getting Started', path: '/docs/getting-started', section: 'Guides', order: 1 }
-];
-```
-
-To derive it from your pages' frontmatter instead (so the sidebar can never
-drift from the content), point a [velite](https://velite.js.org) collection at
-`src/routes/docs/**/*.md` — this repo's `sites/docs/velite.config.js` is a
-complete working example.
-
-That's it. Add `src/routes/docs/getting-started/+page.md` with frontmatter and
-it appears in the sidebar, styled, highlighted, with breadcrumbs and a TOC.
-
-## The CSS contract
-
-Components are styled with Tailwind (v4) and shadcn design tokens. Your app
-needs Tailwind v4 set up the standard way (`tailwindcss` + the
-`@tailwindcss/vite` plugin, and your stylesheet imported in the root layout).
-After that, the whole contract is one import:
-
-```css
-@import 'tailwindcss';
-@import 'svelte-docsmith/theme.css';
-```
-
-`theme.css` makes Tailwind scan the package (generating the utility classes
-the components use), defines the shadcn theme tokens (`--background`,
-`--primary`, `--radius`, …) for `:root` and `.dark`, and pulls in the
-typography and animation plugins. Override any token by redefining it after
-the import.
-
-## A doc page
+Each page is a `+page.md` under `src/routes/docs/`. Frontmatter drives the
+sidebar; the body is markdown:
 
 ````md
 ---
@@ -112,24 +111,16 @@ npm install my-library
 ```
 ````
 
-`title`/`description`/`section`/`order` drive the sidebar. `section` groups
-pages; `order` sorts within a group.
+`title` names the page. `section` groups pages in the sidebar; `order` sorts
+within a group (and orders the groups by their smallest `order`). Add the file
+and it appears in the sidebar — styled, highlighted, with a table of contents.
 
 ## Live examples
 
 `LiveExample` renders a real, interactive component next to its own
 syntax-highlighted source — one file, imported twice, so the demo and its code
-can never drift. Add the `exampleSource` Vite plugin:
-
-```js
-// vite.config.js
-import { sveltekit } from '@sveltejs/kit/vite';
-import { exampleSource } from 'svelte-docsmith/vite';
-
-export default { plugins: [exampleSource(), sveltekit()] };
-```
-
-Then, in any doc page:
+can never drift. The `?source` import is served by the same `docsmith()` Vite
+plugin you already added:
 
 ```svelte
 <script>
@@ -145,35 +136,17 @@ Then, in any doc page:
 
 ## What's exported
 
-**Entry points:**
+| Entry point                  | What it is                                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `svelte-docsmith`            | `DocsShell`, `LiveExample`, `Tabs`, `TabItem`, `defineConfig` + `DocsmithConfig`/`DocsContentItem` types |
+| `svelte-docsmith/preprocess` | `docsmith()` — the mdsvex/Shiki pipeline (Node, config time)                                             |
+| `svelte-docsmith/vite`       | `docsmith()` — content index + `?source` (Node, build time)                                              |
+| `svelte-docsmith/content`    | `docs` — the generated sidebar content index                                                             |
+| `svelte-docsmith/theme.css`  | the style contract                                                                                       |
 
-- `svelte-docsmith` — components and runtime utilities
-- `svelte-docsmith/preprocess` — the `docsmith()` preprocessor factory (Node,
-  config time)
-- `svelte-docsmith/vite` — the `exampleSource()` Vite plugin (Node, build time)
-- `svelte-docsmith/theme.css` — the CSS contract
-
-**Assembled experience** — the fast path:
-
-- `DocsShell` — header + sidebar + content + TOC composition
-- `DocPage` — the markdown page layout (breadcrumb + prose)
-- `TableOfContents` — the in-page TOC list
-- `LiveExample` — rendered component + source panel
-- `Tabs`, `TabItem` — tabbed content blocks
-- `defineConfig`, `DocsmithConfig` — validated site config
-- `navFromContent` — sidebar nav derived from a content collection
-
-**Parts for customisers** — compose your own shell:
-
-- `reactiveToc`, `tocFromContent` and the rest of the TOC engine
-- `useClipboard` — copy-to-clipboard helper
-- `reactiveBreadcrumb`, `setupReactiveBreadcrumb`
-- `markdown` — the per-element renderer map (`pre`, `code`, `h2`, `h3`) for
-  overriding individual markdown elements
-- Types: `WithChildren`, `HighlightedTocItem`, `NavGroup`, `NavItem`
-
-The vendored shadcn primitives are **internal** and intentionally not exported —
-get buttons, cards, etc. from `shadcn-svelte` directly.
+The vendored shadcn primitives and internal helpers (the TOC engine, clipboard
+utility, markdown renderer map) are **not** part of the public API — they can
+change between releases. Get buttons, cards, etc. from `shadcn-svelte` directly.
 
 ## License
 

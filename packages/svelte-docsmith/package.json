@@ -47,6 +47,10 @@
 			"types": "./dist/vite.d.ts",
 			"default": "./dist/vite.js"
 		},
+		"./content": {
+			"types": "./dist/content.d.ts",
+			"default": "./dist/content.js"
+		},
 		"./theme.css": "./dist/theme.css",
 		"./package.json": "./package.json"
 	},
@@ -71,6 +75,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@testing-library/jest-dom": "^6.6.3",
 		"@testing-library/svelte": "^5.2.4",
+		"@types/js-yaml": "^4.0.9",
 		"@types/node": "^22",
 		"@vitest/coverage-v8": "4.1.9",
 		"jsdom": "^26.0.0",
@@ -90,6 +95,7 @@
 		"bits-ui": "^1.3.19",
 		"clsx": "^2.1.1",
 		"esm-env": "^1.2.2",
+		"js-yaml": "^4.1.0",
 		"mdsvex": "^0.12.3",
 		"mode-watcher": "1.0.2",
 		"rehype-slug": "^6.0.0",

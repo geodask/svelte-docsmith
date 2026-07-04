@@ -7,11 +7,7 @@ const config = {
 	extensions: ['.svelte', '.md'],
 	preprocess: [vitePreprocess(), docsmith()],
 	kit: {
-		adapter: adapter(),
-		alias: {
-			// Generated velite content collections.
-			$content: './.velite'
-		}
+		adapter: adapter()
 	}
 };
 
