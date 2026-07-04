@@ -21,8 +21,9 @@
 	{item.title}
 {/snippet}
 
-<Breadcrumb.Root class="mb-8">
-	<Breadcrumb.List class="text-base">
+<!-- Hidden on mobile: the shell's mobile header already shows the page title. -->
+<Breadcrumb.Root class="mb-6 hidden lg:block">
+	<Breadcrumb.List class="text-sm">
 		{#each breadcrumb.items as item}
 			<Breadcrumb.Item>
 				{#if item.href}

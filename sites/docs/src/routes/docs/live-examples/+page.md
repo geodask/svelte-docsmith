@@ -2,7 +2,7 @@
 title: Live Examples
 description: Real interactive components rendered inside the docs.
 section: Core Concepts
-order: 2
+order: 5
 ---
 
 <script>

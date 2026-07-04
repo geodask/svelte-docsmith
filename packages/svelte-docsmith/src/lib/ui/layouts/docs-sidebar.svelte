@@ -1,40 +1,36 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { ScrollArea } from '$lib/ui/shadcn/scroll-area/index.js';
-	import * as Sidebar from '$lib/ui/shadcn/sidebar/index.js';
+	import { cn } from '$lib/shadcn.js';
 	import type { NavGroup } from '$lib/config.js';
-	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 
-	const { title, nav }: { title: string; nav: NavGroup[] } = $props();
+	const { nav, class: className = '' }: { nav: NavGroup[]; class?: string } = $props();
 </script>
 
-<Sidebar.Root variant="sidebar" class="p-0 border-none">
-	<Sidebar.Header class="h-14 pl-4">
-		<a href="/" class="text-lg font-bold h-full gap-2 flex items-center">
-			<BookOpenText class="text-primary size-6" />
-			{title}
-		</a>
-	</Sidebar.Header>
-	<Sidebar.Content>
-		<ScrollArea>
+<aside class={cn('sticky top-24 hidden h-screen w-56 shrink-0 bg-transparent lg:block', className)}>
+	<div class="max-h-[calc(100vh-10rem)] overflow-y-auto px-4">
+		<nav class="space-y-6">
 			{#each nav as group (group.title)}
-				<Sidebar.Group>
-					<Sidebar.GroupLabel>{group.title}</Sidebar.GroupLabel>
-					<Sidebar.GroupContent>
-						<Sidebar.Menu>
-							{#each group.items as item (item.url)}
-								<Sidebar.MenuItem>
-									<Sidebar.MenuButton isActive={page.url.pathname === item.url}>
-										{#snippet child({ props }: { props: Record<string, unknown> })}
-											<a href={item.url} {...props}>{item.title}</a>
-										{/snippet}
-									</Sidebar.MenuButton>
-								</Sidebar.MenuItem>
-							{/each}
-						</Sidebar.Menu>
-					</Sidebar.GroupContent>
-				</Sidebar.Group>
+				<div class="space-y-3">
+					<h4 class="text-foreground px-2 text-sm font-semibold">{group.title}</h4>
+					<ul class="space-y-1">
+						{#each group.items as item (item.url)}
+							<li>
+								<a
+									href={item.url}
+									class={cn(
+										'hover:text-primary hover:bg-primary/20 block rounded-md px-2 py-1.5 text-sm transition-colors',
+										page.url.pathname === item.url
+											? 'text-primary bg-primary/20 font-medium'
+											: 'text-muted-foreground'
+									)}
+								>
+									{item.title}
+								</a>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/each}
-		</ScrollArea>
-	</Sidebar.Content>
-</Sidebar.Root>
+		</nav>
+	</div>
+</aside>

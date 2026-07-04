@@ -2,6 +2,7 @@
 export { default as DocsShell } from './ui/layouts/docs-shell.svelte';
 export { default as DocPage } from './ui/layouts/doc-page.svelte';
 export { default as TableOfContents } from './ui/table-of-contents.svelte';
+export { default as BackgroundPattern } from './ui/background-pattern.svelte';
 export { default as LiveExample } from './ui/live-example.svelte';
 export { default as Tabs } from './ui/tabs.svelte';
 export { default as TabItem } from './ui/tab-item.svelte';
