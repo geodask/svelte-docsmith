@@ -2,7 +2,7 @@
 title: API Reference
 description: Components, helpers, and types exported by svelte-docsmith.
 section: Reference
-order: 1
+order: 6
 ---
 
 ## Assembled experience

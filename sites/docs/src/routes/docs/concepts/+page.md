@@ -2,7 +2,7 @@
 title: How it works
 description: The content model, the markdown pipeline, and navigation.
 section: Core Concepts
-order: 1
+order: 4
 ---
 
 ## Markdown as routes
@@ -54,5 +54,5 @@ def greet(name: str) -> str:
 ```yaml
 title: How it works
 section: Core Concepts
-order: 1
+order: 4
 ```

@@ -3,33 +3,22 @@
 	import type { HighlightedTocItem } from '$lib/toc/index.js';
 	import List from '@lucide/svelte/icons/list';
 
-	const { items = [] }: { items: HighlightedTocItem[] } = $props();
+	const { items = [], class: className = '' }: { items?: HighlightedTocItem[]; class?: string } =
+		$props();
 </script>
 
-{#if items.length > 0}
-	<div class="fixed z-20 lg:w-[16rem] right-8 top-20 hidden lg:block">
-		<div class="font-semibold flex items-center gap-2">
-			<List class="size-5" />
-			On this page
-		</div>
-		<div class="text-sm mt-3 pl-1">
-			{@render TocList(items)}
-		</div>
-	</div>
-{/if}
-
-{#snippet TocList(items: HighlightedTocItem[], className: string = '')}
-	{#if items.length > 0}
-		<ul class={cn('space-y-1', className)}>
-			{#each items as item (item.url)}
+{#snippet TocList(tocItems: HighlightedTocItem[], listClass: string = '')}
+	{#if tocItems.length > 0}
+		<ul class={cn('space-y-0.5', listClass)}>
+			{#each tocItems as item (item.url)}
 				<li>
 					<a
 						href={item.url}
 						class={cn(
-							'py-2 h-8 flex flex-1 text-foreground items-center truncate transition-all duration-300 rounded-lg',
+							'text-muted-foreground hover:text-foreground block truncate py-1.5 text-sm transition-colors duration-200',
 							{
-								'text-primary font-semibold bg-primary/10 px-2 -translate-x-4': item.isFocused,
-								'text-primary font-semibold': item.hasFocusedChildren
+								'text-primary font-medium': item.isFocused,
+								'text-foreground': item.hasFocusedChildren
 							}
 						)}
 					>
@@ -38,9 +27,25 @@
 				</li>
 
 				{#if item.items?.length > 0}
-					{@render TocList(item.items, 'pl-5')}
+					{@render TocList(item.items, 'ml-0.5 border-l border-border pl-4')}
 				{/if}
 			{/each}
 		</ul>
 	{/if}
 {/snippet}
+
+{#if items.length > 0}
+	<aside class={cn('sticky top-24 hidden w-56 shrink-0 self-start lg:block', className)}>
+		<nav class="pr-4">
+			<div
+				class="border-border text-foreground flex items-center gap-2 border-b pb-3 text-sm font-semibold"
+			>
+				<List class="size-4" />
+				<span>On this page</span>
+			</div>
+			<div class="mt-3 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2">
+				{@render TocList(items)}
+			</div>
+		</nav>
+	</aside>
+{/if}

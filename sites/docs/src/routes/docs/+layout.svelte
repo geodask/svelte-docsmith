@@ -2,6 +2,7 @@
 	import { docs } from '$content';
 	import { DocsShell, type DocsmithConfig } from 'svelte-docsmith';
 	import { version } from 'svelte-docsmith/package.json';
+	import SiteFooter from '$lib/components/site-footer.svelte';
 	import type { Snippet } from 'svelte';
 
 	const config: DocsmithConfig = {
@@ -13,6 +14,10 @@
 	const { children }: { children: Snippet } = $props();
 </script>
 
-<DocsShell {config} content={docs}>
+<DocsShell {config} content={docs} pattern>
 	{@render children()}
+
+	{#snippet footer()}
+		<SiteFooter />
+	{/snippet}
 </DocsShell>
