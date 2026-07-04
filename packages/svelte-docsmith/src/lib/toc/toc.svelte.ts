@@ -1,12 +1,17 @@
-import type {
-	ElementObserver,
-	HighlightedTocItem,
-	TocItem,
-	TocOptions,
-	TocState,
-	ObservedElement
-} from './types.js';
-import { visibilityObserver } from './visibility-observer.svelte.js';
+import type { HighlightedTocItem, TocItem, TocOptions } from './types.js';
+import {
+	visibilityObserver,
+	type ElementObserver,
+	type ObservedElement
+} from './visibility-observer.svelte.js';
+
+/**
+ * The reactive result of {@link reactiveToc}: the TOC items enriched with
+ * live highlight state, ready to render.
+ */
+export type TocState = {
+	items: HighlightedTocItem[];
+};
 
 /**
  * Sets up TOC tracking and returns highlighted TOC items ready for rendering
@@ -61,7 +66,6 @@ function defaultUrlToIdMapper(url: string): string {
 function createTocConfig(options: TocOptions) {
 	return {
 		idAttribute: 'data-section-id',
-		headingSelector: 'h2, h3, h4, h5, h6',
 		rootMargin: '-56px 0px 0px 0px',
 		...options
 	};

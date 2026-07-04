@@ -1,7 +1,6 @@
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { visibilityObserver } from './visibility-observer.svelte.js';
-import type { ElementObserver } from './types.js';
+import { visibilityObserver, type ElementObserver } from './visibility-observer.svelte.js';
 
 // The observer only runs its real logic in the browser; keep the rest of
 // esm-env intact (Svelte internals read DEV from it).

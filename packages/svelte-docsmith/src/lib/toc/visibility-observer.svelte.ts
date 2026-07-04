@@ -1,49 +1,73 @@
 import { BROWSER as browser } from 'esm-env';
 import { untrack } from 'svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { findElements } from './find-elements.js';
-import type { ElementObserver as ElementObserver } from './types.js';
 
 /**
- * Configuration for the visibility Observer
+ * Configuration for the visibility observer.
  */
 export type VisibilityObserverConfig = {
 	/**
-	 * Attribute used to select element. Its value is used as the element ID.
-	 * Default: 'id'
+	 * Attribute used to select elements. Its value is used as the element id.
+	 * Default: `'id'`.
 	 */
 	idAttribute?: string;
 
 	/**
-	 * Optional selector to filter elements
+	 * Optional selector appended to the id-attribute selector to narrow the set
+	 * of tracked elements.
 	 */
 	selector?: string;
 
 	/**
-	 * Custom filter function to exclude elements from tracking
+	 * Custom filter to exclude elements from tracking.
 	 * @param element - The HTML element to evaluate
-	 * @param id - The element's ID
-	 * @returns true if the element should be tracked, false to exclude it
+	 * @param id - The element's id
+	 * @returns true to track the element, false to exclude it
 	 */
 	filter?: (element: HTMLElement, id: string) => boolean;
 
 	/**
-	 * Root margin for intersection observer (default: '0px')
+	 * Root margin for the IntersectionObserver. Default: `'0px'`.
 	 */
 	rootMargin?: string;
 
 	/**
-	 * Threshold for intersection observer (default: 0)
-	 * Value between 0 and 1 indicating what percentage of the element should be visible
+	 * Threshold for the IntersectionObserver. Default: 21 evenly-spaced steps.
 	 */
 	threshold?: number | number[];
 };
 
 /**
- * Element entry type for internal tracking
+ * A tracked element with its live visibility state.
+ */
+export interface ObservedElement {
+	/** The element's id. */
+	id: string;
+	/** The element is currently intersecting the viewport. */
+	isVisible: boolean;
+	/** The element has the highest intersection ratio among visible elements. */
+	isActive?: boolean;
+	/** A descendant element is visible. */
+	hasVisibleChildren: boolean;
+	/** A descendant element is the active one. */
+	hasFocusedChildren?: boolean;
+}
+
+/**
+ * The reactive result of {@link visibilityObserver}: the tracked elements with
+ * their highlight state.
+ */
+export interface ElementObserver {
+	elements: ObservedElement[];
+}
+
+/**
+ * Internal per-element tracking entry. Holds the live `Element` reference so
+ * parent walks and visibility collection never re-query the document.
  */
 type ElementEntry = {
 	id: string;
+	element: Element;
 	visible: boolean;
 	active: boolean;
 	hasFocusedChildren: boolean;
@@ -52,7 +76,7 @@ type ElementEntry = {
 };
 
 /**
- * Visible element information for tracking
+ * Visible element information used while recomputing highlight state.
  */
 type VisibleElement = {
 	id: string;
@@ -61,11 +85,11 @@ type VisibleElement = {
 };
 
 /**
- * Create a visibility observer to observe element visibility using IntersectionObserver
+ * Observe element visibility within a root using IntersectionObserver.
  *
- * @param rootFn - Function that returns the root element containing the elements to track
- * @param config - Configuration for the visibility Observer
- * @returns ElementObserver object
+ * @param rootFn - Returns the root element containing the elements to track
+ * @param config - Configuration for the visibility observer
+ * @returns An {@link ElementObserver} exposing reactive tracked elements
  */
 export function visibilityObserver(
 	rootFn: () => HTMLElement | null,
@@ -76,21 +100,25 @@ export function visibilityObserver(
 	const elementMap = new SvelteMap<string, ElementEntry>();
 	const root = $derived(rootFn());
 	const _config = createDefaultConfig(config);
-	let _observer = createIntersectionObserver(_config, elementMap, updateActiveElement);
 
 	function updateActiveElement() {
-		const allVisibleElements = collectVisibleElements(_config.idAttribute, elementMap);
+		const allVisibleElements = collectVisibleElements(elementMap);
 		resetElementStates(elementMap);
 		processActiveElement(allVisibleElements, _config.idAttribute, elementMap);
 		processVisibleElementParents(allVisibleElements, _config.idAttribute, elementMap);
 	}
 
 	$effect(() => {
-		_observer?.disconnect();
 		if (!root) return;
 
-		setupElementObservation(root, _config, elementMap, _observer);
-		setTimeout(updateActiveElement, 100);
+		const observer = createIntersectionObserver(_config, elementMap, updateActiveElement);
+		setupElementObservation(root, _config, elementMap, observer);
+		const timer = setTimeout(updateActiveElement, 100);
+
+		return () => {
+			clearTimeout(timer);
+			observer.disconnect();
+		};
 	});
 
 	const trackedElements = $derived.by(() => mapToObservedElements(elementMap));
@@ -112,6 +140,21 @@ function createDefaultConfig(config?: Partial<VisibilityObserverConfig>) {
 		threshold: Array.from({ length: 21 }, (_, i) => i / 20),
 		...config
 	};
+}
+
+/**
+ * Find the elements to track within a container, honouring the id attribute,
+ * an optional narrowing selector, and an optional filter.
+ */
+function findElements(container: HTMLElement, config: VisibilityObserverConfig): HTMLElement[] {
+	const idAttribute = config.idAttribute || 'id';
+	const selector = config.selector ? `[${idAttribute}]${config.selector}` : `[${idAttribute}]`;
+	const elements = Array.from(container.querySelectorAll<HTMLElement>(selector));
+
+	if (!config.filter) return elements;
+
+	const filter = config.filter;
+	return elements.filter((element) => filter(element, element.getAttribute(idAttribute) || ''));
 }
 
 /**
@@ -153,24 +196,16 @@ function createIntersectionObserver(
 /**
  * Collect all visible elements with their intersection ratios
  */
-function collectVisibleElements(
-	idAttribute: string,
-	elementMap: SvelteMap<string, ElementEntry>
-): VisibleElement[] {
+function collectVisibleElements(elementMap: SvelteMap<string, ElementEntry>): VisibleElement[] {
 	const allVisibleElements: VisibleElement[] = [];
-	const allElements = document.querySelectorAll(`[${idAttribute}]`);
 
-	allElements.forEach((element) => {
-		const id = element.getAttribute(idAttribute);
-		if (id && elementMap.has(id)) {
-			const mapEntry = elementMap.get(id);
-			if (mapEntry?.visible) {
-				allVisibleElements.push({
-					id,
-					element,
-					intersectionRatio: mapEntry.intersectionRatio
-				});
-			}
+	elementMap.forEach((entry) => {
+		if (entry.visible) {
+			allVisibleElements.push({
+				id: entry.id,
+				element: entry.element,
+				intersectionRatio: entry.intersectionRatio
+			});
 		}
 	});
 
@@ -279,27 +314,22 @@ function setupElementObservation(
 		if (id) {
 			untrack(() => elementMap).set(id, {
 				id,
+				element,
 				visible: false,
 				active: false,
 				hasFocusedChildren: false,
 				hasVisibleChildren: false,
 				intersectionRatio: 0
 			});
-			observer?.observe(element);
+			observer.observe(element);
 		}
 	});
 }
 
 /**
- * Map internal elements to the ObservedElement interface
+ * Map internal entries to the {@link ObservedElement} shape
  */
-function mapToObservedElements(elementMap: SvelteMap<string, ElementEntry>): {
-	id: string;
-	isVisible: boolean;
-	isActive: boolean;
-	hasVisibleChildren: boolean;
-	hasFocusedChildren: boolean;
-}[] {
+function mapToObservedElements(elementMap: SvelteMap<string, ElementEntry>): ObservedElement[] {
 	return Array.from(elementMap.values()).map(
 		({ id, visible, active, hasFocusedChildren, hasVisibleChildren }) => ({
 			id,
