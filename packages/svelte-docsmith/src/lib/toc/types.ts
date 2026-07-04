@@ -1,136 +1,39 @@
 /**
- * Represents a basic TOC item in the navigation
+ * A table-of-contents entry: a heading with a link and any nested entries.
  */
 export type TocItem = {
-	/**
-	 * URL of the TOC item
-	 */
+	/** In-page URL of the heading (e.g. `#installation`). */
 	url: string;
-
-	/**
-	 * Title of the TOC item
-	 */
+	/** Heading text. */
 	title: string;
-
-	/**
-	 * Optional nested items
-	 */
+	/** Nested entries (e.g. h3s under an h2). */
 	items: TocItem[];
 };
 
 /**
- * Enhanced TOC item with highlighting information
+ * A {@link TocItem} enriched with live scroll-tracking state.
  */
 export type HighlightedTocItem = TocItem & {
-	/**
-	 * Whether this is the currently highlighted item
-	 */
+	/** This entry's section is currently visible. */
 	isHighlighted: boolean;
-
-	/**
-	 * Whether this is the primary focused item among all highlighted items
-	 * Only one item should have this set to true at a time
-	 */
+	/** This entry is the primary section in view (only one at a time). */
 	isFocused: boolean;
-
-	/**
-	 * Whether this item has a child that is visible
-	 */
+	/** A descendant entry's section is visible. */
 	hasVisibleChildren?: boolean;
-
-	/**
-	 * Whether this element has children that are focused
-	 */
+	/** A descendant entry is the focused one. */
 	hasFocusedChildren?: boolean;
-
-	/**
-	 * Child items with highlighting information
-	 */
+	/** Nested entries with their own highlight state. */
 	items: HighlightedTocItem[];
 };
 
 /**
- * Base configuration for TOC functionality
- */
-export type TocBaseOptions = {};
-
-/**
- * Configuration options for the TOC tracking system
+ * Options for {@link reactiveToc}.
  */
 export type TocOptions = {
-	/**
-	 * CSS selector for headings (default: 'h1, h2, h3, h4, h5, h6')
-	 */
-	headingSelector?: string;
-
-	/**
-	 * Attribute used to identify sections (default: 'data-section-id')
-	 */
+	/** Attribute identifying a section element. Default: `'data-section-id'`. */
 	idAttribute?: string;
-
-	/**
-	 * Root margin for the IntersectionObserver (default: '-56px 0px 0px 0px')
-	 */
+	/** Root margin for the IntersectionObserver. Default: `'-56px 0px 0px 0px'`. */
 	rootMargin?: string;
-
-	/**
-	 * Optional mapper function to convert TOC item URLs to DOM element IDs
-	 */
+	/** Map a TOC item's URL to the section element's id. Default: strip a leading `#`. */
 	urlToElementIdMapper?: (url: string) => string;
-
-	/**
-	 * Optional mapper function to convert DOM element IDs to TOC item URLs
-	 */
-	elementIdToUrlMapper?: (id: string) => string;
-};
-
-/**
- * Represents an element tracked for visibility
- */
-export interface ObservedElement {
-	/**
-	 * Identifier of the element
-	 */
-	id: string;
-
-	/**
-	 * Whether this element is currently visible in the viewport
-	 */
-	isVisible: boolean;
-
-	/**
-	 * Whether this element is the one with the highest intersection ratio
-	 * Used to ensure only one element is active even when multiple are visible
-	 */
-	isActive?: boolean;
-
-	/**
-	 * Whether this element has a child that is visible
-	 */
-	hasVisibleChildren: boolean;
-
-	/**
-	 * Whether this element has children that are focused
-	 */
-	hasFocusedChildren?: boolean;
-}
-
-/**
- * Base interface for any element tracking strategy
- */
-export interface ElementObserver {
-	/**
-	 * Elements being tracked with their highlight status
-	 */
-	elements: ObservedElement[];
-}
-
-/**
- * State returned by the TOC system
- */
-export type TocState = {
-	/**
-	 * Fully processed TOC items ready for rendering
-	 */
-	items: HighlightedTocItem[];
 };
