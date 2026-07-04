@@ -51,23 +51,34 @@ function isPageFile(file: string): boolean {
 }
 
 /**
+ * List the absolute paths of every `+page.md`/`+page.svx` under `contentDir`.
+ */
+function listPageFiles(contentDir: string): string[] {
+	if (!fs.existsSync(contentDir)) return [];
+
+	const entries = fs.readdirSync(contentDir, { recursive: true, withFileTypes: true });
+	const files: string[] = [];
+	for (const entry of entries) {
+		if (!entry.isFile() || !isPageFile(entry.name)) continue;
+		const dir = entry.parentPath ?? (entry as { path?: string }).path ?? contentDir;
+		files.push(path.join(dir, entry.name));
+	}
+	return files;
+}
+
+/**
  * Scan `contentDir` for `+page.md`/`+page.svx` files and read the frontmatter
  * fields the sidebar needs, deriving each page's URL from its directory
  * relative to `routesDir`. Pure and synchronous so it can be unit-tested.
  */
 export function collectDocs(contentDir: string, routesDir: string): DocsContentItem[] {
-	if (!fs.existsSync(contentDir)) return [];
-
-	const entries = fs.readdirSync(contentDir, { recursive: true, withFileTypes: true });
 	const items: DocsContentItem[] = [];
 
-	for (const entry of entries) {
-		if (!entry.isFile() || !isPageFile(entry.name)) continue;
-		const dir = entry.parentPath ?? (entry as { path?: string }).path ?? contentDir;
-		const file = path.join(dir, entry.name);
+	for (const file of listPageFiles(contentDir)) {
 		const front = readFrontmatter(file);
 		if (typeof front.title !== 'string') continue; // a page without a title isn't nav-worthy
 
+		const dir = path.dirname(file);
 		const url = '/' + path.relative(routesDir, dir).split(path.sep).join('/');
 		items.push({
 			title: front.title,
@@ -104,7 +115,11 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 
 		load(id) {
 			if (id !== VIRTUAL_CONTENT_ID) return;
-			this.addWatchFile(contentDir);
+			// Watch each page file (not the directory) so editing frontmatter
+			// re-runs this load. A directory here is treated as an unresolvable
+			// import by vite:import-analysis; new/removed pages are handled by
+			// the watcher in configureServer.
+			for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
 			const docs = collectDocs(contentDir, routesDir);
 			return `export const docs = ${JSON.stringify(docs, null, 2)};\n`;
 		},
