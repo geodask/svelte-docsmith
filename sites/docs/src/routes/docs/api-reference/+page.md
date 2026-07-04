@@ -1,13 +1,21 @@
 ---
 title: API Reference
-description: Components, helpers, and types exported by svelte-docsmith.
+description: The public API exported by svelte-docsmith.
 section: Reference
 order: 6
 ---
 
-## Assembled experience
+## Entry points
 
-The fast path — import and compose.
+| Entry point                  | Exports                                                               |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `svelte-docsmith`            | `DocsShell`, `LiveExample`, `Tabs`, `TabItem`, `defineConfig`, types  |
+| `svelte-docsmith/preprocess` | `docsmith()` — the mdsvex/Shiki pipeline (Node, config time)          |
+| `svelte-docsmith/vite`       | `docsmith()` — content index + `?source` transform (Node, build time) |
+| `svelte-docsmith/content`    | `docs` — the generated sidebar content index                          |
+| `svelte-docsmith/theme.css`  | the style contract                                                    |
+
+## Components
 
 ### DocsShell
 
@@ -20,41 +28,41 @@ contents.
 </DocsShell>
 ```
 
-| Prop       | Type                | Description                                                  |
-| ---------- | ------------------- | ------------------------------------------------------------ |
-| `config`   | `DocsmithConfig`    | Site title, GitHub URL, optional version.                    |
-| `content`  | `DocsContentItem[]` | Your content collection; the sidebar nav is derived from it. |
-| `children` | `Snippet`           | The rendered page.                                           |
+| Prop       | Type                | Description                                            |
+| ---------- | ------------------- | ------------------------------------------------------ |
+| `config`   | `DocsmithConfig`    | Site title, GitHub URL, optional version.              |
+| `content`  | `DocsContentItem[]` | The content index; the sidebar nav is derived from it. |
+| `children` | `Snippet`           | The rendered page.                                     |
 
-### DocPage
+### LiveExample
 
-The markdown page layout — breadcrumb plus a `prose` container. Used as the
-mdsvex layout for individual pages.
-
-### TableOfContents
-
-Renders a highlighted, nested list of the current page's headings. `DocsShell`
-wires this for you; export it if you compose your own shell.
+Renders a real component next to its own syntax-highlighted source — see
+[Live Examples](/docs/live-examples).
 
 ### Tabs / TabItem
 
 Tabbed content blocks for grouping alternatives (e.g. package managers).
 
-## Parts for customisers
+## Config
 
-Compose your own shell from the primitives:
+### defineConfig
 
-- `reactiveToc(items, contentEl, options?)` — the scroll-tracking engine.
-- `tocFromContent(element)` — build the heading tree from rendered content.
-- `navFromContent(content)` — group content entries into sidebar sections.
-- `useClipboard()` — copy-to-clipboard helper used by the code block chrome.
-- `reactiveBreadcrumb()` / `setupReactiveBreadcrumb()` — breadcrumb state.
-- `markdown` — the per-element renderer map (`pre`, `code`, `h2`, `h3`).
+Validates a `DocsmithConfig` and returns it unchanged, throwing a clear error on
+an invalid or dynamically-built config.
+
+```ts
+const config = defineConfig({
+	title: 'My Library',
+	github: 'https://github.com/you/my-library',
+	version: '1.0.0'
+});
+```
 
 ## Types
 
-`DocsmithConfig`, `DocsContentItem`, `NavGroup`, `NavItem`, `HighlightedTocItem`,
-`WithChildren`.
+`DocsmithConfig` (site config) and `DocsContentItem` (a content-index entry:
+`title`, `path`, optional `section`/`order`/`description`).
 
-The vendored shadcn primitives are intentionally **not** exported — get those
-from `shadcn-svelte` directly.
+The vendored shadcn primitives and internal helpers (the TOC engine, the
+clipboard utility, the markdown renderer map) are **not** part of the public API
+and may change between releases.
