@@ -11,18 +11,17 @@
 	"license": "MIT",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "velite && vite build",
+		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "velite && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "velite && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --config ../../.prettierrc --write .",
 		"lint": "prettier --config ../../.prettierrc --check .",
 		"test": "echo 'No tests configured for docs site'",
 		"test:unit": "echo 'No unit tests configured for docs site'",
 		"test:coverage": "echo 'No test coverage configured for docs site'",
-		"typecheck": "velite && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"velite": "velite"
+		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
 	},
 	"devDependencies": {
 		"@lucide/svelte": "^0.488.0",
@@ -37,7 +36,6 @@
 		"svelte-docsmith": "workspace:*",
 		"tailwindcss": "^4",
 		"typescript": "^5.0.0",
-		"velite": "^0.2.2",
 		"vite": "^8.1.3"
 	}
 }

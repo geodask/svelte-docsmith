@@ -23,14 +23,30 @@ export default {
 };
 ```
 
+## Add the Vite plugin
+
+In `vite.config.ts`, add `docsmith()`. It scans your pages' frontmatter into the
+`svelte-docsmith/content` module and powers live examples:
+
+```ts
+import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
+import { docsmith } from 'svelte-docsmith/vite';
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+	plugins: [docsmith(), tailwindcss(), sveltekit()]
+});
+```
+
 ## Add the shell
 
 In `src/routes/docs/+layout.svelte`, render `DocsShell`. It builds the sidebar
-from your content collection, so there is no nav array to maintain:
+from the generated content index, so there is no nav array to maintain:
 
 ```svelte
 <script lang="ts">
-	import { docs } from '$content';
+	import { docs } from 'svelte-docsmith/content';
 	import { DocsShell, type DocsmithConfig } from 'svelte-docsmith';
 
 	const config: DocsmithConfig = {

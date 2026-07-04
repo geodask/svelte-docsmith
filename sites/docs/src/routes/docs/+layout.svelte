@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { docs } from '$content';
+	import { docs } from 'svelte-docsmith/content';
 	import { DocsShell, type DocsmithConfig } from 'svelte-docsmith';
 	import { version } from 'svelte-docsmith/package.json';
 	import SiteFooter from '$lib/components/site-footer.svelte';
