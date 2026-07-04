@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { useClipboard } from '$lib/clipboard.svelte.js';
 	import { Button } from './shadcn/button/index.js';
-	import Check from '@lucide/svelte/icons/check';
+	import CopyButton from './copy-button.svelte';
 	import Code from '@lucide/svelte/icons/code';
-	import Copy from '@lucide/svelte/icons/copy';
 	import type { Snippet } from 'svelte';
 
 	const {
@@ -32,13 +31,7 @@
 				{showSource ? 'Hide' : 'Show'} source
 			</Button>
 			{#if showSource}
-				<Button variant="ghost" size="icon" class="ml-auto size-8" onclick={() => clipboard.copy()}>
-					{#if clipboard.copied}
-						<Check class="text-emerald-500" />
-					{:else}
-						<Copy />
-					{/if}
-				</Button>
+				<CopyButton copied={clipboard.copied} onclick={() => clipboard.copy()} class="ml-auto" />
 			{/if}
 		</div>
 

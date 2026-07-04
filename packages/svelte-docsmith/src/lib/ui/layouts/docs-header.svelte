@@ -3,11 +3,9 @@
 	import { Button } from '$lib/ui/shadcn/button/index.js';
 	import { Separator } from '$lib/ui/shadcn/separator/index.js';
 	import GithubIcon from '$lib/ui/icons/github.svelte';
+	import ThemeToggle from '../theme-toggle.svelte';
 	import type { DocsmithConfig } from '$lib/config.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
-	import Moon from '@lucide/svelte/icons/moon';
-	import Sun from '@lucide/svelte/icons/sun';
-	import { mode, toggleMode } from 'mode-watcher';
 	import type { Snippet } from 'svelte';
 
 	const {
@@ -78,19 +76,7 @@
 					</Button>
 				{/if}
 
-				<Button
-					size="icon"
-					variant="ghost"
-					onclick={toggleMode}
-					class="text-muted-foreground hover:text-foreground size-8"
-				>
-					{#if mode.current === 'dark'}
-						<Sun class="size-4" />
-					{:else}
-						<Moon class="size-4" />
-					{/if}
-					<span class="sr-only">Toggle theme</span>
-				</Button>
+				<ThemeToggle />
 			</div>
 		</div>
 	</div>
