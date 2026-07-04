@@ -2,11 +2,7 @@
 	import { useClipboard } from '$lib/clipboard.svelte.js';
 	import type { Snippet } from 'svelte';
 	import { ScrollArea } from '../shadcn/scroll-area/index.js';
-
-	import Check from '@lucide/svelte/icons/check';
-	import Copy from '@lucide/svelte/icons/copy';
-	import { Button } from '../shadcn/button/index.js';
-	import { fade } from 'svelte/transition';
+	import CopyButton from '../copy-button.svelte';
 
 	const clipboard = useClipboard();
 
@@ -15,22 +11,11 @@
 
 <div class="rounded-md overflow-hidden bg-muted mt-2 shadow-md text-sm relative">
 	<ScrollArea orientation="both" class="relative">
-		<Button
+		<CopyButton
+			copied={clipboard.copied}
 			onclick={() => clipboard.copy()}
-			variant="ghost"
-			size="icon"
-			class="size-8 z-10 absolute bg-muted right-2 top-2"
-		>
-			{#if clipboard.copied}
-				<div in:fade={{ duration: 80 }}>
-					<Check class="text-emerald-500" />
-				</div>
-			{:else}
-				<div in:fade={{ duration: 200 }}>
-					<Copy />
-				</div>
-			{/if}
-		</Button>
+			class="bg-muted absolute top-2 right-2 z-10"
+		/>
 
 		<pre class="not-prose shiki max-h-[32rem] flex shrink" use:clipboard.readText>
 			{@render children()}
