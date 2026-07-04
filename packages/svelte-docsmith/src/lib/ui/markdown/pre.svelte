@@ -14,12 +14,6 @@
 </script>
 
 <div class="rounded-md overflow-hidden bg-muted mt-2 shadow-md text-sm relative">
-	<!-- <div class="flex items-center pl-2 sticky left-0 top-0 bg-muted border-b p-1">
-		<code>+page.svelte</code>
-		<Button variant="ghost" size="icon" class="size-8 ml-auto">
-			<Copy />
-		</Button>
-	</div> -->
 	<ScrollArea orientation="both" class="relative">
 		<Button
 			onclick={() => clipboard.copy()}
