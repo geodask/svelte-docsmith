@@ -11,7 +11,7 @@ order: 15
 
 ## Kbd
 
-Show a key or shortcut the way a keyboard does — a small, raised cap that reads as
+Show a key or shortcut the way a keyboard does: a small, raised cap that reads as
 _press this_, not as code.
 
 <p class="not-prose">

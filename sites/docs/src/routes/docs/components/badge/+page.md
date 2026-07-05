@@ -12,7 +12,7 @@ order: 14
 ## Badge
 
 Label a status, version, or category inline. Six intents cover the usual docs
-needs — neutral through danger — each driven by your theme tokens so they recolor
+needs, neutral through danger, each driven by your theme tokens so they recolor
 with the rest of the site.
 
 <p class="not-prose flex flex-wrap gap-2">

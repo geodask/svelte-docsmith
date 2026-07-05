@@ -12,30 +12,30 @@ order: 13
 ## Accordion
 
 Fold FAQs, optional details, or long asides behind a heading the reader expands
-on demand — one panel at a time by default, so the page stays scannable.
+on demand, one panel at a time by default, so the page stays scannable.
 
 <Accordion>
 <AccordionItem title="What is svelte-docsmith?">
 
-A documentation framework for Svelte 5 — your markdown files _are_ SvelteKit
+A documentation framework for Svelte 5. Your markdown files _are_ SvelteKit
 routes, so examples run as part of one real app.
 
 </AccordionItem>
 <AccordionItem title="Do I have to configure the sidebar?">
 
-No. Nav is derived from each page's frontmatter — never hand-written.
+No. Nav is derived from each page's frontmatter, never hand-written.
 
 </AccordionItem>
 <AccordionItem title="Can I open several panels at once?">
 
-Yes — pass `multiple` to the `Accordion` and every panel toggles independently.
+Yes. Pass `multiple` to the `Accordion` and every panel toggles independently.
 
 </AccordionItem>
 </Accordion>
 
 ## Usage
 
-Each `AccordionItem` takes a `title` — the always-visible summary — and claims
+Each `AccordionItem` takes a `title` (the always-visible summary) and claims
 its own value automatically, so you never wire up ids. Leave **blank lines**
 around the panel content so mdsvex parses the markdown inside.
 
@@ -48,7 +48,7 @@ around the panel content so mdsvex parses the markdown inside.
 <Accordion>
 	<AccordionItem title="First question">
 
-Answer with full **markdown** — including `code` and [links](/docs/theming).
+Answer with full **markdown**, including `code` and [links](/docs/theming).
 
 	</AccordionItem>
 	<AccordionItem title="Second question">

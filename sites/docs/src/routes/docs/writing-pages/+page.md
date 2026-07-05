@@ -5,10 +5,29 @@ section: Core Concepts
 order: 5
 ---
 
+<script>
+	import { Callout, FileTree, FileTreeItem } from 'svelte-docsmith';
+</script>
+
 ## A page is a file
 
 Every page is a `+page.md` file under `src/routes/docs/`. The directory name is
-the URL: `src/routes/docs/guides/routing/+page.md` serves `/docs/guides/routing`.
+the URL, so this file serves `/docs/guides/routing`:
+
+<FileTree>
+	<FileTreeItem name="src" folder>
+		<FileTreeItem name="routes" folder>
+			<FileTreeItem name="docs" folder>
+				<FileTreeItem name="guides" folder>
+					<FileTreeItem name="routing" folder>
+						<FileTreeItem name="+page.md" highlight />
+					</FileTreeItem>
+				</FileTreeItem>
+			</FileTreeItem>
+		</FileTreeItem>
+	</FileTreeItem>
+</FileTree>
+
 Create the file, and the page exists.
 
 ## Frontmatter
@@ -32,21 +51,28 @@ order: 1
 ```
 
 `section` names the group and `order` sorts within it; groups themselves are
-ordered by the smallest `order` they contain. A page with no `title` is skipped
-by the sidebar — so if a page isn't showing up, check its frontmatter first.
+ordered by the smallest `order` they contain.
+
+<Callout type="warning" title="A missing page is almost always frontmatter">
+
+A page with no `title` is skipped by the sidebar. If a page isn't showing up,
+check its frontmatter before anything else: a stray indent or a typo'd key is
+the usual culprit.
+
+</Callout>
 
 ## Headings
 
-Don't write an `#` (h1) in the body — the `title` from frontmatter is the page
-heading. Start your content at `##`. Every heading gets an anchor id
+Don't write an `#` (h1) in the body. The `title` from frontmatter is the page
+heading, so start your content at `##`. Every heading gets an anchor id
 automatically, and the in-page table of contents is built from `##` and `###`
 headings as the page renders.
 
 ## Code blocks
 
-Fenced code blocks are highlighted by Shiki at build time — tag the fence with a
+Fenced code blocks are highlighted by Shiki at build time; tag the fence with a
 language. To emphasise a line, append the comment `// [!code highlight]` to it
-(a real comment in that language); Shiki strips the comment and highlights the
+(a real comment in that language). Shiki strips the comment and highlights the
 line, like the second line below:
 
 ```ts
@@ -60,9 +86,9 @@ stray ` ```mermaid ` won't break your site.
 ## Live examples
 
 To show a real, running component next to its source, put the component in
-`src/lib/examples/`. Import `LiveExample`, then import your component twice —
-once as the component, and once with the `?source` query for its build-time
-highlighted source — and pass both to `LiveExample`:
+`src/lib/examples/`. Import `LiveExample`, then import your component twice: once
+as the component, and once with the `?source` query for its build-time
+highlighted source. Pass both to `LiveExample`:
 
 ```md
 <script>
@@ -81,9 +107,9 @@ never drift. See [Live Examples](/docs/live-examples) for a running one.
 
 ## Tabbed content
 
-For alternatives — package managers, framework variants — group blocks with
-`Tabs` and `TabItem`. Pass the tab labels as `items`; each `TabItem`'s `value`
-matches one label:
+For alternatives such as package managers or framework variants, group blocks
+with `Tabs` and `TabItem`. Pass the tab labels as `items`; each `TabItem`'s
+`value` matches one label:
 
 ````md
 <script>
@@ -107,3 +133,7 @@ pnpm add -D svelte-docsmith
   </TabItem>
 </Tabs>
 ````
+
+See the [Components](/docs/components/callout) section for the full set you can
+drop into a page: callouts, steps, cards, accordions, file trees, badges, and
+more.

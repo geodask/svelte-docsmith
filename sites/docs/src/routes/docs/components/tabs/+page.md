@@ -11,9 +11,9 @@ order: 12
 
 ## Tabs
 
-Group alternatives — package managers, framework variants, OS-specific commands —
-so the reader sees one at a time. Pass the labels as `items`; each `TabItem`'s
-`value` matches a label.
+Group alternatives such as package managers, framework variants, or OS-specific
+commands so the reader sees one at a time. Pass the labels as `items`; each
+`TabItem`'s `value` matches a label.
 
 <Tabs items={['npm', 'pnpm', 'yarn']} value="npm">
 <TabItem value="npm">

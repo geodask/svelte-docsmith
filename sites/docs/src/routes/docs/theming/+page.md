@@ -7,6 +7,7 @@ order: 7
 
 <script>
 	import ThemeGallery from '$lib/components/theme-gallery.svelte';
+	import { Callout } from 'svelte-docsmith';
 </script>
 
 ## One import, one contract
@@ -20,17 +21,17 @@ The entire look ships as design tokens behind a single stylesheet import:
 
 `theme.css` makes Tailwind scan the package, registers the shadcn token set for
 `:root` and `.dark`, and pulls in the typography and animation plugins. Every
-component reads these tokens — so you rebrand the whole system by redefining
+component reads these tokens, so you rebrand the whole system by redefining
 tokens, not by editing components.
 
 ## Pre-installed themes
 
-The default look is **Tangerine**. Six presets ship in the box — pick one below
-to preview it (toggle the site's dark mode to see both):
+The default look is **Tangerine**. Six presets ship in the box. Pick one below to
+preview it, and toggle the site's dark mode to see both:
 
 <ThemeGallery />
 
-To use a preset, import its stylesheet _after_ `theme.css` — it redefines the
+To use a preset, import its stylesheet _after_ `theme.css`. It redefines the
 color tokens (and, for some, the corner radius) and nothing else:
 
 ```css
@@ -60,9 +61,13 @@ primary color and every button, link, and accent follows:
 }
 ```
 
-If an override isn't taking effect, order is almost always the cause: your
-redefinition has to come _after_ the `theme.css` import, or the package's own
-value wins.
+<Callout type="warning" title="Order decides the winner">
+
+If an override isn't taking effect, import order is almost always the cause.
+Your redefinition has to come _after_ the `theme.css` import, or the package's
+own value wins. The same rule applies to preset stylesheets.
+
+</Callout>
 
 ## The tokens
 
@@ -83,7 +88,7 @@ The set is standard shadcn. The ones you'll reach for most:
 
 Dark mode is class-based: tokens have a `.dark` variant, and DocSmith styles
 respond to a `dark` class on the `<html>` element. The docs site toggles it with
-[`mode-watcher`](https://github.com/svecosystem/mode-watcher) — drop its
+[`mode-watcher`](https://github.com/svecosystem/mode-watcher). Drop its
 `<ModeWatcher />` in your root layout and the theme toggle and system preference
 work out of the box.
 
@@ -100,9 +105,9 @@ Override tokens for both themes by redefining them under each selector:
 
 ## Fonts
 
-Three families are set as tokens — `--font-sans`, `--font-serif`, `--font-mono`.
-Point them at your own faces and load the fonts however you normally would (a
-`<link>` in `app.html`, `@fontsource`, or your host):
+Three families are set as tokens: `--font-sans`, `--font-serif`, and
+`--font-mono`. Point them at your own faces and load the fonts however you
+normally would (a `<link>` in `app.html`, `@fontsource`, or your host):
 
 ```css
 :root {

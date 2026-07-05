@@ -11,7 +11,7 @@ order: 10
 
 ## Steps
 
-A numbered walkthrough — a connecting line with numbered badges — for setup flows
+A numbered walkthrough (a connecting line with numbered badges) for setup flows
 where the order matters. Each step is a `<Step>`; the numbers are automatic.
 
 <Steps>
@@ -35,7 +35,7 @@ Drop a `+page.md` under `src/routes/docs/` and it appears in the sidebar.
 
 ## Usage
 
-`Steps` and `Step` are plain components — they work in a markdown page **and** in
+`Steps` and `Step` are plain components. They work in a markdown page **and** in
 any `.svelte` file, with no preprocessor required. Give each `Step` an optional
 `title`; leave blank lines around markdown content so it's parsed.
 
@@ -54,7 +54,7 @@ any `.svelte` file, with no preprocessor required. Give each `Step` an optional
 ### Markdown shortcut
 
 Inside a markdown page only, you can skip the `<Step>` tags and use a plain
-ordered list — mdsvex turns it into steps:
+ordered list, and mdsvex turns it into steps:
 
 <!-- prettier-ignore -->
 ```md
