@@ -1,5 +1,11 @@
 # svelte-docsmith
 
+## 0.1.1
+
+### Patch Changes
+
+- 1329d85: Declare all runtime dependencies. `@lucide/svelte`, `clsx`, `tailwind-merge`, `tailwind-variants`, `tw-animate-css`, and `@fontsource-variable/inter` were devDependencies, so installs outside this monorepo failed to resolve imports from the shipped components and `theme.css`. They are now regular dependencies.
+
 ## 0.1.0
 
 ### Minor Changes
