@@ -1,161 +1,95 @@
-import type { HighlightedTocItem, TocItem, TocOptions } from './types.js';
-import {
-	visibilityObserver,
-	type ElementObserver,
-	type ObservedElement
-} from './visibility-observer.svelte.js';
+import { BROWSER } from 'esm-env';
+import { tick } from 'svelte';
+import { tocFromContent } from './from-content.js';
+import type { TocItem } from './types.js';
 
 /**
- * The reactive result of {@link reactiveToc}: the TOC items enriched with
- * live highlight state, ready to render.
+ * A live table of contents: the headings scanned from the current page, plus
+ * the id of the section currently in view.
  */
-export type TocState = {
-	items: HighlightedTocItem[];
+export type Toc = {
+	/** Headings of the current page, in document order. */
+	readonly items: TocItem[];
+	/** Id of the heading whose section is currently in view, or `null`. */
+	readonly activeId: string | null;
+	/** Re-scan the content element. Call after each navigation. */
+	refresh: () => Promise<void>;
 };
 
 /**
- * Sets up TOC tracking and returns highlighted TOC items ready for rendering
+ * Create a table of contents bound to a content element.
  *
- * @param initialItemsFn Function that returns the initial TOC items
- * @param contentElementFn Function that returns the content element to track
- * @param options Configuration options for the TOC system
- * @returns TOC state with processed items
+ * Two jobs, both re-run whenever the page changes:
+ * - `refresh()` re-scans the rendered headings (call it from `afterNavigate` so
+ *   client-side navigation updates the list, not just a full reload).
+ * - a single `IntersectionObserver` tracks which heading is in view for
+ *   scroll-spy highlighting, re-observing the new headings after each refresh.
+ *
+ * Deliberately small: no section wrappers, no multi-threshold ratio math, no
+ * parent-highlight bookkeeping. One observer, one active id.
  */
-export function reactiveToc(
-	initialItemsFn: () => TocItem[],
-	contentElementFn: () => HTMLElement | null,
-	options: TocOptions = {}
-): TocState {
-	const config = createTocConfig(options);
-	const urlToIdMapper = options.urlToElementIdMapper || defaultUrlToIdMapper;
-	const baseTocItems: TocItem[] = $derived(initialItemsFn());
+export function createToc(contentFn: () => HTMLElement | null): Toc {
+	let items = $state<TocItem[]>([]);
+	let activeId = $state<string | null>(null);
 
-	const Observer: ElementObserver = visibilityObserver(contentElementFn, {
-		idAttribute: config.idAttribute,
-		rootMargin: config.rootMargin,
-		filter: (element) => element.getAttribute('data-heading-rank') !== '1'
-	});
+	async function refresh() {
+		// Wait for the navigated-to content to be in the DOM before scanning.
+		await tick();
+		const el = contentFn();
+		items = el ? tocFromContent(el) : [];
+	}
 
-	const items = $derived.by(() => {
-		const rawItems = addHighlightingToItems(baseTocItems, Observer.elements, urlToIdMapper);
-		return addParentHighlighting(rawItems);
+	$effect(() => {
+		if (!BROWSER) return;
+		const el = contentFn();
+		const headingItems = items; // re-run this effect when the heading set changes
+		if (!el || headingItems.length === 0) {
+			activeId = null;
+			return;
+		}
+
+		const headings = headingItems
+			.map((item) => el.querySelector<HTMLElement>(`#${CSS.escape(item.id)}`))
+			.filter((node): node is HTMLElement => node !== null);
+
+		const visible = new Set<string>();
+
+		function recompute() {
+			// The first heading (in document order) inside the active band wins.
+			const firstVisible = headingItems.find((item) => visible.has(item.id));
+			if (firstVisible) {
+				activeId = firstVisible.id;
+			} else if (activeId === null) {
+				// Nothing in the band yet (top of page): default to the first heading.
+				activeId = headingItems[0].id;
+			}
+			// Else keep the last active id — we're mid-section, between bands.
+		}
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) visible.add(entry.target.id);
+					else visible.delete(entry.target.id);
+				}
+				recompute();
+			},
+			// Active band: just below the sticky header down to ~a third of the
+			// viewport, so the highlighted entry matches what you're reading.
+			{ rootMargin: '-72px 0px -66% 0px', threshold: 0 }
+		);
+
+		headings.forEach((heading) => observer.observe(heading));
+		return () => observer.disconnect();
 	});
 
 	return {
 		get items() {
 			return items;
-		}
-	};
-}
-
-/**
- * Default URL to ID mapper function
- * @param url URL to be converted
- * @returns	ID string
- */
-function defaultUrlToIdMapper(url: string): string {
-	return url.startsWith('#') ? url.substring(1) : url;
-}
-
-/**
- * Creates a configuration object with default values merged with user options
- *
- * @param options User-provided options
- * @returns Complete configuration object
- */
-function createTocConfig(options: TocOptions) {
-	return {
-		idAttribute: 'data-section-id',
-		rootMargin: '-56px 0px 0px 0px',
-		...options
-	};
-}
-
-/**
- * Enhance items with parent highlighting
- */
-function addParentHighlighting(items: HighlightedTocItem[]): HighlightedTocItem[] {
-	return items.map((item) => {
-		const hasHighlightedChild = checkForHighlightedChildren(item.items);
-		const hasFocusedChild = checkForFocusedChildren(item.items);
-		const hasVisibleChildren = Boolean(hasHighlightedChild);
-
-		return {
-			...item,
-			hasVisibleChildren,
-			hasFocusedChildren: Boolean(hasFocusedChild),
-			items: item.items ? addParentHighlighting(item.items) : []
-		};
-	});
-}
-
-/**
- * Check if any child items are highlighted
- */
-function checkForHighlightedChildren(items?: HighlightedTocItem[]): boolean {
-	if (!items || items.length === 0) return false;
-
-	for (const item of items) {
-		if (item.isHighlighted) return true;
-		if (checkForHighlightedChildren(item.items)) return true;
-	}
-
-	return false;
-}
-
-/**
- * Check if any child items are focused
- */
-function checkForFocusedChildren(items?: HighlightedTocItem[]): boolean {
-	if (!items || items.length === 0) return false;
-
-	for (const item of items) {
-		if (item.isFocused) return true;
-		if (checkForFocusedChildren(item.items)) return true;
-	}
-
-	return false;
-}
-
-/**
- * Enhances TOC items with highlighting information from tracked elements
- *
- * @param tocItems Base TOC items without highlighting information
- * @param trackedElements Elements being tracked with their highlight status
- * @param urlToIdMapper Function to convert TOC item URLs to element IDs
- * @returns TOC items enhanced with highlight information
- */
-function addHighlightingToItems(
-	tocItems: TocItem[],
-	trackedElements: ObservedElement[],
-	urlToIdMapper: (url: string) => string = defaultUrlToIdMapper
-): HighlightedTocItem[] {
-	return tocItems.map((item) => {
-		const elementId = urlToIdMapper(item.url);
-		const trackedElement = trackedElements.find((el) => el.id === elementId);
-
-		return createHighlightedItem(item, trackedElement, trackedElements, urlToIdMapper);
-	});
-}
-
-/**
- * Creates a highlighted TOC item with visibility status
- */
-function createHighlightedItem(
-	item: TocItem,
-	trackedElement: ObservedElement | undefined,
-	trackedElements: ObservedElement[],
-	urlToIdMapper: (url: string) => string
-): HighlightedTocItem {
-	const isHighlighted = trackedElement?.isVisible ?? false;
-	const isFocused = trackedElement?.isActive ?? false;
-	const hasVisibleChildren = trackedElement?.hasVisibleChildren ?? false;
-
-	return {
-		...item,
-		isHighlighted,
-		isFocused,
-		hasVisibleChildren,
-		items: item.items ? addHighlightingToItems(item.items, trackedElements, urlToIdMapper) : []
+		},
+		get activeId() {
+			return activeId;
+		},
+		refresh
 	};
 }
