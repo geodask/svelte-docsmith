@@ -2,21 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Read PLAN.md first
+## Status
 
-**`PLAN.md` at the repo root is the source of truth for all current work** — an audited roadmap with adopted decisions, working conventions for agents, and an implementation tracker. Where this file and PLAN.md disagree, PLAN.md wins.
-
-Critical current-state facts (audited 2026-07-03, see PLAN.md §0 for detail):
-- `pnpm typecheck` fails (126 errors in the library) and `pnpm build` fails for `sites/docs` — the repo is mid-way through an interrupted migration. Fixing this is PLAN.md Milestone 1; don't treat these failures as regressions you caused.
-- The library's `src/lib/index.ts` is empty — the package exports nothing yet. A green library `build` is NOT evidence the package works.
-- Do not push changesets or publish: the release workflow on `master` has no test gate and would publish the broken package.
+Publishing is **enabled and CI-gated**: `release.yml` runs the full `lint`/`typecheck`/`test`/`build` verify job (reusing `ci.yml`) before `changeset publish`, so a release only goes out if the checks pass. The repo is green at the root and CI enforces that on every PR. First public release is `svelte-docsmith@0.1.0`; the package is pre-1.0, so minor releases may carry breaking changes until v1.0.
 
 ## What this is
 
 Svelte DocSmith is a framework/library for building documentation sites with Svelte 5 + SvelteKit. Components are based on shadcn-svelte (style: new-york) with themes from tweakcn. This is a pnpm/turbo monorepo with two workspaces:
 
 - `packages/svelte-docsmith` — the publishable library (npm package `svelte-docsmith`). Source of truth for all reusable components/utilities (TOC, markdown renderers, shadcn UI primitives, etc.), exported via `src/lib/index.ts`.
-- `sites/docs` — the documentation site that consumes `svelte-docsmith` as a `workspace:*` dependency. This is the dogfooding/reference app and also where MDX content and velite content collections live.
+- `sites/docs` — the documentation site that consumes `svelte-docsmith` as a `workspace:*` dependency. This is the dogfooding/reference app and where the markdown doc pages live.
 
 ## Commands
 
@@ -54,6 +49,7 @@ pnpm vitest run -t "some test name"
 ```
 
 Vitest is configured with two workspace projects (`vite.config.ts`):
+
 - `client` — jsdom environment, matches `src/**/*.svelte.{test,spec}.ts`, uses `@testing-library/svelte`
 - `server` — node environment, matches other `src/**/*.{test,spec}.ts` files
 
@@ -72,14 +68,12 @@ Plain, flat `src/lib` structure — no feature-sliced layering here. Everything 
 
 ### `sites/docs` (the docs site)
 
-Has Feature-Sliced Design (FSD) folder scaffolding under `src/lib/` (`entities/`, `features/`, `widgets/`, `pages/`, `shared/`), but **FSD is being dropped** (PLAN.md §0 conclusion, Milestone 3): the layers are mostly empty scaffolding, and the target layout is a plain `src/lib/components` + `src/lib/content` structure. Do not add new code following the FSD layer rules, and don't invest in preserving them — when touching this area, move toward the flat layout instead.
+The reference app that dogfoods the published pipeline. `src/lib/` is a flat layout (`components/`, `examples/`, plus `site-config.ts`, `themes-data.ts`, `theme-store.svelte.ts`) — the old FSD scaffolding (`entities/`, `features/`, `widgets/`, …) and the `velite` content pipeline have both been removed.
 
-Current broken wiring to be aware of (until Milestone 1 lands): the widgets import `$shared/ui/*` / `$shared/lib/*` paths that no longer exist — that code was moved into `packages/svelte-docsmith` but the site was never rewired to import from the package. The fix direction is to consume the `svelte-docsmith` package (it's already a `workspace:*` dependency), not to recreate local `shared/` files.
-
-Content: MDX/markdown docs are processed through `velite` (`velite.config.js`) into typed content collections, then rendered via `mdsvex` + the `svelte-docsmith` markdown components. `pnpm build` for docs runs `velite && vite build`.
+Content is authored as `+page.md` files under `src/routes/docs/`, preprocessed by `docsmith()` (mdsvex + Shiki + heading anchors) from `svelte-docsmith/preprocess`. The `docsmith()` Vite plugin from `svelte-docsmith/vite` scans page frontmatter into the generated `svelte-docsmith/content` index (which drives the sidebar) and serves `?source` imports for `LiveExample`. `pnpm build` for docs is a plain `vite build`.
 
 ## Conventions
 
 - Formatting/linting is centralized: both workspaces call out to the root `.prettierrc` (`prettier --config ../../.prettierrc`). Tabs, single quotes, no trailing commas, 100 print width.
 - ESLint config (`eslint.config.js`, flat config) applies `js.configs.recommended`, `typescript-eslint` recommended, and `eslint-plugin-svelte` recommended, with prettier conflict rules disabled.
-- Releases are managed with Changesets (`.changeset/`), publishing only `svelte-docsmith` (`pnpm ci:publish` builds then runs `changeset publish`). **Do not add changesets for now** — the release workflow on `master` has no test gate, and publishing is frozen until PLAN.md Milestone 4 completes and the owner approves a release.
+- Releases are managed with Changesets (`.changeset/`), publishing only `svelte-docsmith`. Add a changeset for any consumer-facing library change; on push to `master`, `release.yml` opens a "Version Packages" PR and, once that PR merges, runs the verify gate then `pnpm ci:publish` (build + `changeset publish`). The docs display the current library version automatically via `import { version } from 'svelte-docsmith/package.json'` in `sites/docs/src/lib/site-config.ts`.
