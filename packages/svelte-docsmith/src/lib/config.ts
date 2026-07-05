@@ -89,6 +89,12 @@ export type DocsContentItem = {
 	section?: string;
 	order?: number;
 	description?: string;
+	/**
+	 * The page's `h2`/`h3` headings, extracted at build time by the `docsmith()`
+	 * vite plugin, so `DocsShell` can render the in-page TOC server-side. The
+	 * runtime TOC engine still owns scroll-spy and re-scans the DOM.
+	 */
+	toc?: { id: string; title: string; depth: 2 | 3 }[];
 };
 
 /** A single sidebar link. */

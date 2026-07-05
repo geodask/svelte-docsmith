@@ -66,16 +66,76 @@ function listPageFiles(contentDir: string): string[] {
 	return files;
 }
 
+type TocEntry = { id: string; title: string; depth: 2 | 3 };
+
+/** Slugify heading text the way rehype-slug (github-slugger) does for common
+ *  cases: lowercase, drop punctuation/symbols, spaces → hyphens. */
+function slugify(text: string): string {
+	return text
+		.trim()
+		.toLowerCase()
+		.replace(/[^\p{L}\p{N}\s-]/gu, '')
+		.replace(/\s+/g, '-');
+}
+
+/** Strip inline markdown so a heading's TOC label is plain text. */
+function stripInlineMarkdown(text: string): string {
+	return text
+		.replace(/`([^`]+)`/g, '$1')
+		.replace(/\*\*([^*]+)\*\*/g, '$1')
+		.replace(/\*([^*]+)\*/g, '$1')
+		.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+		.replace(/[_~]/g, '')
+		.trim();
+}
+
+/**
+ * Extract `h2`/`h3` headings from a markdown page so the in-page TOC can be
+ * server-rendered (no post-hydration pop-in). Skips fenced code blocks; ids
+ * match rehype-slug for typical headings, and the runtime engine's DOM re-scan
+ * corrects any edge cases after hydration.
+ */
+function extractToc(source: string): TocEntry[] {
+	const body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+	const seen = new Map<string, number>();
+	const toc: TocEntry[] = [];
+	let fence: string | null = null;
+
+	for (const line of body.split('\n')) {
+		const f = /^\s*(`{3,}|~{3,})/.exec(line);
+		if (f) {
+			const ch = f[1][0];
+			if (fence === null) fence = ch;
+			else if (ch === fence) fence = null;
+			continue;
+		}
+		if (fence !== null) continue;
+
+		const m = /^(#{2,3})\s+(.+?)\s*#*\s*$/.exec(line);
+		if (!m) continue;
+		const title = stripInlineMarkdown(m[2]);
+		if (!title) continue;
+
+		const base = slugify(title);
+		const n = seen.get(base) ?? 0;
+		seen.set(base, n + 1);
+		toc.push({ id: n > 0 ? `${base}-${n}` : base, title, depth: m[1].length as 2 | 3 });
+	}
+	return toc;
+}
+
 /**
  * Scan `contentDir` for `+page.md`/`+page.svx` files and read the frontmatter
- * fields the sidebar needs, deriving each page's URL from its directory
- * relative to `routesDir`. Pure and synchronous so it can be unit-tested.
+ * fields the sidebar needs (plus the heading list for a server-rendered TOC),
+ * deriving each page's URL from its directory relative to `routesDir`. Pure and
+ * synchronous so it can be unit-tested.
  */
 export function collectDocs(contentDir: string, routesDir: string): DocsContentItem[] {
 	const items: DocsContentItem[] = [];
 
 	for (const file of listPageFiles(contentDir)) {
-		const front = readFrontmatter(file);
+		const source = fs.readFileSync(file, 'utf-8');
+		const front = parseFrontmatter(source);
 		if (typeof front.title !== 'string') continue; // a page without a title isn't nav-worthy
 
 		const dir = path.dirname(file);
@@ -85,7 +145,8 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 			path: url,
 			description: typeof front.description === 'string' ? front.description : undefined,
 			section: typeof front.section === 'string' ? front.section : undefined,
-			order: typeof front.order === 'number' ? front.order : undefined
+			order: typeof front.order === 'number' ? front.order : undefined,
+			toc: extractToc(source)
 		});
 	}
 
@@ -93,8 +154,7 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 	return items.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function readFrontmatter(file: string): Record<string, unknown> {
-	const source = fs.readFileSync(file, 'utf-8');
+function parseFrontmatter(source: string): Record<string, unknown> {
 	const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source);
 	if (!match) return {};
 	const data = yaml.load(match[1]);
@@ -170,7 +230,14 @@ function exampleSourcePlugin(options: DocsmithViteOptions): Plugin {
 
 			const code = fs.readFileSync(file, 'utf-8').trimEnd();
 			const highlighter = await getHighlighter();
-			const html = highlighter.codeToHtml(code, { lang: 'svelte', themes });
+			// Strip Shiki's own surface (the inline light `background-color` and the
+			// `--shiki-dark-bg` var) so the highlighted source sits on the
+			// consuming component's token background — matching markdown code blocks,
+			// and never flashing Shiki's default before component CSS applies.
+			const html = highlighter
+				.codeToHtml(code, { lang: 'svelte', themes })
+				.replace(/background-color:[^;"]*;?/gi, '')
+				.replace(/--shiki-dark-bg:[^;"]*;?/gi, '');
 			return `export default ${JSON.stringify(html)};`;
 		}
 	};
