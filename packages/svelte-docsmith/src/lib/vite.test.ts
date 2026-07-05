@@ -49,6 +49,9 @@ describe('docsmith() ?source transform', () => {
 		expect(out).toMatch(/^export default /);
 		expect(out).toContain('shiki');
 		expect(out).toContain('count');
+		// Shiki's own surface is stripped so the source sits on the component bg.
+		expect(out).not.toContain('background-color');
+		expect(out).not.toContain('--shiki-dark-bg');
 	});
 });
 
@@ -56,10 +59,10 @@ describe('docsmith() ?source transform', () => {
 
 let routesDir: string;
 
-function writePage(relDir: string, frontmatter: string) {
+function writePage(relDir: string, frontmatter: string, body = '# body') {
 	const dir = path.join(routesDir, relDir);
 	fs.mkdirSync(dir, { recursive: true });
-	fs.writeFileSync(path.join(dir, '+page.md'), `---\n${frontmatter}\n---\n\n# body\n`);
+	fs.writeFileSync(path.join(dir, '+page.md'), `---\n${frontmatter}\n---\n\n${body}\n`);
 }
 
 afterEach(() => {
@@ -81,14 +84,45 @@ describe('collectDocs', () => {
 		const docs = collectDocs(path.join(routesDir, 'docs'), routesDir);
 
 		expect(docs).toEqual([
-			{ title: 'Overview', path: '/docs', description: undefined, section: undefined, order: 0 },
+			{
+				title: 'Overview',
+				path: '/docs',
+				description: undefined,
+				section: undefined,
+				order: 0,
+				toc: []
+			},
 			{
 				title: 'Introduction',
 				path: '/docs/introduction',
 				description: undefined,
 				section: 'Guides',
-				order: 1
+				order: 1,
+				toc: []
 			}
+		]);
+	});
+
+	it('extracts an h2/h3 TOC from the body, skipping code fences', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage(
+			'docs/guide',
+			'title: Guide',
+			[
+				'## Getting started',
+				'',
+				'```md',
+				'## not a heading',
+				'```',
+				'',
+				'### A `code` sub-step'
+			].join('\n')
+		);
+
+		const [doc] = collectDocs(path.join(routesDir, 'docs'), routesDir);
+		expect(doc.toc).toEqual([
+			{ id: 'getting-started', title: 'Getting started', depth: 2 },
+			{ id: 'a-code-sub-step', title: 'A code sub-step', depth: 3 }
 		]);
 	});
 
