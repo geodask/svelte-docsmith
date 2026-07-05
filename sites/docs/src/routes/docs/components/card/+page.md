@@ -28,7 +28,7 @@ and it becomes clickable, with a hover state and a trailing arrow.
 
 ## CardGrid
 
-`CardGrid` lays cards out in a responsive grid that reflows without breakpoints —
+`CardGrid` lays cards out in a responsive grid that reflows without breakpoints:
 as many columns as fit, down to one on narrow screens.
 
 ## Usage

@@ -11,7 +11,7 @@ order: 16
 
 ## File Tree
 
-Sketch a folder layout so the reader sees where a file goes — indentation and
+Sketch a folder layout so the reader sees where a file goes. Indentation and
 folder icons carry the structure, no ASCII art to keep aligned by hand.
 
 <FileTree>
@@ -30,7 +30,7 @@ folder icons carry the structure, no ASCII art to keep aligned by hand.
 
 ## Usage
 
-Nest `FileTreeItem`s to nest directories — an item with children is a folder
+Nest `FileTreeItem`s to nest directories; an item with children is a folder
 automatically. Pass `folder` to style an empty directory, and `highlight` to
 call out the entry a guide is about to touch.
 

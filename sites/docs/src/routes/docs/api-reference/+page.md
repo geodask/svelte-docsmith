@@ -2,19 +2,23 @@
 title: API Reference
 description: The public API exported by svelte-docsmith.
 section: Reference
-order: 8
+order: 30
 ---
+
+<script>
+	import { PropsTable, Prop, Callout } from 'svelte-docsmith';
+</script>
 
 ## Entry points
 
-| Entry point                    | Exports                                                                                                                                              |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `svelte-docsmith`              | `DocsShell`, `ThemeProvider`, `ThemeToggle`, `LiveExample`, `Tabs`, `TabItem`, `Callout`, `Steps`, `Step`, `Card`, `CardGrid`, `defineConfig`, types |
-| `svelte-docsmith/preprocess`   | `docsmith()` — the mdsvex/Shiki preprocessor (Node, config time)                                                                                     |
-| `svelte-docsmith/vite`         | `docsmith()` — content index + `?source` transform (Node, build time)                                                                                |
-| `svelte-docsmith/content`      | `docs` — the generated sidebar content index                                                                                                         |
-| `svelte-docsmith/theme.css`    | the base style contract                                                                                                                              |
-| `svelte-docsmith/themes/*.css` | pre-installed theme presets (`tangerine`, `amethyst`, `graphite`, `evergreen`, `rose`, `ocean`)                                                      |
+| Entry point                    | Exports                                                                                                                                                                                                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `svelte-docsmith`              | `DocsShell`, `ThemeProvider`, `ThemeToggle`, `LiveExample`, `Tabs`, `TabItem`, `Callout`, `Steps`, `Step`, `Card`, `CardGrid`, `Accordion`, `AccordionItem`, `Badge`, `Kbd`, `FileTree`, `FileTreeItem`, `PropsTable`, `Prop`, `defineConfig`, types |
+| `svelte-docsmith/preprocess`   | `docsmith()`, the mdsvex/Shiki preprocessor (Node, config time)                                                                                                                                                                                      |
+| `svelte-docsmith/vite`         | `docsmith()`, the content index + `?source` transform (Node, build time)                                                                                                                                                                             |
+| `svelte-docsmith/content`      | `docs`, the generated sidebar content index                                                                                                                                                                                                          |
+| `svelte-docsmith/theme.css`    | the base style contract                                                                                                                                                                                                                              |
+| `svelte-docsmith/themes/*.css` | pre-installed theme presets (`tangerine`, `amethyst`, `graphite`, `evergreen`, `rose`, `ocean`)                                                                                                                                                      |
 
 ## Components
 
@@ -29,43 +33,70 @@ contents.
 </DocsShell>
 ```
 
-| Prop       | Type                | Description                                                                                                                           |
-| ---------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `config`   | `DocsmithConfig`    | Site title, GitHub URL, optional version.                                                                                             |
-| `content`  | `DocsContentItem[]` | The content index; the sidebar nav is derived from it.                                                                                |
-| `children` | `Snippet`           | The rendered page.                                                                                                                    |
-| `logo`     | `Snippet`           | Optional custom logo mark for the header and mobile menu.                                                                             |
-| `actions`  | `Snippet`           | Optional extra header controls, before the theme toggle.                                                                              |
-| `footer`   | `Snippet`           | Optional content rendered below the page column.                                                                                      |
-| `pattern`  | `boolean`           | Render the decorative grid-and-glow page background.                                                                                  |
-| `layout`   | `'docs' \| 'page'`  | `docs` = the three-column shell; `page` = full-bleed content, same header/footer, no sidebar/TOC (for a landing or any non-doc page). |
+<PropsTable title="DocsShell">
+	<Prop name="config" type="DocsmithConfig" required>
+		Site title, GitHub URL, optional version.
+	</Prop>
+	<Prop name="content" type="DocsContentItem[]" required>
+		The content index; the sidebar nav is derived from it.
+	</Prop>
+	<Prop name="children" type="Snippet" required>
+		The rendered page.
+	</Prop>
+	<Prop name="logo" type="Snippet">
+		Custom logo mark for the header and mobile menu.
+	</Prop>
+	<Prop name="actions" type="Snippet">
+		Extra header controls, before the theme toggle.
+	</Prop>
+	<Prop name="footer" type="Snippet">
+		Content rendered below the page column.
+	</Prop>
+	<Prop name="pattern" type="boolean" default="false">
+		Render the decorative grid-and-glow page background.
+	</Prop>
+	<Prop name="layout" type="'docs' | 'page'" default="'docs'">
+		<code>docs</code> is the three-column shell; <code>page</code> is
+		full-bleed content with the same header and footer but no sidebar or TOC,
+		for a landing or any non-doc page.
+	</Prop>
+</PropsTable>
 
-`ThemeProvider` and `ThemeToggle` handle light/dark with no consumer setup —
-`DocsShell` mounts the provider internally, so you never wire `mode-watcher`
-yourself. Use `ThemeProvider` to wrap a page you build outside `DocsShell`.
+<Callout type="note" title="Theming needs no setup">
+
+`ThemeProvider` and `ThemeToggle` handle light and dark with no consumer wiring.
+`DocsShell` mounts the provider internally, so you never touch `mode-watcher`
+yourself. Use `ThemeProvider` directly to wrap a page you build outside
+`DocsShell`.
+
+</Callout>
 
 ### Docs components
 
-Authored inside markdown (or any `.svelte` file): `Callout` (`type`:
-note/tip/warning/danger), `Steps` + `Step` (numbered walkthrough), `Card` +
-`CardGrid` (linkable cards), `Tabs` + `TabItem`, and `LiveExample`. See the
-[Components](/docs/components/callout) section for each one's props and live
-examples.
+Authored inside markdown or any `.svelte` file: `Callout`, `Steps` + `Step`,
+`Card` + `CardGrid`, `Accordion` + `AccordionItem`, `Tabs` + `TabItem`,
+`FileTree` + `FileTreeItem`, `PropsTable` + `Prop`, `Badge`, `Kbd`, and
+`LiveExample`. See the [Components](/docs/components/callout) section for each
+one's props and a live demo.
 
 ### LiveExample
 
-Renders a real component next to its own syntax-highlighted source — see
+Renders a real component next to its own syntax-highlighted source. See
 [Live Examples](/docs/live-examples).
 
-| Prop       | Type      | Description                                            |
-| ---------- | --------- | ------------------------------------------------------ |
-| `children` | `Snippet` | The live, rendered component.                          |
-| `source`   | `string`  | Pre-highlighted source HTML — pass a `?source` import. |
+<PropsTable title="LiveExample">
+	<Prop name="children" type="Snippet" required>
+		The live, rendered component.
+	</Prop>
+	<Prop name="source" type="string" required>
+		Pre-highlighted source HTML. Pass a <code>?source</code> import.
+	</Prop>
+</PropsTable>
 
 ### Tabs / TabItem
 
-Tabbed content blocks for grouping alternatives (e.g. package managers). `items`
-lists the tab labels; each `TabItem`'s `value` matches one label.
+Tabbed content blocks for grouping alternatives such as package managers.
+`items` lists the tab labels; each `TabItem`'s `value` matches one label.
 
 ```svelte
 <Tabs items={['npm', 'pnpm']} value="npm">
@@ -74,11 +105,20 @@ lists the tab labels; each `TabItem`'s `value` matches one label.
 </Tabs>
 ```
 
-| Component | Prop    | Type       | Description                                  |
-| --------- | ------- | ---------- | -------------------------------------------- |
-| `Tabs`    | `items` | `string[]` | Tab labels, in order.                        |
-| `Tabs`    | `value` | `string`   | Initially selected label. Defaults to first. |
-| `TabItem` | `value` | `string`   | The label this panel belongs to.             |
+<PropsTable title="Tabs">
+	<Prop name="items" type="string[]" required>
+		Tab labels, in order.
+	</Prop>
+	<Prop name="value" type="string">
+		Initially selected label. Defaults to the first.
+	</Prop>
+</PropsTable>
+
+<PropsTable title="TabItem">
+	<Prop name="value" type="string" required>
+		The label this panel belongs to.
+	</Prop>
+</PropsTable>
 
 ## Config
 
@@ -97,10 +137,10 @@ const config = defineConfig({
 
 ## Types
 
-- **`DocsmithConfig`** — `title` (required), and optional `github`, `version`,
-  `logo`, `nav` (header links), `footer` (copyright + link columns).
-- **`DocsContentItem`** — a content-index entry: `title`, `path`, and optional
-  `section` / `order` / `description`.
+- **`DocsmithConfig`**: `title` (required), plus optional `github`, `version`,
+  `logo`, `nav` (header links), and `footer` (copyright and link columns).
+- **`DocsContentItem`**: a content-index entry with `title`, `path`, and optional
+  `section`, `order`, and `description`.
 
 The vendored shadcn primitives and internal helpers (the TOC engine, the
 clipboard utility, the markdown renderer map) are **not** part of the public API
