@@ -36,7 +36,7 @@
 		</div>
 
 		{#if showSource}
-			<div class="source border-t border-border text-sm" use:clipboard.readText>
+			<div class="source bg-muted border-t border-border text-sm" use:clipboard.readText>
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -- trusted Shiki-highlighted source generated at build time -->
 				{@html source}
 			</div>
@@ -45,10 +45,23 @@
 </div>
 
 <style>
+	/* Match the markdown code-block treatment: the source sits on `bg-muted`
+	   (Shiki's own background is stripped by the `?source` transform) with the
+	   same per-line padding. */
 	.source :global(pre) {
 		margin: 0;
 		border-radius: 0;
 		max-height: 32rem;
 		overflow: auto;
+		background: transparent;
+	}
+	.source :global(pre code) {
+		display: block;
+		padding-block: 1rem;
+	}
+	.source :global(pre span.line) {
+		display: inline-block;
+		width: 100%;
+		padding-inline: 1rem;
 	}
 </style>

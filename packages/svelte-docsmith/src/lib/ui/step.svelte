@@ -29,15 +29,17 @@
 		position: relative;
 		padding: 0 0 1.5rem 2.5rem;
 	}
-	/* Connector line, centered under the badge; hidden on the last step. */
+	/* Connector line, centered under the badge, sitting behind it (z-index) so
+	   it never cuts across the number; hidden on the last step. */
 	.step::after {
 		content: '';
 		position: absolute;
 		left: 0.8rem;
-		top: 0.3rem;
+		top: 0;
 		bottom: 0;
 		width: 1px;
 		background: var(--border);
+		z-index: 0;
 	}
 	.step:last-child {
 		padding-bottom: 0;
@@ -49,6 +51,7 @@
 		position: absolute;
 		left: 0;
 		top: -0.15rem;
+		z-index: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -60,6 +63,8 @@
 		font-size: 0.8rem;
 		font-weight: 600;
 		font-variant-numeric: tabular-nums;
+		/* Ring in the page bg so the connector visually stops at the badge edge. */
+		box-shadow: 0 0 0 4px var(--background);
 	}
 	.step-marker::before {
 		content: counter(docsmith-step);
