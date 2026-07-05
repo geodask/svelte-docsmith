@@ -7,6 +7,7 @@
 	export const code = markdown.code;
 	export const h2 = markdown.h2;
 	export const h3 = markdown.h3;
+	export const table = markdown.table;
 </script>
 
 <script lang="ts">

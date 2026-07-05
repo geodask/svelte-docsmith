@@ -13,7 +13,15 @@
 <Tabs.Root class="my-6" {value}>
 	<Tabs.List class="not-prose mb-3">
 		{#each items as item (item)}
-			<Tabs.Trigger value={item}>{item}</Tabs.Trigger>
+			<!-- bits-ui v2 emits data-state="active"; the vendored trigger styles the
+			     active state with data-active (a skew from the CLI's registry version),
+			     so paint the active state here to match what's actually emitted. -->
+			<Tabs.Trigger
+				value={item}
+				class="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+			>
+				{item}
+			</Tabs.Trigger>
 		{/each}
 	</Tabs.List>
 
