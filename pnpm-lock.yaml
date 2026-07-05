@@ -44,9 +44,15 @@ importers:
 
   packages/svelte-docsmith:
     dependencies:
+      '@fontsource-variable/inter':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@hbsnow/rehype-sectionize':
         specifier: ^1.0.7
         version: 1.0.7
+      '@lucide/svelte':
+        specifier: ^1.23.0
+        version: 1.23.0(svelte@5.56.4(@typescript-eslint/types@8.30.1))
       '@shikijs/transformers':
         specifier: ^3.3.0
         version: 3.3.0
@@ -56,6 +62,9 @@ importers:
       bits-ui:
         specifier: ^2.18.1
         version: 2.18.1(@internationalized/date@3.12.2)(@sveltejs/kit@2.69.1(@sveltejs/vite-plugin-svelte@7.1.2(svelte@5.56.4(@typescript-eslint/types@8.30.1))(vite@8.1.3(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)))(svelte@5.56.4(@typescript-eslint/types@8.30.1))(typescript@5.8.3)(vite@8.1.3(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)))(svelte@5.56.4(@typescript-eslint/types@8.30.1))
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       esm-env:
         specifier: ^1.2.2
         version: 1.2.2
@@ -74,16 +83,19 @@ importers:
       shiki:
         specifier: ^3.2.2
         version: 3.2.2
+      tailwind-merge:
+        specifier: ^3.6.0
+        version: 3.6.0
+      tailwind-variants:
+        specifier: ^3.2.2
+        version: 3.2.2(tailwind-merge@3.6.0)(tailwindcss@4.3.2)
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
     devDependencies:
-      '@fontsource-variable/inter':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@internationalized/date':
         specifier: ^3.12.2
         version: 3.12.2
-      '@lucide/svelte':
-        specifier: ^1.23.0
-        version: 1.23.0(svelte@5.56.4(@typescript-eslint/types@8.30.1))
       '@sveltejs/adapter-auto':
         specifier: ^7.0.1
         version: 7.0.1(@sveltejs/kit@2.69.1(@sveltejs/vite-plugin-svelte@7.1.2(svelte@5.56.4(@typescript-eslint/types@8.30.1))(vite@8.1.3(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)))(svelte@5.56.4(@typescript-eslint/types@8.30.1))(typescript@5.8.3)(vite@8.1.3(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)))
@@ -114,9 +126,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: 4.1.9
         version: 4.1.9(vitest@4.1.9)
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
@@ -132,18 +141,9 @@ importers:
       svelte-check:
         specifier: ^4.7.1
         version: 4.7.1(picomatch@4.0.5)(svelte@5.56.4(@typescript-eslint/types@8.30.1))(typescript@5.8.3)
-      tailwind-merge:
-        specifier: ^3.6.0
-        version: 3.6.0
-      tailwind-variants:
-        specifier: ^3.2.2
-        version: 3.2.2(tailwind-merge@3.6.0)(tailwindcss@4.3.2)
       tailwindcss:
         specifier: ^4.3.2
         version: 4.3.2
-      tw-animate-css:
-        specifier: ^1.4.0
-        version: 1.4.0
       typescript:
         specifier: ^5.0.0
         version: 5.8.3
