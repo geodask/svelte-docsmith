@@ -20,6 +20,11 @@ export function reveal(node: HTMLElement, options: RevealOptions = {}) {
 	// rendered — fully visible. The animation is pure enhancement.
 	if (typeof IntersectionObserver === 'undefined' || REDUCED()) return;
 
+	// Already in (or above) the viewport when we mount? It's painted already, so
+	// hiding it now to animate it back would flash. Leave above-the-fold content
+	// exactly as rendered; only reveal sections that start off-screen.
+	if (node.getBoundingClientRect().top < window.innerHeight) return;
+
 	const { delay = 0 } = options;
 	let shown = false;
 
