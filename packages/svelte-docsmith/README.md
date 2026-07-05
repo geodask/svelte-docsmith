@@ -11,8 +11,17 @@ Write a markdown file under `src/routes/docs/` and you get a styled page with
 syntax highlighting, heading anchors, a sidebar derived from your content, and a
 live table of contents — no per-page wiring, no content collection to configure.
 
-> **Status: early development.** The public API described here is stabilising
-> milestone by milestone (see `PLAN.md` in the repo). Not yet published to npm.
+> **Status: pre-1.0.** Published to npm and usable today. The public API is still
+> stabilising, so minor releases may include breaking changes until v1.0.
+
+## Install
+
+```bash
+npm install svelte-docsmith
+```
+
+Peer dependencies: Svelte 5, SvelteKit 2, and Tailwind v4 — set up the standard
+way in your app.
 
 ## Setup
 
