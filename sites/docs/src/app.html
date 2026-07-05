@@ -10,6 +10,21 @@
 			href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
 			rel="stylesheet"
 		/>
+		<script>
+			// Replay the showcase theme before first paint to avoid a flash on reload.
+			// The resolved --token:value map is persisted by the theme store; no theme
+			// data lives here.
+			(function () {
+				try {
+					var vars = JSON.parse(localStorage.getItem('docsmith-theme-vars') || 'null');
+					if (!vars) return;
+					var root = document.documentElement;
+					for (var k in vars) root.style.setProperty(k, vars[k]);
+				} catch (e) {
+					/* ignore */
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 

@@ -6,6 +6,10 @@ import { themes, type ThemeTokens } from './themes-data';
 // properties, which win over theme.css and revert cleanly on reset.
 
 const STORAGE_KEY = 'docsmith-showcase-theme';
+// The already-resolved `--token: value` map for the active theme+mode. The
+// blocking <head> script in app.html replays this before first paint to avoid a
+// theme flash on reload — no theme data is duplicated there, just this blob.
+const STORAGE_VARS = 'docsmith-theme-vars';
 
 // Core tokens live in themes-data; derive the rest the way the shipped CSS does,
 // so applying a theme re-skins the sidebar/rings/popovers too, not just the body.
@@ -60,12 +64,25 @@ export function applyActiveTheme(active: string | null, dark: boolean) {
 	const root = document.documentElement;
 	if (!active) {
 		for (const key of ALL_KEYS) root.style.removeProperty(`--${key}`);
+		try {
+			localStorage.removeItem(STORAGE_VARS);
+		} catch {
+			/* ignore */
+		}
 		return;
 	}
 	const theme = themes.find((t) => t.slug === active);
 	if (!theme) return;
 	const tokens = fullTokenSet(dark ? theme.dark : theme.light);
+	const resolved: Record<string, string> = {};
 	for (const [key, value] of Object.entries(tokens)) {
 		root.style.setProperty(`--${key}`, value);
+		resolved[`--${key}`] = value;
+	}
+	// Persist the resolved map so the pre-paint head script can replay it on reload.
+	try {
+		localStorage.setItem(STORAGE_VARS, JSON.stringify(resolved));
+	} catch {
+		/* ignore */
 	}
 }

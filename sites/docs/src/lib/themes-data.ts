@@ -1,11 +1,18 @@
 // Showcase data mirroring the shipped presets in
 // packages/svelte-docsmith/src/lib/themes/*.css. Used by the theme gallery
-// (scoped preview) and the runtime theme store (whole-site apply). Only the
-// core tokens are listed; the store derives the rest (ring, input, popover,
-// sidebar*) from these at apply time. If you change a preset's CSS, mirror it here.
+// (scoped preview) and the runtime theme store (whole-site apply). Carries the
+// full themeable token set (colors + destructive + charts); the store derives
+// the rest (ring, input, popover, sidebar*) at apply time. If you change a
+// preset's CSS, mirror the change here.
 
 export type ThemeTokens = Record<string, string>;
 export type Theme = { name: string; slug: string; light: ThemeTokens; dark: ThemeTokens };
+
+// Errors stay red across every theme.
+const DESTRUCTIVE = {
+	destructive: 'oklch(0.637 0.208 25)',
+	'destructive-foreground': 'oklch(1 0 0)'
+};
 
 export const themes: Theme[] = [
 	{
@@ -25,6 +32,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.912 0.022 244)',
 			'accent-foreground': 'oklch(0.379 0.138 266)',
 			border: 'oklch(0.902 0.005 248)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.716 0.06 249)',
+			'chart-2': 'oklch(0.788 0.092 36)',
+			'chart-3': 'oklch(0.578 0.076 254)',
+			'chart-4': 'oklch(0.502 0.085 259)',
+			'chart-5': 'oklch(0.424 0.095 264)',
 			radius: '0.75rem'
 		},
 		dark: {
@@ -41,6 +54,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.338 0.059 268)',
 			'accent-foreground': 'oklch(0.882 0.057 254)',
 			border: 'oklch(0.384 0.03 270)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.716 0.06 249)',
+			'chart-2': 'oklch(0.769 0.088 34)',
+			'chart-3': 'oklch(0.578 0.076 254)',
+			'chart-4': 'oklch(0.502 0.085 259)',
+			'chart-5': 'oklch(0.424 0.095 264)',
 			radius: '0.75rem'
 		}
 	},
@@ -61,6 +80,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.94 0.03 300)',
 			'accent-foreground': 'oklch(0.4 0.15 295)',
 			border: 'oklch(0.92 0.008 300)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.62 0.15 295)',
+			'chart-2': 'oklch(0.7 0.11 320)',
+			'chart-3': 'oklch(0.54 0.13 270)',
+			'chart-4': 'oklch(0.68 0.09 345)',
+			'chart-5': 'oklch(0.48 0.14 285)',
 			radius: '0.75rem'
 		},
 		dark: {
@@ -77,6 +102,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.32 0.05 300)',
 			'accent-foreground': 'oklch(0.86 0.06 296)',
 			border: 'oklch(0.33 0.02 300)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.7 0.15 295)',
+			'chart-2': 'oklch(0.77 0.11 320)',
+			'chart-3': 'oklch(0.62 0.13 270)',
+			'chart-4': 'oklch(0.75 0.09 345)',
+			'chart-5': 'oklch(0.56 0.14 285)',
 			radius: '0.75rem'
 		}
 	},
@@ -97,6 +128,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.96 0.003 265)',
 			'accent-foreground': 'oklch(0.27 0.01 265)',
 			border: 'oklch(0.922 0.003 265)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.44 0.012 265)',
+			'chart-2': 'oklch(0.56 0.01 265)',
+			'chart-3': 'oklch(0.66 0.008 265)',
+			'chart-4': 'oklch(0.74 0.006 265)',
+			'chart-5': 'oklch(0.36 0.014 265)',
 			radius: '0.375rem'
 		},
 		dark: {
@@ -113,6 +150,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.3 0.006 265)',
 			'accent-foreground': 'oklch(0.96 0.002 265)',
 			border: 'oklch(0.32 0.006 265)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.8 0.006 265)',
+			'chart-2': 'oklch(0.68 0.008 265)',
+			'chart-3': 'oklch(0.56 0.008 265)',
+			'chart-4': 'oklch(0.46 0.01 265)',
+			'chart-5': 'oklch(0.88 0.004 265)',
 			radius: '0.375rem'
 		}
 	},
@@ -133,6 +176,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.93 0.035 150)',
 			'accent-foreground': 'oklch(0.38 0.08 156)',
 			border: 'oklch(0.9 0.012 150)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.62 0.13 156)',
+			'chart-2': 'oklch(0.7 0.1 180)',
+			'chart-3': 'oklch(0.54 0.12 130)',
+			'chart-4': 'oklch(0.68 0.08 200)',
+			'chart-5': 'oklch(0.48 0.12 145)',
 			radius: '0.75rem'
 		},
 		dark: {
@@ -149,6 +198,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.32 0.05 156)',
 			'accent-foreground': 'oklch(0.85 0.08 153)',
 			border: 'oklch(0.33 0.02 158)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.7 0.13 156)',
+			'chart-2': 'oklch(0.77 0.1 180)',
+			'chart-3': 'oklch(0.62 0.12 130)',
+			'chart-4': 'oklch(0.75 0.08 200)',
+			'chart-5': 'oklch(0.56 0.12 145)',
 			radius: '0.75rem'
 		}
 	},
@@ -169,6 +224,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.94 0.03 12)',
 			'accent-foreground': 'oklch(0.42 0.13 13)',
 			border: 'oklch(0.91 0.012 12)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.62 0.16 13)',
+			'chart-2': 'oklch(0.7 0.12 38)',
+			'chart-3': 'oklch(0.54 0.14 350)',
+			'chart-4': 'oklch(0.68 0.1 60)',
+			'chart-5': 'oklch(0.48 0.15 3)',
 			radius: '1rem'
 		},
 		dark: {
@@ -185,6 +246,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.32 0.05 13)',
 			'accent-foreground': 'oklch(0.86 0.07 12)',
 			border: 'oklch(0.33 0.02 14)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.7 0.16 13)',
+			'chart-2': 'oklch(0.77 0.12 38)',
+			'chart-3': 'oklch(0.62 0.14 350)',
+			'chart-4': 'oklch(0.75 0.1 60)',
+			'chart-5': 'oklch(0.56 0.15 3)',
 			radius: '1rem'
 		}
 	},
@@ -205,6 +272,12 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.93 0.03 210)',
 			'accent-foreground': 'oklch(0.38 0.09 222)',
 			border: 'oklch(0.9 0.01 215)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.62 0.12 220)',
+			'chart-2': 'oklch(0.7 0.1 195)',
+			'chart-3': 'oklch(0.54 0.12 250)',
+			'chart-4': 'oklch(0.68 0.09 175)',
+			'chart-5': 'oklch(0.48 0.11 235)',
 			radius: '0.75rem'
 		},
 		dark: {
@@ -221,7 +294,213 @@ export const themes: Theme[] = [
 			accent: 'oklch(0.32 0.055 216)',
 			'accent-foreground': 'oklch(0.85 0.08 214)',
 			border: 'oklch(0.33 0.02 228)',
+			...DESTRUCTIVE,
+			'chart-1': 'oklch(0.7 0.12 220)',
+			'chart-2': 'oklch(0.77 0.1 195)',
+			'chart-3': 'oklch(0.62 0.12 250)',
+			'chart-4': 'oklch(0.75 0.09 175)',
+			'chart-5': 'oklch(0.56 0.11 235)',
 			radius: '0.75rem'
+		}
+	},
+	{
+		name: 'Mono',
+		slug: 'mono',
+		light: {
+			background: 'oklch(1 0 0)',
+			foreground: 'oklch(0.15 0 0)',
+			card: 'oklch(1 0 0)',
+			'card-foreground': 'oklch(0.15 0 0)',
+			primary: 'oklch(0.15 0 0)',
+			'primary-foreground': 'oklch(1 0 0)',
+			secondary: 'oklch(0.96 0 0)',
+			'secondary-foreground': 'oklch(0.25 0 0)',
+			muted: 'oklch(0.96 0 0)',
+			'muted-foreground': 'oklch(0.44 0 0)',
+			accent: 'oklch(0.94 0 0)',
+			'accent-foreground': 'oklch(0.15 0 0)',
+			border: 'oklch(0.9 0 0)',
+			destructive: 'oklch(0.577 0.245 27)',
+			'destructive-foreground': 'oklch(1 0 0)',
+			'chart-1': 'oklch(0.2 0 0)',
+			'chart-2': 'oklch(0.36 0 0)',
+			'chart-3': 'oklch(0.52 0 0)',
+			'chart-4': 'oklch(0.66 0 0)',
+			'chart-5': 'oklch(0.8 0 0)',
+			radius: '0rem'
+		},
+		dark: {
+			background: 'oklch(0.15 0 0)',
+			foreground: 'oklch(0.97 0 0)',
+			card: 'oklch(0.19 0 0)',
+			'card-foreground': 'oklch(0.97 0 0)',
+			primary: 'oklch(0.97 0 0)',
+			'primary-foreground': 'oklch(0.15 0 0)',
+			secondary: 'oklch(0.25 0 0)',
+			'secondary-foreground': 'oklch(0.97 0 0)',
+			muted: 'oklch(0.25 0 0)',
+			'muted-foreground': 'oklch(0.68 0 0)',
+			accent: 'oklch(0.28 0 0)',
+			'accent-foreground': 'oklch(0.97 0 0)',
+			border: 'oklch(0.3 0 0)',
+			destructive: 'oklch(0.65 0.2 27)',
+			'destructive-foreground': 'oklch(0.15 0 0)',
+			'chart-1': 'oklch(0.95 0 0)',
+			'chart-2': 'oklch(0.8 0 0)',
+			'chart-3': 'oklch(0.65 0 0)',
+			'chart-4': 'oklch(0.5 0 0)',
+			'chart-5': 'oklch(0.36 0 0)',
+			radius: '0rem'
+		}
+	},
+	{
+		name: 'Claude',
+		slug: 'claude',
+		light: {
+			background: 'oklch(0.97 0.008 85)',
+			foreground: 'oklch(0.28 0.02 55)',
+			card: 'oklch(0.99 0.005 85)',
+			'card-foreground': 'oklch(0.28 0.02 55)',
+			primary: 'oklch(0.52 0.11 42)',
+			'primary-foreground': 'oklch(0.99 0.01 85)',
+			secondary: 'oklch(0.93 0.012 85)',
+			'secondary-foreground': 'oklch(0.35 0.02 50)',
+			muted: 'oklch(0.95 0.01 85)',
+			'muted-foreground': 'oklch(0.5 0.02 55)',
+			accent: 'oklch(0.9 0.025 70)',
+			'accent-foreground': 'oklch(0.4 0.06 45)',
+			border: 'oklch(0.89 0.012 80)',
+			destructive: 'oklch(0.577 0.22 27)',
+			'destructive-foreground': 'oklch(0.99 0.01 85)',
+			'chart-1': 'oklch(0.55 0.11 42)',
+			'chart-2': 'oklch(0.68 0.09 68)',
+			'chart-3': 'oklch(0.5 0.1 25)',
+			'chart-4': 'oklch(0.72 0.07 95)',
+			'chart-5': 'oklch(0.44 0.11 50)',
+			radius: '0.5rem'
+		},
+		dark: {
+			background: 'oklch(0.22 0.008 60)',
+			foreground: 'oklch(0.92 0.01 85)',
+			card: 'oklch(0.26 0.01 60)',
+			'card-foreground': 'oklch(0.92 0.01 85)',
+			primary: 'oklch(0.68 0.11 48)',
+			'primary-foreground': 'oklch(0.2 0.02 55)',
+			secondary: 'oklch(0.3 0.012 60)',
+			'secondary-foreground': 'oklch(0.92 0.01 85)',
+			muted: 'oklch(0.3 0.012 60)',
+			'muted-foreground': 'oklch(0.72 0.012 80)',
+			accent: 'oklch(0.34 0.03 55)',
+			'accent-foreground': 'oklch(0.85 0.04 80)',
+			border: 'oklch(0.35 0.012 60)',
+			destructive: 'oklch(0.65 0.2 27)',
+			'destructive-foreground': 'oklch(0.2 0.02 55)',
+			'chart-1': 'oklch(0.68 0.11 48)',
+			'chart-2': 'oklch(0.75 0.09 70)',
+			'chart-3': 'oklch(0.62 0.1 28)',
+			'chart-4': 'oklch(0.8 0.07 95)',
+			'chart-5': 'oklch(0.56 0.11 52)',
+			radius: '0.5rem'
+		}
+	},
+	{
+		name: 'Bubblegum',
+		slug: 'bubblegum',
+		light: {
+			background: 'oklch(0.99 0.01 340)',
+			foreground: 'oklch(0.3 0.03 340)',
+			card: 'oklch(1 0 0)',
+			'card-foreground': 'oklch(0.3 0.03 340)',
+			primary: 'oklch(0.62 0.21 352)',
+			'primary-foreground': 'oklch(1 0 0)',
+			secondary: 'oklch(0.95 0.03 200)',
+			'secondary-foreground': 'oklch(0.38 0.06 220)',
+			muted: 'oklch(0.96 0.015 340)',
+			'muted-foreground': 'oklch(0.5 0.04 340)',
+			accent: 'oklch(0.9 0.08 200)',
+			'accent-foreground': 'oklch(0.38 0.1 222)',
+			border: 'oklch(0.9 0.02 340)',
+			destructive: 'oklch(0.6 0.24 20)',
+			'destructive-foreground': 'oklch(1 0 0)',
+			'chart-1': 'oklch(0.65 0.2 350)',
+			'chart-2': 'oklch(0.7 0.14 200)',
+			'chart-3': 'oklch(0.78 0.16 95)',
+			'chart-4': 'oklch(0.6 0.18 290)',
+			'chart-5': 'oklch(0.72 0.17 40)',
+			radius: '1.25rem'
+		},
+		dark: {
+			background: 'oklch(0.2 0.03 320)',
+			foreground: 'oklch(0.95 0.02 340)',
+			card: 'oklch(0.25 0.035 320)',
+			'card-foreground': 'oklch(0.95 0.02 340)',
+			primary: 'oklch(0.72 0.19 352)',
+			'primary-foreground': 'oklch(0.18 0.03 340)',
+			secondary: 'oklch(0.3 0.04 320)',
+			'secondary-foreground': 'oklch(0.95 0.02 340)',
+			muted: 'oklch(0.3 0.04 320)',
+			'muted-foreground': 'oklch(0.72 0.03 340)',
+			accent: 'oklch(0.42 0.1 200)',
+			'accent-foreground': 'oklch(0.92 0.08 200)',
+			border: 'oklch(0.35 0.035 320)',
+			destructive: 'oklch(0.68 0.2 20)',
+			'destructive-foreground': 'oklch(0.18 0.03 340)',
+			'chart-1': 'oklch(0.72 0.2 350)',
+			'chart-2': 'oklch(0.75 0.14 200)',
+			'chart-3': 'oklch(0.82 0.16 95)',
+			'chart-4': 'oklch(0.68 0.18 290)',
+			'chart-5': 'oklch(0.76 0.17 40)',
+			radius: '1.25rem'
+		}
+	},
+	{
+		name: 'Nord',
+		slug: 'nord',
+		light: {
+			background: 'oklch(0.96 0.006 250)',
+			foreground: 'oklch(0.32 0.02 255)',
+			card: 'oklch(0.98 0.004 250)',
+			'card-foreground': 'oklch(0.32 0.02 255)',
+			primary: 'oklch(0.55 0.07 245)',
+			'primary-foreground': 'oklch(0.98 0.005 250)',
+			secondary: 'oklch(0.92 0.008 250)',
+			'secondary-foreground': 'oklch(0.4 0.02 250)',
+			muted: 'oklch(0.93 0.006 250)',
+			'muted-foreground': 'oklch(0.5 0.015 250)',
+			accent: 'oklch(0.88 0.03 220)',
+			'accent-foreground': 'oklch(0.4 0.05 235)',
+			border: 'oklch(0.88 0.008 250)',
+			destructive: 'oklch(0.6 0.13 25)',
+			'destructive-foreground': 'oklch(0.98 0.005 250)',
+			'chart-1': 'oklch(0.6 0.07 245)',
+			'chart-2': 'oklch(0.68 0.08 200)',
+			'chart-3': 'oklch(0.7 0.09 150)',
+			'chart-4': 'oklch(0.74 0.1 90)',
+			'chart-5': 'oklch(0.65 0.12 30)',
+			radius: '0.5rem'
+		},
+		dark: {
+			background: 'oklch(0.29 0.02 255)',
+			foreground: 'oklch(0.9 0.01 240)',
+			card: 'oklch(0.33 0.02 255)',
+			'card-foreground': 'oklch(0.9 0.01 240)',
+			primary: 'oklch(0.72 0.08 235)',
+			'primary-foreground': 'oklch(0.2 0.02 255)',
+			secondary: 'oklch(0.37 0.02 255)',
+			'secondary-foreground': 'oklch(0.9 0.01 240)',
+			muted: 'oklch(0.37 0.02 255)',
+			'muted-foreground': 'oklch(0.74 0.015 240)',
+			accent: 'oklch(0.42 0.04 220)',
+			'accent-foreground': 'oklch(0.85 0.05 220)',
+			border: 'oklch(0.4 0.02 255)',
+			destructive: 'oklch(0.64 0.15 25)',
+			'destructive-foreground': 'oklch(0.2 0.02 255)',
+			'chart-1': 'oklch(0.72 0.08 235)',
+			'chart-2': 'oklch(0.75 0.08 200)',
+			'chart-3': 'oklch(0.76 0.09 150)',
+			'chart-4': 'oklch(0.8 0.1 90)',
+			'chart-5': 'oklch(0.72 0.12 30)',
+			radius: '0.5rem'
 		}
 	}
 ];
