@@ -6,7 +6,7 @@ order: 12
 ---
 
 <script>
-	import { Tabs, TabItem } from 'svelte-docsmith';
+	import { Tabs, TabItem, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
 ## Tabs
@@ -71,8 +71,17 @@ pnpm add -D svelte-docsmith
 
 ## Props
 
-| Component | Prop    | Type       | Description                                  |
-| --------- | ------- | ---------- | -------------------------------------------- |
-| `Tabs`    | `items` | `string[]` | Tab labels, in order.                        |
-| `Tabs`    | `value` | `string`   | Initially selected label. Defaults to first. |
-| `TabItem` | `value` | `string`   | The label this panel belongs to.             |
+<PropsTable title="Tabs">
+	<Prop name="items" type="string[]" required>
+		Tab labels, in order.
+	</Prop>
+	<Prop name="value" type="string">
+		Initially selected label. Defaults to first.
+	</Prop>
+</PropsTable>
+
+<PropsTable title="TabItem">
+	<Prop name="value" type="string" required>
+		The label this panel belongs to.
+	</Prop>
+</PropsTable>

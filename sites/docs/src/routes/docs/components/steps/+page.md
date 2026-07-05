@@ -6,7 +6,7 @@ order: 10
 ---
 
 <script>
-	import { Steps, Step } from 'svelte-docsmith';
+	import { Steps, Step, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
 ## Steps
@@ -68,6 +68,8 @@ ordered list — mdsvex turns it into steps:
 
 ## Props
 
-| Component | Prop    | Type     | Description                    |
-| --------- | ------- | -------- | ------------------------------ |
-| `Step`    | `title` | `string` | Optional heading for the step. |
+<PropsTable title="Step">
+	<Prop name="title" type="string">
+		Optional heading for the step.
+	</Prop>
+</PropsTable>

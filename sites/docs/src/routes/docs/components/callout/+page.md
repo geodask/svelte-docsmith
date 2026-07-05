@@ -6,7 +6,7 @@ order: 9
 ---
 
 <script>
-	import { Callout } from 'svelte-docsmith';
+	import { Callout, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
 ## Callout
@@ -61,7 +61,11 @@ inside — including `code` and [links](/docs/theming).
 
 ## Props
 
-| Prop    | Type                                       | Default  | Description             |
-| ------- | ------------------------------------------ | -------- | ----------------------- |
-| `type`  | `'note' \| 'tip' \| 'warning' \| 'danger'` | `'note'` | Visual intent.          |
-| `title` | `string`                                   | the type | Heading above the body. |
+<PropsTable>
+	<Prop name="type" type="'note' | 'tip' | 'warning' | 'danger'" default="'note'">
+		Visual intent.
+	</Prop>
+	<Prop name="title" type="string" default="the type">
+		Heading above the body.
+	</Prop>
+</PropsTable>
