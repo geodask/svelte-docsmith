@@ -15,7 +15,7 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"test:unit": "vitest run",
-		"typecheck": "svelte-check --tsconfig ./tsconfig.json",
+		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"size": "size-limit"
 	},
 	"author": {
