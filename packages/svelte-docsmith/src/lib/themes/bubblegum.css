@@ -1,0 +1,79 @@
+/*
+ * svelte-docsmith theme — Bubblegum. Vivid pink with a cyan accent, high chroma,
+ * generously rounded. Playful and high-energy.
+ *
+ *   @import 'svelte-docsmith/theme.css';
+ *   @import 'svelte-docsmith/themes/bubblegum.css';
+ */
+
+:root {
+	--radius: 1.25rem;
+	--background: oklch(0.99 0.01 340);
+	--foreground: oklch(0.3 0.03 340);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.3 0.03 340);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.3 0.03 340);
+	--primary: oklch(0.62 0.21 352);
+	--primary-foreground: oklch(1 0 0);
+	--secondary: oklch(0.95 0.03 200);
+	--secondary-foreground: oklch(0.38 0.06 220);
+	--muted: oklch(0.96 0.015 340);
+	--muted-foreground: oklch(0.5 0.04 340);
+	--accent: oklch(0.9 0.08 200);
+	--accent-foreground: oklch(0.38 0.1 222);
+	--border: oklch(0.9 0.02 340);
+	--input: oklch(0.9 0.02 340);
+	--ring: oklch(0.62 0.21 352);
+	--destructive: oklch(0.6 0.24 20);
+	--destructive-foreground: oklch(1 0 0);
+	--chart-1: oklch(0.65 0.2 350);
+	--chart-2: oklch(0.7 0.14 200);
+	--chart-3: oklch(0.78 0.16 95);
+	--chart-4: oklch(0.6 0.18 290);
+	--chart-5: oklch(0.72 0.17 40);
+	--sidebar: oklch(0.97 0.02 340);
+	--sidebar-foreground: oklch(0.3 0.03 340);
+	--sidebar-primary: oklch(0.62 0.21 352);
+	--sidebar-primary-foreground: oklch(1 0 0);
+	--sidebar-accent: oklch(0.9 0.08 200);
+	--sidebar-accent-foreground: oklch(0.38 0.1 222);
+	--sidebar-border: oklch(0.9 0.02 340);
+	--sidebar-ring: oklch(0.62 0.21 352);
+}
+
+.dark {
+	--radius: 1.25rem;
+	--background: oklch(0.2 0.03 320);
+	--foreground: oklch(0.95 0.02 340);
+	--card: oklch(0.25 0.035 320);
+	--card-foreground: oklch(0.95 0.02 340);
+	--popover: oklch(0.24 0.035 320);
+	--popover-foreground: oklch(0.95 0.02 340);
+	--primary: oklch(0.72 0.19 352);
+	--primary-foreground: oklch(0.18 0.03 340);
+	--secondary: oklch(0.3 0.04 320);
+	--secondary-foreground: oklch(0.95 0.02 340);
+	--muted: oklch(0.3 0.04 320);
+	--muted-foreground: oklch(0.72 0.03 340);
+	--accent: oklch(0.42 0.1 200);
+	--accent-foreground: oklch(0.92 0.08 200);
+	--border: oklch(0.35 0.035 320);
+	--input: oklch(0.35 0.035 320);
+	--ring: oklch(0.72 0.19 352);
+	--destructive: oklch(0.68 0.2 20);
+	--destructive-foreground: oklch(0.18 0.03 340);
+	--chart-1: oklch(0.72 0.2 350);
+	--chart-2: oklch(0.75 0.14 200);
+	--chart-3: oklch(0.82 0.16 95);
+	--chart-4: oklch(0.68 0.18 290);
+	--chart-5: oklch(0.76 0.17 40);
+	--sidebar: oklch(0.23 0.035 320);
+	--sidebar-foreground: oklch(0.95 0.02 340);
+	--sidebar-primary: oklch(0.72 0.19 352);
+	--sidebar-primary-foreground: oklch(0.18 0.03 340);
+	--sidebar-accent: oklch(0.42 0.1 200);
+	--sidebar-accent-foreground: oklch(0.92 0.08 200);
+	--sidebar-border: oklch(0.35 0.035 320);
+	--sidebar-ring: oklch(0.72 0.19 352);
+}

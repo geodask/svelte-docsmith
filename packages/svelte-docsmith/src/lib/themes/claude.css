@@ -1,0 +1,79 @@
+/*
+ * svelte-docsmith theme — Claude. Warm clay on a paper-cream background; low
+ * chroma, softly rounded. Editorial and warm without shouting.
+ *
+ *   @import 'svelte-docsmith/theme.css';
+ *   @import 'svelte-docsmith/themes/claude.css';
+ */
+
+:root {
+	--radius: 0.5rem;
+	--background: oklch(0.97 0.008 85);
+	--foreground: oklch(0.28 0.02 55);
+	--card: oklch(0.99 0.005 85);
+	--card-foreground: oklch(0.28 0.02 55);
+	--popover: oklch(0.99 0.005 85);
+	--popover-foreground: oklch(0.28 0.02 55);
+	--primary: oklch(0.52 0.11 42);
+	--primary-foreground: oklch(0.99 0.01 85);
+	--secondary: oklch(0.93 0.012 85);
+	--secondary-foreground: oklch(0.35 0.02 50);
+	--muted: oklch(0.95 0.01 85);
+	--muted-foreground: oklch(0.5 0.02 55);
+	--accent: oklch(0.9 0.025 70);
+	--accent-foreground: oklch(0.4 0.06 45);
+	--border: oklch(0.89 0.012 80);
+	--input: oklch(0.89 0.012 80);
+	--ring: oklch(0.52 0.11 42);
+	--destructive: oklch(0.577 0.22 27);
+	--destructive-foreground: oklch(0.99 0.01 85);
+	--chart-1: oklch(0.55 0.11 42);
+	--chart-2: oklch(0.68 0.09 68);
+	--chart-3: oklch(0.5 0.1 25);
+	--chart-4: oklch(0.72 0.07 95);
+	--chart-5: oklch(0.44 0.11 50);
+	--sidebar: oklch(0.95 0.01 85);
+	--sidebar-foreground: oklch(0.28 0.02 55);
+	--sidebar-primary: oklch(0.52 0.11 42);
+	--sidebar-primary-foreground: oklch(0.99 0.01 85);
+	--sidebar-accent: oklch(0.9 0.025 70);
+	--sidebar-accent-foreground: oklch(0.4 0.06 45);
+	--sidebar-border: oklch(0.89 0.012 80);
+	--sidebar-ring: oklch(0.52 0.11 42);
+}
+
+.dark {
+	--radius: 0.5rem;
+	--background: oklch(0.22 0.008 60);
+	--foreground: oklch(0.92 0.01 85);
+	--card: oklch(0.26 0.01 60);
+	--card-foreground: oklch(0.92 0.01 85);
+	--popover: oklch(0.25 0.01 60);
+	--popover-foreground: oklch(0.92 0.01 85);
+	--primary: oklch(0.68 0.11 48);
+	--primary-foreground: oklch(0.2 0.02 55);
+	--secondary: oklch(0.3 0.012 60);
+	--secondary-foreground: oklch(0.92 0.01 85);
+	--muted: oklch(0.3 0.012 60);
+	--muted-foreground: oklch(0.72 0.012 80);
+	--accent: oklch(0.34 0.03 55);
+	--accent-foreground: oklch(0.85 0.04 80);
+	--border: oklch(0.35 0.012 60);
+	--input: oklch(0.35 0.012 60);
+	--ring: oklch(0.68 0.11 48);
+	--destructive: oklch(0.65 0.2 27);
+	--destructive-foreground: oklch(0.2 0.02 55);
+	--chart-1: oklch(0.68 0.11 48);
+	--chart-2: oklch(0.75 0.09 70);
+	--chart-3: oklch(0.62 0.1 28);
+	--chart-4: oklch(0.8 0.07 95);
+	--chart-5: oklch(0.56 0.11 52);
+	--sidebar: oklch(0.24 0.01 60);
+	--sidebar-foreground: oklch(0.92 0.01 85);
+	--sidebar-primary: oklch(0.68 0.11 48);
+	--sidebar-primary-foreground: oklch(0.2 0.02 55);
+	--sidebar-accent: oklch(0.34 0.03 55);
+	--sidebar-accent-foreground: oklch(0.85 0.04 80);
+	--sidebar-border: oklch(0.35 0.012 60);
+	--sidebar-ring: oklch(0.68 0.11 48);
+}

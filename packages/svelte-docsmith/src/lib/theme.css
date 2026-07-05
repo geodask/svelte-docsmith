@@ -12,8 +12,10 @@
  * Override any token by redefining it after the import.
  */
 
-@import 'tw-animate-css';
 @plugin '@tailwindcss/typography';
+@import 'tw-animate-css';
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
 
 /* Generate utilities for the classes used inside this package. */
 @source './';
@@ -61,6 +63,21 @@
 	--radius-lg: var(--radius);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-sm: calc(var(--radius) - 4px);
+
+	/* Wire the font/shadow tokens into Tailwind, so `font-sans`, `shadow-sm`,
+	 * etc. (and the base body font) use them and a theme can override them. */
+	--font-sans: var(--font-sans);
+	--font-serif: var(--font-serif);
+	--font-mono: var(--font-mono);
+
+	--shadow-2xs: var(--shadow-2xs);
+	--shadow-xs: var(--shadow-xs);
+	--shadow-sm: var(--shadow-sm);
+	--shadow: var(--shadow);
+	--shadow-md: var(--shadow-md);
+	--shadow-lg: var(--shadow-lg);
+	--shadow-xl: var(--shadow-xl);
+	--shadow-2xl: var(--shadow-2xl);
 }
 
 @layer base {
@@ -109,6 +126,17 @@
 		--shadow-lg: 0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 4px 6px -1px hsl(0 0% 0% / 0.1);
 		--shadow-xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 8px 10px -1px hsl(0 0% 0% / 0.1);
 		--shadow-2xl: 0px 1px 3px 0px hsl(0 0% 0% / 0.25);
+		/* Shadow primitives + scale controls (tweakcn parity; the shadow scale
+		 * above is authored directly, these are here for regeneration/overrides).
+		 * .dark inherits all of these — only colors flip. */
+		--shadow-color: hsl(0 0% 0%);
+		--shadow-opacity: 0.1;
+		--shadow-blur: 3px;
+		--shadow-spread: 0px;
+		--shadow-offset-x: 0px;
+		--shadow-offset-y: 1px;
+		--tracking-normal: 0em;
+		--spacing: 0.25rem;
 	}
 
 	.dark {
