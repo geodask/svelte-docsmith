@@ -2,13 +2,38 @@
  * Static site configuration passed to `DocsShell`. Content-derived data (the
  * sidebar nav) is NOT here — it comes from your content collection at runtime.
  */
+/** A link rendered in the header nav or footer. */
+export type DocsmithLink = {
+	label: string;
+	href: string;
+	/** Open in a new tab with `rel="noopener"`. */
+	external?: boolean;
+};
+
+/** A titled column of links in the footer. */
+export type DocsmithFooterColumn = {
+	title: string;
+	links: DocsmithLink[];
+};
+
 export type DocsmithConfig = {
-	/** Site title, shown in the sidebar header. */
+	/** Site title, shown in the header/sidebar. */
 	title: string;
 	/** Optional GitHub URL; renders a link in the header when set. */
 	github?: string;
 	/** Optional version string, shown in the header (e.g. your library version). */
 	version?: string;
+	/** Optional logo image src; falls back to the built-in book mark. */
+	logo?: string;
+	/** Top-level header navigation links. */
+	nav?: DocsmithLink[];
+	/** Footer content, driven by data. */
+	footer?: {
+		/** Copyright / attribution line. */
+		copyright?: string;
+		/** Titled columns of links. */
+		columns?: DocsmithFooterColumn[];
+	};
 };
 
 /**
@@ -25,10 +50,30 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 			'[svelte-docsmith] config.title is required — the site title shown in the sidebar header.'
 		);
 	}
-	for (const key of ['github', 'version'] as const) {
+	for (const key of ['github', 'version', 'logo'] as const) {
 		if (config[key] !== undefined && typeof config[key] !== 'string') {
 			throw new Error(`[svelte-docsmith] config.${key} must be a string when set.`);
 		}
+	}
+	if (config.nav !== undefined) {
+		if (!Array.isArray(config.nav)) {
+			throw new Error('[svelte-docsmith] config.nav must be an array of { label, href } links.');
+		}
+		for (const link of config.nav) {
+			if (typeof link?.label !== 'string' || typeof link?.href !== 'string') {
+				throw new Error(
+					'[svelte-docsmith] each config.nav entry needs a string `label` and `href`.'
+				);
+			}
+		}
+	}
+	if (
+		config.footer !== undefined &&
+		(typeof config.footer !== 'object' || config.footer === null)
+	) {
+		throw new Error(
+			'[svelte-docsmith] config.footer must be an object ({ copyright?, columns? }).'
+		);
 	}
 	return config;
 }

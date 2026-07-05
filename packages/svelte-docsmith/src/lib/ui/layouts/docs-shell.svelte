@@ -3,7 +3,9 @@
 	import { navFromContent, type DocsContentItem, type DocsmithConfig } from '$lib/config.js';
 	import { reactiveToc, tocFromContent, type TocItem } from '$lib/toc/index.js';
 	import BackgroundPattern from '../background-pattern.svelte';
+	import ThemeProvider from '../theme-provider.svelte';
 	import DocsHeader from './docs-header.svelte';
+	import DocsFooter from './docs-footer.svelte';
 	import DocsMobileHeader from './docs-mobile-header.svelte';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import PrevNextNav from './prev-next-nav.svelte';
@@ -17,7 +19,8 @@
 		logo,
 		actions,
 		footer,
-		pattern = false
+		pattern = false,
+		layout = 'docs'
 	}: {
 		config: DocsmithConfig;
 		content?: DocsContentItem[];
@@ -30,6 +33,13 @@
 		footer?: Snippet;
 		/** Render the decorative grid-and-glow page background. */
 		pattern?: boolean;
+		/**
+		 * `docs` (default): the three-column shell — sidebar, content, in-page TOC.
+		 * `page`: full-bleed content with the same header/footer/background but no
+		 * sidebar or TOC — for a landing or any non-doc page, so the whole site
+		 * shares one chrome.
+		 */
+		layout?: 'docs' | 'page';
 	} = $props();
 
 	const nav = $derived(navFromContent(content));
@@ -61,26 +71,39 @@
 </script>
 
 <div class="relative isolate flex min-h-screen flex-col">
+	<!-- Owns light/dark for the whole app — consumers never wire mode-watcher. -->
+	<ThemeProvider />
+
 	{#if pattern}
 		<BackgroundPattern />
 	{/if}
 
-	<DocsHeader {config} {logo} {actions} />
+	{#if layout === 'page'}
+		<DocsHeader {config} {logo} {actions} standalone />
 
-	<DocsMobileHeader {config} {nav} title={currentTitle} tocItems={toc.items} {logo} {actions} />
-
-	<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
-		<DocsSidebar {nav} />
-
-		<main bind:this={contentEl} class="min-w-0 flex-1 py-6 lg:py-0">
+		<main class="flex-1">
 			{@render children()}
-			<PrevNextNav {prev} {next} />
 		</main>
+	{:else}
+		<DocsHeader {config} {logo} {actions} />
 
-		<TableOfContents items={toc.items} />
-	</div>
+		<DocsMobileHeader {config} {nav} title={currentTitle} tocItems={toc.items} {logo} {actions} />
+
+		<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
+			<DocsSidebar {nav} />
+
+			<main bind:this={contentEl} class="min-w-0 flex-1 py-6 lg:py-0">
+				{@render children()}
+				<PrevNextNav {prev} {next} />
+			</main>
+
+			<TableOfContents items={toc.items} />
+		</div>
+	{/if}
 
 	{#if footer}
 		{@render footer()}
+	{:else if config.footer}
+		<DocsFooter {config} />
 	{/if}
 </div>

@@ -52,6 +52,7 @@
 			"default": "./dist/content.js"
 		},
 		"./theme.css": "./dist/theme.css",
+		"./themes/*.css": "./dist/themes/*.css",
 		"./package.json": "./package.json"
 	},
 	"publishConfig": {
