@@ -30,8 +30,11 @@ contract is one import in your app's stylesheet:
 `theme.css` makes Tailwind scan the package (so the utility classes its
 components use are generated), defines the shadcn theme tokens
 (`--background`, `--primary`, `--radius`, …) for `:root` and `.dark`, and pulls
-in the typography and animation plugins. Override any token by redefining it
-after the import.
+in the typography and animation plugins.
+
+That single import is also the whole customization surface — redefine any token
+after it to rebrand the entire system. See [Theming](/docs/theming) for the full
+token list and how dark mode is wired.
 
 ## Next
 

@@ -63,25 +63,28 @@ from the generated content index, so there is no nav array to maintain:
 
 ## Write a page
 
-Create `src/routes/docs/getting-started/+page.md` with frontmatter and content:
+Create `src/routes/docs/getting-started/+page.md`. The frontmatter drives the
+sidebar; everything below it is your content:
 
-```svelte
-<script lang="ts">
-	let count = $state(0);
-</script>
+````md
+---
+title: Getting Started
+description: Your first steps.
+section: Guides
+order: 1
+---
 
-<button onclick={() => count++}>
-	clicked {count} times
-</button>
-```
+## Hello
 
-The line below is emphasised with the notation-highlight transformer:
+This is a real SvelteKit route. Code blocks are highlighted by Shiki, and you
+can emphasise a line with the notation transformer:
 
 ```ts
-const doc = loadDoc(slug); // [!code highlight]
-return { doc };
+const docs = loadDocs(); // [!code highlight]
 ```
+````
 
 That's the whole loop: drop a markdown file under `src/routes/docs/`, and it
 appears in the sidebar — styled, highlighted, with breadcrumbs and a table of
-contents.
+contents. To embed a running component, see [Writing pages](/docs/writing-pages)
+— it covers frontmatter, live examples, and code highlighting in full.

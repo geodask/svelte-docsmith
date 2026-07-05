@@ -2,7 +2,7 @@
 title: Live Examples
 description: Real interactive components rendered inside the docs.
 section: Core Concepts
-order: 5
+order: 6
 ---
 
 <script>
@@ -27,5 +27,6 @@ The rendered component and the source panel above both come from **one file**,
 as `?source` (highlighted at build time by the `docsmith()` plugin from
 `svelte-docsmith/vite`) — so the demo and its code can never drift.
 
-A remark convention (` ```svelte example `) to remove even the import lines is a
-planned refinement.
+That's the whole point: the example in your docs is the same component your
+users import. It can't rot into a screenshot of something that used to work.
+See [Writing pages](/docs/writing-pages) for the import pattern to copy.
