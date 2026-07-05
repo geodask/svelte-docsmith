@@ -1,0 +1,64 @@
+/*
+ * svelte-docsmith theme — Rosé. A warm rose palette with softer, rounder corners.
+ *
+ *   @import 'svelte-docsmith/theme.css';
+ *   @import 'svelte-docsmith/themes/rose.css';
+ */
+
+:root {
+	--radius: 1rem;
+	--primary: oklch(0.58 0.17 13);
+	--primary-foreground: oklch(0.99 0 0);
+	--background: oklch(0.99 0.006 12);
+	--foreground: oklch(0.28 0.02 12);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.28 0.02 12);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.28 0.02 12);
+	--secondary: oklch(0.967 0.008 12);
+	--secondary-foreground: oklch(0.4 0.03 12);
+	--muted: oklch(0.972 0.007 12);
+	--muted-foreground: oklch(0.52 0.02 12);
+	--accent: oklch(0.94 0.03 12);
+	--accent-foreground: oklch(0.42 0.13 13);
+	--border: oklch(0.91 0.012 12);
+	--input: oklch(0.91 0.012 12);
+	--ring: oklch(0.58 0.17 13);
+	--sidebar: oklch(0.975 0.008 12);
+	--sidebar-foreground: oklch(0.28 0.02 12);
+	--sidebar-primary: oklch(0.58 0.17 13);
+	--sidebar-primary-foreground: oklch(0.99 0 0);
+	--sidebar-accent: oklch(0.94 0.03 12);
+	--sidebar-accent-foreground: oklch(0.42 0.13 13);
+	--sidebar-border: oklch(0.91 0.012 12);
+	--sidebar-ring: oklch(0.58 0.17 13);
+}
+
+.dark {
+	--radius: 1rem;
+	--primary: oklch(0.72 0.15 13);
+	--primary-foreground: oklch(0.18 0.02 12);
+	--background: oklch(0.2 0.02 14);
+	--foreground: oklch(0.95 0.01 12);
+	--card: oklch(0.24 0.022 14);
+	--card-foreground: oklch(0.95 0.01 12);
+	--popover: oklch(0.23 0.022 14);
+	--popover-foreground: oklch(0.95 0.01 12);
+	--secondary: oklch(0.27 0.02 14);
+	--secondary-foreground: oklch(0.95 0.01 12);
+	--muted: oklch(0.27 0.02 14);
+	--muted-foreground: oklch(0.72 0.012 12);
+	--accent: oklch(0.32 0.05 13);
+	--accent-foreground: oklch(0.86 0.07 12);
+	--border: oklch(0.33 0.02 14);
+	--input: oklch(0.33 0.02 14);
+	--ring: oklch(0.72 0.15 13);
+	--sidebar: oklch(0.21 0.02 14);
+	--sidebar-foreground: oklch(0.95 0.01 12);
+	--sidebar-primary: oklch(0.72 0.15 13);
+	--sidebar-primary-foreground: oklch(0.18 0.02 12);
+	--sidebar-accent: oklch(0.32 0.05 13);
+	--sidebar-accent-foreground: oklch(0.86 0.07 12);
+	--sidebar-border: oklch(0.33 0.02 14);
+	--sidebar-ring: oklch(0.72 0.15 13);
+}

@@ -11,13 +11,20 @@
 	const {
 		config,
 		logo,
-		actions
+		actions,
+		standalone = false
 	}: {
 		config: DocsmithConfig;
 		/** Custom logo mark; defaults to a book icon in a primary-tinted chip. */
 		logo?: Snippet;
 		/** Extra header controls, rendered before the theme toggle. */
 		actions?: Snippet;
+		/**
+		 * Show at every breakpoint (for pages without the docs mobile header, e.g.
+		 * a landing page). Default: desktop-only, since the docs shell pairs this
+		 * with a separate mobile header.
+		 */
+		standalone?: boolean;
 	} = $props();
 
 	let isScrolled = $state(false);
@@ -26,7 +33,9 @@
 <svelte:window onscroll={() => (isScrolled = window.scrollY > 50)} />
 
 <header
-	class="sticky top-0 z-40 hidden w-full transition-all duration-200 lg:block {isScrolled
+	class="sticky top-0 z-40 w-full transition-all duration-200 {standalone
+		? 'block'
+		: 'hidden lg:block'} {isScrolled
 		? 'bg-background/60 supports-backdrop-filter:bg-background/60 border-border/40 border-b backdrop-blur-xl'
 		: 'border-transparent bg-transparent'}"
 >
@@ -37,6 +46,8 @@
 			>
 				{#if logo}
 					{@render logo()}
+				{:else if config.logo}
+					<img src={config.logo} alt="" class="size-5 object-contain" />
 				{:else}
 					<BookOpenText class="size-5" />
 				{/if}
@@ -45,6 +56,21 @@
 		</a>
 
 		<div class="ml-auto flex items-center gap-2">
+			{#if config.nav?.length}
+				<nav class="mr-1 flex items-center gap-1">
+					{#each config.nav as link (link.href)}
+						<a
+							href={link.href}
+							target={link.external ? '_blank' : undefined}
+							rel={link.external ? 'noopener noreferrer' : undefined}
+							class="text-muted-foreground hover:text-foreground rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+						>
+							{link.label}
+						</a>
+					{/each}
+				</nav>
+			{/if}
+
 			{#if config.version}
 				<div class="px-2">
 					<Badge

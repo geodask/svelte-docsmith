@@ -10,8 +10,8 @@
 	const { children, items, value = items[0] }: WithChildren<TabsProps> = $props();
 </script>
 
-<Tabs.Root class="border border-muted dark:border-secondary p-2 rounded-lg" {value}>
-	<Tabs.List class="shadow-md ">
+<Tabs.Root class="my-6" {value}>
+	<Tabs.List class="not-prose mb-3">
 		{#each items as item (item)}
 			<Tabs.Trigger value={item}>{item}</Tabs.Trigger>
 		{/each}
