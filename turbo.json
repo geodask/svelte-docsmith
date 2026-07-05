@@ -13,11 +13,11 @@
       "outputs": []
     },
     "typecheck": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "check": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "outputs": []
     },
     "check:watch": {
