@@ -1,23 +1,12 @@
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
-	import { DocsShell, type DocsmithConfig } from 'svelte-docsmith';
-	import { version } from 'svelte-docsmith/package.json';
-	import SiteFooter from '$lib/components/site-footer.svelte';
+	import { DocsShell } from 'svelte-docsmith';
+	import { siteConfig } from '$lib/site-config';
 	import type { Snippet } from 'svelte';
-
-	const config: DocsmithConfig = {
-		title: 'Svelte DocSmith',
-		github: 'https://github.com/geodask/svelte-docsmith',
-		version
-	};
 
 	const { children }: { children: Snippet } = $props();
 </script>
 
-<DocsShell {config} content={docs} pattern>
+<DocsShell config={siteConfig} content={docs} pattern>
 	{@render children()}
-
-	{#snippet footer()}
-		<SiteFooter />
-	{/snippet}
 </DocsShell>
