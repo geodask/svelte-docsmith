@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import type { DocsmithConfig, NavGroup } from '$lib/config.js';
-	import type { HighlightedTocItem } from '$lib/toc/index.js';
+	import type { TocItem } from '$lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../table-of-contents.svelte';
 	import ThemeToggle from '../theme-toggle.svelte';
@@ -19,6 +19,7 @@
 		nav,
 		title,
 		tocItems,
+		tocActiveId = null,
 		logo,
 		actions
 	}: {
@@ -27,7 +28,9 @@
 		/** Title of the current page, shown between the menu and controls. */
 		title: string;
 		/** In-page TOC entries; the TOC popover is hidden when empty. */
-		tocItems: HighlightedTocItem[];
+		tocItems: TocItem[];
+		/** Id of the heading currently in view. */
+		tocActiveId?: string | null;
 		logo?: Snippet;
 		actions?: Snippet;
 	} = $props();
@@ -94,7 +97,7 @@
 						{/snippet}
 					</Popover.Trigger>
 					<Popover.Content class="max-h-[60vh] w-64 overflow-y-auto p-4" align="end">
-						<TableOfContents items={tocItems} class="static block w-full" />
+						<TableOfContents items={tocItems} activeId={tocActiveId} class="static block w-full" />
 					</Popover.Content>
 				</Popover.Root>
 			{/if}
