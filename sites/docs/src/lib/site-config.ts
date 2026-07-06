@@ -39,7 +39,7 @@ export const siteConfig: DocsmithConfig = {
 				title: 'Built with',
 				links: [
 					{ label: 'shadcn-svelte', href: 'https://shadcn-svelte.com', external: true },
-					{ label: 'Tangerine by tweakcn', href: 'https://tweakcn.com/', external: true }
+					{ label: 'Themes based on tweakcn', href: 'https://tweakcn.com/', external: true }
 				]
 			}
 		]

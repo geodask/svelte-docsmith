@@ -18,7 +18,7 @@ order: 30
 | `svelte-docsmith/vite`         | `docsmith()`, the content index + `?source` transform (Node, build time)                                                                                                                                                                             |
 | `svelte-docsmith/content`      | `docs`, the generated sidebar content index                                                                                                                                                                                                          |
 | `svelte-docsmith/theme.css`    | the base style contract                                                                                                                                                                                                                              |
-| `svelte-docsmith/themes/*.css` | pre-installed theme presets (`tangerine`, `amethyst`, `graphite`, `evergreen`, `rose`, `ocean`)                                                                                                                                                      |
+| `svelte-docsmith/themes/*.css` | pre-installed theme presets (`darkmatter`, `tangerine`, `amethyst`, `graphite`, `evergreen`, `rose`, `ocean`, `nord`, `claude`, `bubblegum`, `mono`)                                                                                                 |
 
 ## Components
 
