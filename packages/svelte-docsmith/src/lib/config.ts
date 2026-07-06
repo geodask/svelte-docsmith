@@ -33,6 +33,11 @@ export type DocsmithConfig = {
 		copyright?: string;
 		/** Titled columns of links. */
 		columns?: DocsmithFooterColumn[];
+		/**
+		 * Show the "Powered by Svelte DocSmith" attribution in the footer.
+		 * Defaults to `true`; set `false` to hide it.
+		 */
+		poweredBy?: boolean;
 	};
 };
 

@@ -26,8 +26,8 @@ tokens, not by editing components.
 
 ## Pre-installed themes
 
-The default look is **Tangerine**. Six presets ship in the box. Pick one below to
-preview it, and toggle the site's dark mode to see both:
+The default look is **Darkmatter**. Eleven presets ship in the box. Pick one below
+to preview it, and toggle the site's dark mode to see both:
 
 <ThemeGallery />
 
@@ -37,14 +37,16 @@ color tokens (and, for some, the corner radius) and nothing else:
 ```css
 @import 'tailwindcss';
 @import 'svelte-docsmith/theme.css';
-@import 'svelte-docsmith/themes/amethyst.css';
+@import 'svelte-docsmith/themes/darkmatter.css';
 ```
 
-Bundled presets: **Tangerine** (default, warm terracotta), **Amethyst** (violet),
-**Graphite** (near-monochrome, tighter corners), **Evergreen** (deep green),
-**Rosé** (warm rose, rounder corners), and **Ocean** (cool teal-blue). Each
-covers light and dark. Want your own brand color instead? Skip the preset and
-override tokens directly.
+Bundled presets: **Darkmatter** (default, near-monochrome with a warm orange
+primary), **Tangerine** (warm terracotta), **Amethyst** (violet), **Graphite**
+(near-monochrome, tighter corners), **Evergreen** (deep green), **Rosé** (warm
+rose, rounder corners), **Ocean** (cool teal-blue), **Nord** (arctic slate),
+**Claude** (warm ochre), **Bubblegum** (pink and cyan), and **Mono** (zero-chroma,
+square corners). Each covers light and dark. Want your own brand color instead?
+Skip the preset and override tokens directly.
 
 ## Override a token
 

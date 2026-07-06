@@ -2,3 +2,7 @@
 /* The whole svelte-docsmith CSS contract: package scan, design tokens,
  * typography/animation plugins, base styles. */
 @import 'svelte-docsmith/theme.css';
+/* Docs default preset — Darkmatter overrides the baked-in Tangerine tokens.
+ * Matches defaultThemeSlug in themes-data.ts so the /themes picker's default
+ * highlight agrees with what the site actually renders. */
+@import 'svelte-docsmith/themes/darkmatter.css';

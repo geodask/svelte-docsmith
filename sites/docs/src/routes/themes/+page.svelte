@@ -24,9 +24,9 @@
 		<div class="max-w-2xl">
 			<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Themes</h1>
 			<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
-				Ten presets ship in the box. Pick one — it applies across the whole site instantly, so the
-				components below (and everything else) show the theme in place. Toggle dark mode to see both
-				sides. In your own project you pick one with a single CSS import.
+				Eleven presets ship in the box. Pick one — it applies across the whole site instantly, so
+				the components below (and everything else) show the theme in place. Toggle dark mode to see
+				both sides. In your own project you pick one with a single CSS import.
 			</p>
 		</div>
 
