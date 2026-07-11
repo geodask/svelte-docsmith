@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { normalizePath } from '$lib/normalize-path.js';
 	import type { DocsmithConfig } from '$lib/config.js';
 
 	const {
@@ -23,7 +24,7 @@
 
 	const origin = $derived(config.url?.replace(/\/$/, ''));
 	// Absolute URLs need a configured origin; otherwise canonical/og:url are omitted.
-	const canonical = $derived(origin ? origin + page.url.pathname : undefined);
+	const canonical = $derived(origin ? origin + normalizePath(page.url.pathname) : undefined);
 	const image = $derived.by(() => {
 		const src = config.ogImage;
 		if (!src) return undefined;
