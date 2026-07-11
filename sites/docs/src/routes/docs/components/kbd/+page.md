@@ -9,8 +9,6 @@ order: 15
 	import { Kbd, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
-## Kbd
-
 Show a key or shortcut the way a keyboard does: a small, raised cap that reads as
 _press this_, not as code.
 
@@ -31,7 +29,7 @@ Wrap each key in its own `Kbd`; combine several for a chord.
 <p>Press <Kbd>Ctrl</Kbd> <Kbd>K</Kbd> to search.</p>
 ```
 
-## Props
+## API reference
 
 <PropsTable>
 	<Prop name="children" type="Snippet">

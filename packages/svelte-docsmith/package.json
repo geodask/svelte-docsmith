@@ -51,6 +51,10 @@
 			"types": "./dist/content.d.ts",
 			"default": "./dist/content.js"
 		},
+		"./search": {
+			"types": "./dist/search.d.ts",
+			"default": "./dist/search.js"
+		},
 		"./theme.css": "./dist/theme.css",
 		"./themes/*.css": "./dist/themes/*.css",
 		"./package.json": "./package.json"
@@ -93,12 +97,14 @@
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
 		"@hbsnow/rehype-sectionize": "^1.0.7",
-		"@lucide/svelte": "^1.23.0",
+		"@lucide/svelte": "^1.24.0",
 		"@shikijs/transformers": "^3.3.0",
 		"@tailwindcss/typography": "^0.5.16",
 		"bits-ui": "^2.18.1",
 		"clsx": "^2.1.1",
 		"esm-env": "^1.2.2",
+		"flexsearch": "^0.8.212",
+		"github-slugger": "^2.0.0",
 		"js-yaml": "^4.1.0",
 		"mdsvex": "^0.12.3",
 		"mode-watcher": "^1.0.2",

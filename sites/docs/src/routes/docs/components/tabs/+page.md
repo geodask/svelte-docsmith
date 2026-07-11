@@ -9,28 +9,26 @@ order: 12
 	import { Tabs, TabItem, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
-## Tabs
-
 Group alternatives such as package managers, framework variants, or OS-specific
-commands so the reader sees one at a time. Pass the labels as `items`; each
-`TabItem`'s `value` matches a label.
+commands so the reader sees one at a time. Give each `TabItem` a `label`; `Tabs`
+builds the tab row from them, so there is nothing to keep in sync.
 
-<Tabs items={['npm', 'pnpm', 'yarn']} value="npm">
-<TabItem value="npm">
+<Tabs>
+<TabItem label="npm">
 
 ```bash
 npm i -D svelte-docsmith
 ```
 
     </TabItem>
-    <TabItem value="pnpm">
+    <TabItem label="pnpm">
 
 ```bash
 pnpm add -D svelte-docsmith
 ```
 
     </TabItem>
-    <TabItem value="yarn">
+    <TabItem label="yarn">
 
 ```bash
 yarn add -D svelte-docsmith
@@ -43,7 +41,8 @@ yarn add -D svelte-docsmith
 ## Usage
 
 Leave blank lines around the content inside each `TabItem` so the markdown (code
-fences, prose) is parsed.
+fences, prose) is parsed. The first tab is selected by default; pass `value` on
+`Tabs` to start on a different one.
 
 <!-- prettier-ignore -->
 ````svelte
@@ -51,15 +50,15 @@ fences, prose) is parsed.
 	import { Tabs, TabItem } from 'svelte-docsmith';
 </script>
 
-<Tabs items={['npm', 'pnpm']} value="npm">
-	<TabItem value="npm">
+<Tabs>
+	<TabItem label="npm">
 
 ```bash
 npm i -D svelte-docsmith
 ```
 
 	</TabItem>
-	<TabItem value="pnpm">
+	<TabItem label="pnpm">
 
 ```bash
 pnpm add -D svelte-docsmith
@@ -69,19 +68,23 @@ pnpm add -D svelte-docsmith
 </Tabs>
 ````
 
-## Props
+## API reference
 
-<PropsTable title="Tabs">
-	<Prop name="items" type="string[]" required>
-		Tab labels, in order.
-	</Prop>
-	<Prop name="value" type="string">
-		Initially selected label. Defaults to first.
+### Tabs
+
+<PropsTable>
+	<Prop name="value" type="string" default="first tab">
+		Label of the tab selected by default.
 	</Prop>
 </PropsTable>
 
-<PropsTable title="TabItem">
-	<Prop name="value" type="string" required>
-		The label this panel belongs to.
+### TabItem
+
+<PropsTable>
+	<Prop name="label" type="string" required>
+		The tab's trigger text.
+	</Prop>
+	<Prop name="value" type="string" default="label">
+		Underlying value, only needed to disambiguate duplicate labels.
 	</Prop>
 </PropsTable>

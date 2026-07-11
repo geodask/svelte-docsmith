@@ -15,11 +15,15 @@
 	const activeSlug = $derived(themeStore.active ?? defaultThemeSlug);
 </script>
 
-<svelte:head>
-	<title>Themes · Svelte DocSmith</title>
-</svelte:head>
-
-<DocsShell config={siteConfig} layout="page" pattern>
+<DocsShell
+	config={siteConfig}
+	layout="page"
+	pattern
+	seo={{
+		title: 'Themes',
+		description: 'Preview and switch between the built-in Svelte DocSmith themes.'
+	}}
+>
 	<section class="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8 lg:py-24">
 		<div class="max-w-2xl">
 			<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Themes</h1>

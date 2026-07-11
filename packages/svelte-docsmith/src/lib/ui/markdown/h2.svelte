@@ -5,9 +5,13 @@
 	const { children, ...attrs }: HeadingProps = $props();
 </script>
 
-<h2 {...attrs} class="flex gap-2 items-center group">
+<h2 {...attrs} class="group flex items-center gap-2">
 	{@render children()}
-	<a href="#{attrs.id}" class="opacity-0 group-hover:opacity-100 transition-opacity">
-		<Link class="size-5 text-primary" />
+	<a
+		href="#{attrs.id}"
+		aria-label="Link to this section"
+		class="opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+	>
+		<Link class="text-primary size-5" />
 	</a>
 </h2>

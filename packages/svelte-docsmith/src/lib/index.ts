@@ -4,6 +4,7 @@
 
 // Chrome
 export { default as DocsShell } from './ui/layouts/docs-shell.svelte';
+export { default as ErrorPage } from './ui/layouts/error-page.svelte';
 export { default as ThemeProvider } from './ui/theme-provider.svelte';
 export { default as ThemeToggle } from './ui/theme-toggle.svelte';
 
@@ -11,7 +12,7 @@ export { default as ThemeToggle } from './ui/theme-toggle.svelte';
 export { default as LiveExample } from './ui/live-example.svelte';
 export { default as Tabs } from './ui/tabs.svelte';
 export { default as TabItem } from './ui/tab-item.svelte';
-export { default as Callout } from './ui/callout.svelte';
+export { default as Callout, type CalloutVariant } from './ui/callout.svelte';
 export { default as Steps } from './ui/steps.svelte';
 export { default as Step } from './ui/step.svelte';
 export { default as Card } from './ui/card.svelte';
@@ -26,4 +27,17 @@ export { default as PropsTable } from './ui/props-table.svelte';
 export { default as Prop } from './ui/prop.svelte';
 
 // Config
-export { defineConfig, type DocsmithConfig, type DocsContentItem } from './config.js';
+export {
+	defineConfig,
+	type DocsmithConfig,
+	type DocsContentItem,
+	type SearchDoc
+} from './config.js';
+
+// Search engine (framework-agnostic; for building a custom search UI over the
+// generated `svelte-docsmith/search` index)
+export {
+	createSearchEngine,
+	type SearchEngine,
+	type SearchResult
+} from './search/create-search.js';

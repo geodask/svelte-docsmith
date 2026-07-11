@@ -1,8 +1,15 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
-	import { navFromContent, type DocsContentItem, type DocsmithConfig } from '$lib/config.js';
+	import {
+		navFromContent,
+		type DocsContentItem,
+		type DocsmithConfig,
+		type SearchDoc
+	} from '$lib/config.js';
 	import { createToc } from '$lib/toc/index.js';
+	import { createSearchState } from '$lib/search/context.svelte.js';
+	import Search from '../search.svelte';
 	import BackgroundPattern from '../background-pattern.svelte';
 	import ThemeProvider from '../theme-provider.svelte';
 	import DocsHeader from './docs-header.svelte';
@@ -11,6 +18,7 @@
 	import DocsSidebar from './docs-sidebar.svelte';
 	import PrevNextNav from './prev-next-nav.svelte';
 	import Breadcrumbs, { type Crumb } from './breadcrumbs.svelte';
+	import SeoHead from './seo-head.svelte';
 	import TableOfContents from '../table-of-contents.svelte';
 	import type { Snippet } from 'svelte';
 
@@ -21,12 +29,26 @@
 		logo,
 		actions,
 		footer,
+		search,
+		seo,
 		pattern = false,
 		layout = 'docs'
 	}: {
 		config: DocsmithConfig;
 		content?: DocsContentItem[];
 		children: Snippet;
+		/**
+		 * Override the head tags for this page. Doc pages get their `<title>` and
+		 * description from frontmatter automatically; use this on non-doc pages
+		 * (the landing page, custom routes) or to override.
+		 */
+		seo?: { title?: string; description?: string };
+		/**
+		 * Enable the ⌘K search palette by lazily providing the generated index,
+		 * e.g. `search={() => import('svelte-docsmith/search').then((m) => m.docs)}`.
+		 * Omit to hide search. The index is fetched only when search first opens.
+		 */
+		search?: () => Promise<SearchDoc[]>;
 		/** Custom logo mark for the header and mobile menu. */
 		logo?: Snippet;
 		/** Extra header controls (desktop and mobile), before the theme toggle. */
@@ -44,7 +66,17 @@
 		layout?: 'docs' | 'page';
 	} = $props();
 
+	// Publish search state on context so the header triggers and the single
+	// dialog share one open-state; only when the consumer wired an index. The
+	// `search` loader is static for the shell's lifetime, so reading it once at
+	// init is intentional.
+	// svelte-ignore state_referenced_locally
+	if (search) createSearchState();
+
 	const nav = $derived(navFromContent(content));
+
+	// The content entry for the current route drives the SEO title/description.
+	const currentEntry = $derived(content.find((item) => item.path === page.url.pathname));
 
 	// Ordered flat page list drives the prev/next links.
 	const flatNav = $derived(nav.flatMap((group) => group.items));
@@ -81,28 +113,40 @@
 	const tocItems = $derived(toc.items.length ? toc.items : pageToc);
 </script>
 
+<SeoHead
+	{config}
+	title={seo?.title ?? currentEntry?.title}
+	description={seo?.description ?? currentEntry?.description}
+/>
+
 <div class="relative isolate flex min-h-screen flex-col">
 	<!-- Owns light/dark for the whole app — consumers never wire mode-watcher. -->
 	<ThemeProvider />
+
+	{#if search}
+		<Search load={search} />
+	{/if}
 
 	{#if pattern}
 		<BackgroundPattern />
 	{/if}
 
+	<!-- One header system everywhere: DocsHeader on desktop, DocsMobileHeader
+	     below lg. The `page` layout just omits the sidebar nav and in-page TOC. -->
+	<DocsHeader {config} {logo} {actions} />
+
 	{#if layout === 'page'}
-		<DocsHeader {config} {logo} {actions} standalone />
+		<DocsMobileHeader {config} {logo} {actions} />
 
 		<main class="flex-1">
 			{@render children()}
 		</main>
 	{:else}
-		<DocsHeader {config} {logo} {actions} />
-
 		<DocsMobileHeader
 			{config}
 			{nav}
 			title={currentTitle}
-			tocItems={toc.items}
+			{tocItems}
 			tocActiveId={toc.activeId}
 			{logo}
 			{actions}

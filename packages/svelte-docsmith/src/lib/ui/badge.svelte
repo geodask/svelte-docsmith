@@ -19,12 +19,15 @@
 	const {
 		variant = 'default',
 		href,
+		external = false,
 		children
 	}: {
 		/** Visual intent. Default: `default`. */
 		variant?: BadgeVariant;
 		/** Turns the badge into a link. */
 		href?: string;
+		/** For a linked badge, open in a new tab with `rel="noopener"`. */
+		external?: boolean;
 		children: Snippet;
 	} = $props();
 
@@ -49,6 +52,12 @@
 	};
 </script>
 
-<ShadcnBadge variant={base[variant]} {href} class={extra[variant]}>
+<ShadcnBadge
+	variant={base[variant]}
+	{href}
+	target={external ? '_blank' : undefined}
+	rel={external ? 'noopener noreferrer' : undefined}
+	class={extra[variant]}
+>
 	{@render children()}
 </ShadcnBadge>

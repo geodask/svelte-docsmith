@@ -13,9 +13,22 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	const { children }: { children: Snippet } = $props();
+	// mdsvex passes each frontmatter field to the layout as a prop, so the page's
+	// `<h1>` (and lead subtitle) come from `title`/`description` — authored once in
+	// frontmatter, never repeated in the body. Pages start their content at `##`.
+	const {
+		title,
+		description,
+		children
+	}: { title?: string; description?: string; children: Snippet } = $props();
 </script>
 
 <article class="prose prose-base dark:prose-invert max-w-none pb-16">
+	{#if title}
+		<h1>{title}</h1>
+	{/if}
+	{#if description}
+		<p class="lead">{description}</p>
+	{/if}
 	{@render children()}
 </article>

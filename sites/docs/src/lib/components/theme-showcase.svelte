@@ -99,17 +99,18 @@
 	<!-- Callout -->
 	<div class="bg-card border-border rounded-lg border p-4">
 		<p class="text-card-foreground mb-3 text-sm font-semibold">Callout</p>
-		<Callout type="tip" title="Tip">Callouts sit on the theme's surface and text colors.</Callout>
+		<Callout variant="tip" title="Tip">Callouts sit on the theme's surface and text colors.</Callout
+		>
 	</div>
 
 	<!-- Tabs -->
 	<div class="bg-card border-border rounded-lg border p-4">
 		<p class="text-card-foreground mb-3 text-sm font-semibold">Tabs</p>
-		<Tabs items={['Preview', 'Code']} value="Preview">
-			<TabItem value="Preview"
+		<Tabs>
+			<TabItem label="Preview"
 				><p class="text-muted-foreground pt-1 text-sm">A live, themed tab panel.</p></TabItem
 			>
-			<TabItem value="Code"
+			<TabItem label="Code"
 				><p class="text-muted-foreground pt-1 text-sm">The other side.</p></TabItem
 			>
 		</Tabs>

@@ -63,7 +63,7 @@ primary color and every button, link, and accent follows:
 }
 ```
 
-<Callout type="warning" title="Order decides the winner">
+<Callout variant="warning" title="Order decides the winner">
 
 If an override isn't taking effect, import order is almost always the cause.
 Your redefinition has to come _after_ the `theme.css` import, or the package's

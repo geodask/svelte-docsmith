@@ -17,8 +17,20 @@ export type DocsmithFooterColumn = {
 };
 
 export type DocsmithConfig = {
-	/** Site title, shown in the header/sidebar. */
+	/** Site title, shown in the header/sidebar and in the `<title>` suffix. */
 	title: string;
+	/**
+	 * Default meta description, used for pages whose frontmatter has none (and
+	 * as the site's social-share description).
+	 */
+	description?: string;
+	/**
+	 * Canonical site origin, e.g. `https://docs.example.com`. When set, DocsShell
+	 * emits `<link rel="canonical">` and absolute Open Graph URLs.
+	 */
+	url?: string;
+	/** Default social-share image (absolute URL, or a path resolved against `url`). */
+	ogImage?: string;
 	/** Optional GitHub URL; renders a link in the header when set. */
 	github?: string;
 	/** Optional version string, shown in the header (e.g. your library version). */
@@ -55,7 +67,7 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 			'[svelte-docsmith] config.title is required — the site title shown in the sidebar header.'
 		);
 	}
-	for (const key of ['github', 'version', 'logo'] as const) {
+	for (const key of ['github', 'version', 'logo', 'description', 'url', 'ogImage'] as const) {
 		if (config[key] !== undefined && typeof config[key] !== 'string') {
 			throw new Error(`[svelte-docsmith] config.${key} must be a string when set.`);
 		}
@@ -72,21 +84,54 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 			}
 		}
 	}
-	if (
-		config.footer !== undefined &&
-		(typeof config.footer !== 'object' || config.footer === null)
-	) {
-		throw new Error(
-			'[svelte-docsmith] config.footer must be an object ({ copyright?, columns? }).'
-		);
+	if (config.footer !== undefined) {
+		if (typeof config.footer !== 'object' || config.footer === null) {
+			throw new Error(
+				'[svelte-docsmith] config.footer must be an object ({ copyright?, columns?, poweredBy? }).'
+			);
+		}
+		const { copyright, columns, poweredBy } = config.footer;
+		if (copyright !== undefined && typeof copyright !== 'string') {
+			throw new Error('[svelte-docsmith] config.footer.copyright must be a string when set.');
+		}
+		if (poweredBy !== undefined && typeof poweredBy !== 'boolean') {
+			throw new Error('[svelte-docsmith] config.footer.poweredBy must be a boolean when set.');
+		}
+		if (columns !== undefined) {
+			if (!Array.isArray(columns)) {
+				throw new Error(
+					'[svelte-docsmith] config.footer.columns must be an array of { title, links } columns.'
+				);
+			}
+			for (const column of columns) {
+				if (typeof column?.title !== 'string') {
+					throw new Error(
+						'[svelte-docsmith] each config.footer.columns entry needs a string `title`.'
+					);
+				}
+				if (!Array.isArray(column.links)) {
+					throw new Error(
+						`[svelte-docsmith] config.footer column "${column.title}" needs a \`links\` array.`
+					);
+				}
+				for (const link of column.links) {
+					if (typeof link?.label !== 'string' || typeof link?.href !== 'string') {
+						throw new Error(
+							`[svelte-docsmith] each link in config.footer column "${column.title}" needs a string \`label\` and \`href\`.`
+						);
+					}
+				}
+			}
+		}
 	}
 	return config;
 }
 
 /**
  * The minimal shape `DocsShell` needs from each content entry to build the
- * sidebar. A velite `docs` collection with title/section/order/path frontmatter
- * satisfies this structurally.
+ * sidebar. The generated `svelte-docsmith/content` module produces these from
+ * your pages' frontmatter; any source with matching title/path/section/order
+ * fields satisfies it structurally.
  */
 export type DocsContentItem = {
 	title: string;
@@ -102,6 +147,24 @@ export type DocsContentItem = {
 	toc?: { id: string; title: string; depth: 2 | 3 }[];
 };
 
+/**
+ * One page's searchable record, emitted at build time by the `docsmith()` vite
+ * plugin as the `svelte-docsmith/search` virtual module. `text` is the page's
+ * prose and headings reduced to plain text (frontmatter, `<script>` blocks,
+ * fenced code, tags, and markdown punctuation stripped) so a client-side search
+ * index can be built over it without shipping raw markdown.
+ */
+export type SearchDoc = {
+	path: string;
+	title: string;
+	section?: string;
+	description?: string;
+	/** The page's `h2`/`h3` heading text, for weighting title/heading matches. */
+	headings: string[];
+	/** Plain-text body: prose and headings, code and markup removed. */
+	text: string;
+};
+
 /** A single sidebar link. */
 export type NavItem = { title: string; url: string };
 
@@ -109,9 +172,9 @@ export type NavItem = { title: string; url: string };
 export type NavGroup = { title: string; items: NavItem[] };
 
 /**
- * Derive sidebar nav from a content collection (PLAN.md §2.6): group by
- * `section`, order by `order` within a group, and order groups by the smallest
- * `order` they contain. Entries without a `section` fall under "Docs".
+ * Derive sidebar nav from a content collection: group by `section`, order by
+ * `order` within a group, and order groups by the smallest `order` they
+ * contain. Entries without a `section` fall under "Docs".
  */
 export function navFromContent(content: DocsContentItem[]): NavGroup[] {
 	const groups = new Map<string, { minOrder: number; items: Array<NavItem & { order: number }> }>();
