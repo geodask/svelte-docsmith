@@ -1,5 +1,23 @@
 # svelte-docsmith
 
+## 0.5.0
+
+### Minor Changes
+
+- 3e58328: Add "Edit this page" and "Last updated" to the bottom of each doc page. Set `editUrl` in your config (the GitHub edit URL for your docs directory, e.g. `https://github.com/you/repo/edit/main/apps/docs`) and each page links to its own source. The "Last updated" date is read from each page's last git commit automatically, no config needed. Both sit just above the prev/next navigation.
+- 16ac514: Add llms.txt and "Copy page" support for AI tooling.
+
+  The `docsmith()` plugin now emits a `svelte-docsmith/llms` module with each page's full markdown. Two framework-agnostic helpers, `generateLlmsTxt` and `generateLlmsFullTxt`, turn it into the `llms.txt` index and `llms-full.txt` corpus defined by the llmstxt.org standard, both following the sidebar reading order (grouped by `section`, sorted by `order`). Wire them into `src/routes/llms.txt/+server.ts` and `src/routes/llms-full.txt/+server.ts`.
+
+  A new `copyPage` prop on `DocsShell` adds a "Copy page" split button to doc pages: copy the page as Markdown, view the raw `.md`, or open it in ChatGPT / Claude. Back it with a catch-all `src/routes/[...slug].md/+server.ts` over the same `svelte-docsmith/llms` index. See the SEO docs page.
+
+- 914cacc: Add a `generateSitemap` helper that builds a `sitemap.xml` body from the content index. Wire it into a `src/routes/sitemap.xml/+server.ts` and each doc page is listed with a `<lastmod>` from its last git commit. Pair it with a `static/robots.txt` pointing at the sitemap. See the SEO docs page.
+
+### Patch Changes
+
+- e8a1b4e: Accessibility pass on the shell: add a "Skip to content" link (visible on keyboard focus) that jumps to the main content, give `<main>` an id and focus target, and label the sidebar, header, mobile, and pagination navs so screen readers can tell the landmarks apart.
+- ab3536f: Normalize trailing slashes when matching the current route. `/docs/intro/` and `/docs/intro` now resolve to the same page, so the SEO tags, "Edit this page" link, prev/next nav, sidebar highlight, and canonical URL all work regardless of the app's SvelteKit `trailingSlash` setting (they previously broke on a trailing slash).
+
 ## 0.4.0
 
 ### Minor Changes
