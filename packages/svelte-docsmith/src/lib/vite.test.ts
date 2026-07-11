@@ -116,6 +116,7 @@ describe('collectDocs', () => {
 				order: 0,
 				sourcePath: expect.any(String),
 				lastUpdated: undefined,
+				readingTime: 1,
 				toc: []
 			},
 			{
@@ -126,9 +127,24 @@ describe('collectDocs', () => {
 				order: 1,
 				sourcePath: expect.any(String),
 				lastUpdated: undefined,
+				readingTime: 1,
 				toc: []
 			}
 		]);
+	});
+
+	it('estimates reading time from the body word count (~200 wpm, min 1)', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/short', 'title: Short', 'Just a few words here.');
+		writePage('docs/long', 'title: Long', `## Heading\n\n${'word '.repeat(600)}`);
+
+		const byPath = Object.fromEntries(
+			collectDocs(path.join(routesDir, 'docs'), routesDir).map((d) => [d.path, d])
+		);
+		// A handful of words still rounds up to 1 minute.
+		expect(byPath['/docs/short'].readingTime).toBe(1);
+		// ~601 words / 200 wpm rounds to 3.
+		expect(byPath['/docs/long'].readingTime).toBe(3);
 	});
 
 	it('extracts an h2/h3 TOC from the body, skipping code fences', () => {

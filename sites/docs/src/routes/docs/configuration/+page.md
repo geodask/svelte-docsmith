@@ -121,6 +121,15 @@ contents.
 		raw <code>.md</code>, or open in ChatGPT / Claude). Needs the <code>.md</code>
 		endpoint. See <a href="/docs/seo">SEO</a>.
 	</Prop>
+	<Prop name="readingTime" type="boolean" default="true">
+		Show the estimated reading time on doc pages (computed at build time from
+		the page's word count). Set <code>false</code> to hide it.
+	</Prop>
+	<Prop name="feedback" type={"boolean | ((vote: 'up' | 'down', path: string) => void)"}>
+		Show the "Was this page helpful?" widget at the foot of doc pages. Pass
+		<code>true</code> for the UI alone, or a callback to record votes (wire it to
+		your analytics). Omit to hide it.
+	</Prop>
 	<Prop name="layout" type="'docs' | 'page'" default="'docs'">
 		<code>docs</code> is the three-column shell; <code>page</code> is full-bleed
 		content with the same header and footer but no sidebar or TOC.
