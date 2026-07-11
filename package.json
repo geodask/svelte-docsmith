@@ -16,8 +16,7 @@
 		"format": "turbo run format",
 		"lint": "turbo run lint",
 		"dev": "turbo run dev",
-		"preview": "turbo run preview",
-		"size": "turbo run size --filter=svelte-docsmith"
+		"preview": "turbo run preview"
 	},
 	"keywords": [],
 	"author": {
