@@ -132,6 +132,12 @@ function extractSearchText(source: string): string {
 	return out.join(' ');
 }
 
+/** Estimated reading time in whole minutes from a page's plain-text body. */
+function readingMinutes(text: string): number {
+	const words = text.split(/\s+/).filter(Boolean).length;
+	return Math.max(1, Math.round(words / 200));
+}
+
 /**
  * Extract `h2`/`h3` headings from a markdown page so the in-page TOC can be
  * server-rendered (no post-hydration pop-in). Skips fenced code blocks. Ids are
@@ -227,6 +233,7 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 			order: typeof front.order === 'number' ? front.order : undefined,
 			sourcePath: path.relative(process.cwd(), file).split(path.sep).join('/'),
 			lastUpdated: lastCommitDate(file),
+			readingTime: readingMinutes(extractSearchText(source)),
 			toc: extractToc(source)
 		});
 	}

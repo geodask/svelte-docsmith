@@ -158,6 +158,8 @@ export type DocsContentItem = {
 	sourcePath?: string;
 	/** Last git commit date (ISO) for the page's source file. */
 	lastUpdated?: string;
+	/** Estimated reading time in whole minutes (at ~200 wpm), min 1. */
+	readingTime?: number;
 	/**
 	 * The page's `h2`/`h3` headings, extracted at build time by the `docsmith()`
 	 * vite plugin, so `DocsShell` can render the in-page TOC server-side. The

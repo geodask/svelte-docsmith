@@ -20,6 +20,7 @@
 	import PrevNextNav from './prev-next-nav.svelte';
 	import Breadcrumbs, { type Crumb } from './breadcrumbs.svelte';
 	import CopyPageMenu from './copy-page-menu.svelte';
+	import PageFeedback from './page-feedback.svelte';
 	import SeoHead from './seo-head.svelte';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import TableOfContents from '../table-of-contents.svelte';
@@ -36,6 +37,8 @@
 		seo,
 		pattern = false,
 		copyPage = false,
+		readingTime = true,
+		feedback,
 		layout = 'docs'
 	}: {
 		config: DocsmithConfig;
@@ -67,6 +70,17 @@
 		 * catch-all `<path>.md` endpoint over the `svelte-docsmith/llms` index.
 		 */
 		copyPage?: boolean;
+		/**
+		 * Show the estimated reading time on doc pages (computed at build time).
+		 * Defaults to `true`; set `false` to hide it.
+		 */
+		readingTime?: boolean;
+		/**
+		 * Show the "Was this page helpful?" widget at the foot of doc pages. Pass
+		 * `true` for the UI alone, or a callback `(vote, path) => void` to also
+		 * record votes (wire it to your analytics). Omit to hide it.
+		 */
+		feedback?: boolean | ((vote: 'up' | 'down', path: string) => void);
 		/**
 		 * `docs` (default): the three-column shell — sidebar, content, in-page TOC.
 		 * `page`: full-bleed content with the same header/footer/background but no
@@ -109,6 +123,10 @@
 				);
 	});
 	const showFooterMeta = $derived(Boolean(editHref || lastUpdatedLabel));
+
+	const readingTimeLabel = $derived(
+		readingTime && currentEntry?.readingTime ? `${currentEntry.readingTime} min read` : undefined
+	);
 
 	// Ordered flat page list drives the prev/next links.
 	const flatNav = $derived(nav.flatMap((group) => group.items));
@@ -203,11 +221,16 @@
 			>
 				<div class="flex items-start justify-between gap-4">
 					<Breadcrumbs items={breadcrumbs} />
-					{#if copyPage && currentEntry}
-						<div class="shrink-0">
+					<div class="flex shrink-0 items-center gap-3">
+						{#if readingTimeLabel}
+							<span class="text-muted-foreground text-sm whitespace-nowrap">
+								{readingTimeLabel}
+							</span>
+						{/if}
+						{#if copyPage && currentEntry}
 							<CopyPageMenu path={pathname} origin={config.url ?? ''} />
-						</div>
-					{/if}
+						{/if}
+					</div>
 				</div>
 				{@render children()}
 
@@ -230,6 +253,17 @@
 							<span class="ml-auto">Last updated: {lastUpdatedLabel}</span>
 						{/if}
 					</div>
+				{/if}
+
+				{#if feedback && currentEntry}
+					{#key pathname}
+						<div class="mt-8">
+							<PageFeedback
+								path={pathname}
+								onfeedback={typeof feedback === 'function' ? feedback : undefined}
+							/>
+						</div>
+					{/key}
 				{/if}
 
 				<PrevNextNav {prev} {next} bordered={!showFooterMeta} />
