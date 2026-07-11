@@ -52,6 +52,11 @@ const config = defineConfig({
 	<Prop name="ogImage" type="string">
 		Default social-share image (absolute, or a path resolved against <code>url</code>).
 	</Prop>
+	<Prop name="editUrl" type="string">
+		Base URL for the per-page “Edit this page” link, e.g.
+		<code>https://github.com/you/repo/edit/main/apps/docs</code>. Each page's source
+		path is appended. (“Last updated” is added from git automatically.)
+	</Prop>
 	<Prop name="github" type="string">
 		GitHub URL; renders a link in the header when set.
 	</Prop>
