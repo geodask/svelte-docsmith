@@ -79,7 +79,7 @@
 				</div>
 				<ScrollArea class="my-4 h-[calc(100vh-8rem)] pb-10 pl-2">
 					{#if config.nav?.length}
-						<nav class="flex flex-col gap-0.5 px-5 pb-1">
+						<nav aria-label="Main" class="flex flex-col gap-0.5 px-5 pb-1">
 							{#each config.nav as link (link.href)}
 								<a
 									href={link.href}

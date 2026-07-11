@@ -144,6 +144,14 @@
 />
 
 <div class="relative isolate flex min-h-screen flex-col">
+	<!-- Keyboard skip link: first focusable element, visible only on focus. -->
+	<a
+		href="#main-content"
+		class="bg-primary text-primary-foreground focus-visible:ring-ring sr-only z-50 rounded-md px-3 py-2 text-sm font-medium focus-visible:not-sr-only focus-visible:absolute focus-visible:top-3 focus-visible:left-3 focus-visible:ring-2"
+	>
+		Skip to content
+	</a>
+
 	<!-- Owns light/dark for the whole app — consumers never wire mode-watcher. -->
 	<ThemeProvider />
 
@@ -162,7 +170,7 @@
 	{#if layout === 'page'}
 		<DocsMobileHeader {config} {logo} {actions} />
 
-		<main class="flex-1">
+		<main id="main-content" tabindex="-1" class="flex-1">
 			{@render children()}
 		</main>
 	{:else}
@@ -179,7 +187,12 @@
 		<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
 			<DocsSidebar {nav} />
 
-			<main bind:this={contentEl} class="min-w-0 flex-1 py-6 lg:py-0">
+			<main
+				bind:this={contentEl}
+				id="main-content"
+				tabindex="-1"
+				class="min-w-0 flex-1 py-6 lg:py-0"
+			>
 				<Breadcrumbs items={breadcrumbs} />
 				{@render children()}
 

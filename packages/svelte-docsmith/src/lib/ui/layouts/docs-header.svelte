@@ -49,7 +49,7 @@
 
 		<div class="ml-auto flex items-center gap-2">
 			{#if config.nav?.length}
-				<nav class="mr-1 flex items-center gap-1">
+				<nav aria-label="Main" class="mr-1 flex items-center gap-1">
 					{#each config.nav as link (link.href)}
 						<a
 							href={link.href}
