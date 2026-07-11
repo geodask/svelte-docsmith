@@ -31,7 +31,8 @@ export {
 	defineConfig,
 	type DocsmithConfig,
 	type DocsContentItem,
-	type SearchDoc
+	type SearchDoc,
+	type LlmsDoc
 } from './config.js';
 
 // Search engine (framework-agnostic; for building a custom search UI over the
@@ -44,3 +45,7 @@ export {
 
 // Sitemap (framework-agnostic; wire into a `sitemap.xml/+server.ts`)
 export { generateSitemap, type SitemapEntry } from './sitemap.js';
+
+// llms.txt (framework-agnostic; wire into `llms.txt/+server.ts` and
+// `llms-full.txt/+server.ts` over the generated `svelte-docsmith/llms` index)
+export { generateLlmsTxt, generateLlmsFullTxt, type LlmsSite } from './generate-llms.js';

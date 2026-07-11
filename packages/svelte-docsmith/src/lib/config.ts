@@ -184,6 +184,23 @@ export type SearchDoc = {
 	text: string;
 };
 
+/**
+ * One page's record for LLM-facing output, emitted at build time by the
+ * `docsmith()` vite plugin as the `svelte-docsmith/llms` virtual module. Feeds
+ * `generateLlmsTxt` (an index) and `generateLlmsFullTxt` (the full corpus).
+ */
+export type LlmsDoc = {
+	path: string;
+	title: string;
+	section?: string;
+	/** Sidebar order within the section, so LLM output follows reading order. */
+	order?: number;
+	description?: string;
+	/** The page's markdown body (frontmatter and `<script>`/`<style>` removed,
+	 *  headings and code kept), with the title prepended as an `h1`. */
+	content: string;
+};
+
 /** A single sidebar link. */
 export type NavItem = { title: string; url: string };
 

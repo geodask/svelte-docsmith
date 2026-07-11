@@ -18,7 +18,7 @@ import path from 'node:path';
 import GithubSlugger from 'github-slugger';
 import yaml from 'js-yaml';
 import type { Plugin, ViteDevServer } from 'vite';
-import type { DocsContentItem, SearchDoc } from './config.js';
+import type { DocsContentItem, LlmsDoc, SearchDoc } from './config.js';
 import { DEFAULT_THEMES, lazyHighlighter } from './highlight.js';
 
 export interface DocsmithViteOptions {
@@ -51,6 +51,8 @@ const CONTENT_SPECIFIER = 'svelte-docsmith/content';
 const VIRTUAL_CONTENT_ID = '\0svelte-docsmith:content';
 const SEARCH_SPECIFIER = 'svelte-docsmith/search';
 const VIRTUAL_SEARCH_ID = '\0svelte-docsmith:search';
+const LLMS_SPECIFIER = 'svelte-docsmith/llms';
+const VIRTUAL_LLMS_ID = '\0svelte-docsmith:llms';
 const PAGE_NAMES = ['+page.md', '+page.svx'];
 
 function isPageFile(file: string): boolean {
@@ -266,6 +268,45 @@ export function collectSearchDocs(contentDir: string, routesDir: string): Search
 	return docs.sort((a, b) => a.path.localeCompare(b.path));
 }
 
+/**
+ * The page's markdown body for LLM output: frontmatter and `<script>`/`<style>`
+ * blocks removed, everything else (headings, prose, code, component tags) kept,
+ * with the frontmatter title prepended as an `h1` (pages start their body at h2).
+ */
+function extractLlmsContent(source: string, title: string): string {
+	const body = source
+		.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
+		.replace(/<script[\s\S]*?<\/script>/gi, '')
+		.replace(/<style[\s\S]*?<\/style>/gi, '')
+		.trim();
+	return `# ${title}\n\n${body}`;
+}
+
+/**
+ * Build the LLM records for every page: title, section, description, and the
+ * full markdown content. Served as the `svelte-docsmith/llms` virtual module and
+ * consumed server-side by `llms.txt` / `llms-full.txt` routes, so it never ships
+ * to the client.
+ */
+export function collectLlmsDocs(contentDir: string, routesDir: string): LlmsDoc[] {
+	if (!fs.existsSync(contentDir)) return [];
+
+	const docs: LlmsDoc[] = [];
+
+	for (const { source, front, url, title } of eachTitledPage(contentDir, routesDir)) {
+		docs.push({
+			path: url,
+			title,
+			section: typeof front.section === 'string' ? front.section : undefined,
+			order: typeof front.order === 'number' ? front.order : undefined,
+			description: typeof front.description === 'string' ? front.description : undefined,
+			content: extractLlmsContent(source, title)
+		});
+	}
+
+	return docs.sort((a, b) => a.path.localeCompare(b.path));
+}
+
 function parseFrontmatter(source: string, file: string): Record<string, unknown> {
 	const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source);
 	if (!match) return {};
@@ -290,6 +331,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 		resolveId(id) {
 			if (id === CONTENT_SPECIFIER) return VIRTUAL_CONTENT_ID;
 			if (id === SEARCH_SPECIFIER) return VIRTUAL_SEARCH_ID;
+			if (id === LLMS_SPECIFIER) return VIRTUAL_LLMS_ID;
 		},
 
 		load(id) {
@@ -307,6 +349,11 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 				const docs = collectSearchDocs(contentDir, routesDir);
 				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
+			if (id === VIRTUAL_LLMS_ID) {
+				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
+				const docs = collectLlmsDocs(contentDir, routesDir);
+				return `export const docs = ${JSON.stringify(docs)};\n`;
+			}
 		},
 
 		configureServer(server: ViteDevServer) {
@@ -314,7 +361,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			const onChange = (file: string) => {
 				if (!isPageFile(file)) return;
 				let invalidated = false;
-				for (const virtualId of [VIRTUAL_CONTENT_ID, VIRTUAL_SEARCH_ID]) {
+				for (const virtualId of [VIRTUAL_CONTENT_ID, VIRTUAL_SEARCH_ID, VIRTUAL_LLMS_ID]) {
 					const mod = server.moduleGraph.getModuleById(virtualId);
 					if (!mod) continue;
 					server.moduleGraph.invalidateModule(mod);

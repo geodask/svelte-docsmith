@@ -102,3 +102,58 @@ Allow: /
 
 Sitemap: https://your-docs.dev/sitemap.xml
 ```
+
+## llms.txt
+
+The [llms.txt](https://llmstxt.org) standard gives AI tools a clean, plain-text
+view of your docs. Svelte DocSmith generates the data at build time in the
+`svelte-docsmith/llms` module, and two helpers turn it into the two files the
+standard defines: `llms.txt` (a curated index of links) and `llms-full.txt`
+(the full text of every page).
+
+Add `src/routes/llms.txt/+server.ts`:
+
+```ts
+import { docs } from 'svelte-docsmith/llms';
+import { generateLlmsTxt } from 'svelte-docsmith';
+import { siteConfig } from '$lib/site-config';
+
+export const prerender = true;
+
+export function GET() {
+	const body = generateLlmsTxt(
+		{ title: siteConfig.title, description: siteConfig.description, origin: siteConfig.url },
+		docs
+	);
+	return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8' } });
+}
+```
+
+And `src/routes/llms-full.txt/+server.ts`, identical but for `generateLlmsFullTxt`:
+
+```ts
+import { docs } from 'svelte-docsmith/llms';
+import { generateLlmsFullTxt } from 'svelte-docsmith';
+import { siteConfig } from '$lib/site-config';
+
+export const prerender = true;
+
+export function GET() {
+	const body = generateLlmsFullTxt(
+		{ title: siteConfig.title, description: siteConfig.description, origin: siteConfig.url },
+		docs
+	);
+	return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8' } });
+}
+```
+
+Both follow your sidebar reading order, grouping pages by `section` and sorting
+by `order`. Each page's title becomes an `h1`, and its `description` frontmatter
+annotates the link in the index.
+
+<Callout variant="tip">
+
+You are reading these docs through this exact pipeline. Open
+[/llms.txt](/llms.txt) and [/llms-full.txt](/llms-full.txt) to see the output.
+
+</Callout>
