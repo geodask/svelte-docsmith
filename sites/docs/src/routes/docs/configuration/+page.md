@@ -16,7 +16,7 @@ their own pages in the [Components](/docs/components/callout) section.
 
 ## Package exports
 
-- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
+- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
 - **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor for `svelte.config.js`.
 - **`svelte-docsmith/vite`**: the Vite plugin (content index, search index, and the `?source` transform).
 - **`svelte-docsmith/content`**: the generated sidebar index, exported as `docs`.

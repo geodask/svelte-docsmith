@@ -71,3 +71,34 @@ frontmatter, so pass the `seo` prop to set or override the head:
 	{@render children()}
 </DocsShell>
 ```
+
+## Sitemap
+
+`generateSitemap` builds a `sitemap.xml` from your content index. Add a
+`src/routes/sitemap.xml/+server.ts`:
+
+```ts
+import { docs } from 'svelte-docsmith/content';
+import { generateSitemap } from 'svelte-docsmith';
+import { siteConfig } from '$lib/site-config';
+
+export const prerender = true;
+
+export function GET() {
+	const body = generateSitemap(siteConfig.url ?? '', [
+		{ path: '/' },
+		...docs.map((d) => ({ path: d.path, lastmod: d.lastUpdated }))
+	]);
+	return new Response(body, { headers: { 'content-type': 'application/xml' } });
+}
+```
+
+Each entry gets a `<lastmod>` from the page's last git commit. Then point
+crawlers at it from `static/robots.txt`:
+
+```txt
+User-agent: *
+Allow: /
+
+Sitemap: https://your-docs.dev/sitemap.xml
+```
