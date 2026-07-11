@@ -26,7 +26,6 @@ pnpm typecheck           # svelte-check in both workspaces
 pnpm check               # svelte-kit sync && svelte-check
 pnpm lint                # prettier --check
 pnpm format              # prettier --write
-pnpm size                # size-limit, svelte-docsmith package only
 ```
 
 Run a command against a single workspace with turbo's filter flag, e.g.:
