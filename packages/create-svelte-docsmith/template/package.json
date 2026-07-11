@@ -10,7 +10,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
 	},
 	"dependencies": {
-		"svelte-docsmith": "^0.4.0"
+		"svelte-docsmith": "^0.5.1"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^7.0.1",

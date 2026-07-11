@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Update this to your deployed origin.
+Sitemap: https://your-docs.dev/sitemap.xml
