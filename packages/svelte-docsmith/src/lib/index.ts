@@ -41,3 +41,6 @@ export {
 	type SearchEngine,
 	type SearchResult
 } from './search/create-search.js';
+
+// Sitemap (framework-agnostic; wire into a `sitemap.xml/+server.ts`)
+export { generateSitemap, type SitemapEntry } from './sitemap.js';
