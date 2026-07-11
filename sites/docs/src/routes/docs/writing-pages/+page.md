@@ -83,6 +83,9 @@ const current = docs.find((d) => d.active); // [!code highlight]
 Unknown languages fall back to plain text rather than failing the build, so a
 stray ` ```mermaid ` won't break your site.
 
+Line highlighting is just the start. See [Code blocks](/docs/code-blocks) for
+diffs, focus, error and warning lines, and word highlighting.
+
 ## Live examples
 
 To show a real, running component next to its source, put the component in

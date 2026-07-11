@@ -2,7 +2,7 @@
 title: SEO
 description: Titles, meta descriptions, and social cards from your frontmatter.
 section: Core Concepts
-order: 9
+order: 10
 ---
 
 <script>

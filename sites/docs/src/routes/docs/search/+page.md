@@ -2,7 +2,7 @@
 title: Search
 description: A built-in ⌘K full-text search palette, generated from your pages.
 section: Core Concepts
-order: 8
+order: 9
 ---
 
 <script>
