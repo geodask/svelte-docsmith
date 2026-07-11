@@ -157,3 +157,45 @@ You are reading these docs through this exact pipeline. Open
 [/llms.txt](/llms.txt) and [/llms-full.txt](/llms-full.txt) to see the output.
 
 </Callout>
+
+## Copy page
+
+The same per-page markdown powers a "Copy page" button on every doc page. Turn
+it on with the `copyPage` prop on `DocsShell`:
+
+```svelte
+<DocsShell {config} content={docs} copyPage>
+	{@render children()}
+</DocsShell>
+```
+
+The split button copies the page as Markdown, and its dropdown links to the raw
+`.md`, or opens the page in ChatGPT or Claude. It expects each page to be
+available at `<path>.md`, so add one catch-all endpoint,
+`src/routes/[...slug].md/+server.ts`:
+
+```ts
+import { docs } from 'svelte-docsmith/llms';
+import { error } from '@sveltejs/kit';
+import type { EntryGenerator, RequestHandler } from './$types';
+
+export const prerender = true;
+
+export const entries: EntryGenerator = () =>
+	docs.map((doc) => ({ slug: doc.path.replace(/^\//, '') }));
+
+export const GET: RequestHandler = ({ params }) => {
+	const doc = docs.find((d) => d.path === `/${params.slug}`);
+	if (!doc) error(404, 'Not found');
+	return new Response(doc.content, {
+		headers: { 'content-type': 'text/markdown; charset=utf-8' }
+	});
+};
+```
+
+<Callout variant="tip">
+
+Try it: the "Copy page" button at the top of this page, or open
+[this page as Markdown](/docs/seo.md).
+
+</Callout>

@@ -19,6 +19,7 @@
 	import DocsSidebar from './docs-sidebar.svelte';
 	import PrevNextNav from './prev-next-nav.svelte';
 	import Breadcrumbs, { type Crumb } from './breadcrumbs.svelte';
+	import CopyPageMenu from './copy-page-menu.svelte';
 	import SeoHead from './seo-head.svelte';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import TableOfContents from '../table-of-contents.svelte';
@@ -34,6 +35,7 @@
 		search,
 		seo,
 		pattern = false,
+		copyPage = false,
 		layout = 'docs'
 	}: {
 		config: DocsmithConfig;
@@ -59,6 +61,12 @@
 		footer?: Snippet;
 		/** Render the decorative grid-and-glow page background. */
 		pattern?: boolean;
+		/**
+		 * Show the "Copy page" split button on doc pages: copy the page as
+		 * Markdown, view the raw `.md`, or open it in ChatGPT / Claude. Requires a
+		 * catch-all `<path>.md` endpoint over the `svelte-docsmith/llms` index.
+		 */
+		copyPage?: boolean;
 		/**
 		 * `docs` (default): the three-column shell — sidebar, content, in-page TOC.
 		 * `page`: full-bleed content with the same header/footer/background but no
@@ -193,7 +201,14 @@
 				tabindex="-1"
 				class="min-w-0 flex-1 py-6 lg:py-0"
 			>
-				<Breadcrumbs items={breadcrumbs} />
+				<div class="flex items-start justify-between gap-4">
+					<Breadcrumbs items={breadcrumbs} />
+					{#if copyPage && currentEntry}
+						<div class="shrink-0">
+							<CopyPageMenu path={pathname} origin={config.url ?? ''} />
+						</div>
+					{/if}
+				</div>
 				{@render children()}
 
 				{#if showFooterMeta}
