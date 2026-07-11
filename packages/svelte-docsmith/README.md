@@ -16,6 +16,15 @@ live table of contents. No per-page wiring, no content collection to configure.
 
 ## Install
 
+The fastest way to start a new docs site is the scaffolder, which wires up
+everything below for you:
+
+```bash
+npm create svelte-docsmith@latest my-docs
+```
+
+To add DocSmith to an existing SvelteKit app, install the package instead:
+
 ```bash
 npm install svelte-docsmith
 ```
