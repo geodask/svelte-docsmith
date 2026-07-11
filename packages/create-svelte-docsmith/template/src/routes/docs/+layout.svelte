@@ -12,6 +12,7 @@
 	content={docs}
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 	pattern
+	copyPage
 >
 	{@render children()}
 </DocsShell>
