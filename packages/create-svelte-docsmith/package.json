@@ -1,0 +1,42 @@
+{
+	"name": "create-svelte-docsmith",
+	"version": "0.0.0",
+	"description": "Scaffold a documentation site powered by Svelte DocSmith.",
+	"type": "module",
+	"bin": {
+		"create-svelte-docsmith": "index.js"
+	},
+	"files": [
+		"index.js",
+		"template"
+	],
+	"keywords": [
+		"svelte",
+		"sveltekit",
+		"documentation",
+		"docs",
+		"create",
+		"scaffold",
+		"svelte-docsmith"
+	],
+	"author": {
+		"name": "George Daskalakis",
+		"email": "george.dask97@gmail.com",
+		"url": "https://github.com/geodask"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/geodask/svelte-docsmith.git",
+		"directory": "packages/create-svelte-docsmith"
+	},
+	"license": "MIT",
+	"publishConfig": {
+		"access": "public"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"dependencies": {
+		"@clack/prompts": "^1.7.0"
+	}
+}

@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+
+/* The whole Svelte DocSmith style contract in one import: it makes Tailwind scan
+ * the package, registers the design tokens for light and dark, and pulls in the
+ * typography and animation plugins. */
+@import 'svelte-docsmith/theme.css';
+
+/* Prefer a different look? Import a preset after theme.css and it wins:
+ *   @import 'svelte-docsmith/themes/darkmatter.css';
+ * Available: darkmatter, tangerine, amethyst, graphite, evergreen, rose, ocean,
+ * nord, claude, bubblegum, mono. Or override individual tokens yourself. */

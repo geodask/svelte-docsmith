@@ -7,6 +7,7 @@ export const siteConfig: DocsmithConfig = {
 	title: 'Svelte DocSmith',
 	description:
 		'A documentation framework for Svelte. Interactive examples in one real, stateful app, markdown as routes, and a sidebar that builds itself.',
+	url: 'https://docsmith.geodask.com',
 	github: 'https://github.com/geodask/svelte-docsmith',
 	version,
 	nav: [

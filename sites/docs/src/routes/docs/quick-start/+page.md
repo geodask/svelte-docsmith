@@ -12,6 +12,14 @@ order: 3
 Four steps take you from an installed package to a live docs page in the
 sidebar. Each one edits a single file.
 
+<Callout variant="tip" title="Scaffolding a new project?">
+
+`npm create svelte-docsmith` does every step on this page for you. This walk
+through is for adding DocSmith to an existing app, or for understanding the
+pieces. See [Installation](/docs/installation) for the scaffolder.
+
+</Callout>
+
 <Steps>
 <Step title="Register the markdown pipeline">
 
