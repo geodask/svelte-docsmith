@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { cn } from '$lib/shadcn.js';
+	import { normalizePath } from '$lib/normalize-path.js';
 	import type { NavGroup } from '$lib/config.js';
 
 	const { nav, class: className = '' }: { nav: NavGroup[]; class?: string } = $props();
@@ -19,7 +20,7 @@
 									href={item.url}
 									class={cn(
 										'hover:text-primary hover:bg-primary/20 block rounded-md px-2 py-1.5 text-sm transition-colors',
-										page.url.pathname === item.url
+										normalizePath(page.url.pathname) === item.url
 											? 'text-primary bg-primary/20 font-medium'
 											: 'text-muted-foreground'
 									)}

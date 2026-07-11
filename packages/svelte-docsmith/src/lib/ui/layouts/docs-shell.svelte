@@ -9,6 +9,7 @@
 	} from '$lib/config.js';
 	import { createToc } from '$lib/toc/index.js';
 	import { createSearchState } from '$lib/search/context.svelte.js';
+	import { normalizePath } from '$lib/normalize-path.js';
 	import Search from '../search.svelte';
 	import BackgroundPattern from '../background-pattern.svelte';
 	import ThemeProvider from '../theme-provider.svelte';
@@ -76,9 +77,13 @@
 
 	const nav = $derived(navFromContent(content));
 
+	// Match content by a trailing-slash-normalized path, so `/docs/intro/` and
+	// `/docs/intro` resolve to the same page regardless of the app's trailingSlash.
+	const pathname = $derived(normalizePath(page.url.pathname));
+
 	// The content entry for the current route drives the SEO title/description,
 	// the "Edit this page" link, and the "Last updated" stamp.
-	const currentEntry = $derived(content.find((item) => item.path === page.url.pathname));
+	const currentEntry = $derived(content.find((item) => item.path === pathname));
 
 	const editHref = $derived(
 		config.editUrl && currentEntry?.sourcePath
@@ -99,7 +104,7 @@
 
 	// Ordered flat page list drives the prev/next links.
 	const flatNav = $derived(nav.flatMap((group) => group.items));
-	const pageIndex = $derived(flatNav.findIndex((item) => item.url === page.url.pathname));
+	const pageIndex = $derived(flatNav.findIndex((item) => item.url === pathname));
 	const prev = $derived(pageIndex > 0 ? flatNav[pageIndex - 1] : undefined);
 	const next = $derived(
 		pageIndex >= 0 && pageIndex < flatNav.length - 1 ? flatNav[pageIndex + 1] : undefined
@@ -108,7 +113,7 @@
 
 	// Breadcrumb trail: the current page's sidebar group, then the page itself.
 	const currentGroup = $derived(
-		nav.find((group) => group.items.some((item) => item.url === page.url.pathname))
+		nav.find((group) => group.items.some((item) => item.url === pathname))
 	);
 	const breadcrumbs = $derived.by(() => {
 		const crumbs: Crumb[] = [];
@@ -128,7 +133,7 @@
 	// Server-rendered TOC (headings extracted at build time into the content
 	// index) so the list is present on first paint. Once the client engine has
 	// scanned the DOM, its items take over (scroll-spy + edge-case accuracy).
-	const pageToc = $derived(content.find((item) => item.path === page.url.pathname)?.toc ?? []);
+	const pageToc = $derived(content.find((item) => item.path === pathname)?.toc ?? []);
 	const tocItems = $derived(toc.items.length ? toc.items : pageToc);
 </script>
 
