@@ -116,6 +116,11 @@ contents.
 	<Prop name="pattern" type="boolean" default="false">
 		Render the decorative grid-and-glow page background.
 	</Prop>
+	<Prop name="copyPage" type="boolean" default="false">
+		Show the "Copy page" split button on doc pages (copy as Markdown, view the
+		raw <code>.md</code>, or open in ChatGPT / Claude). Needs the <code>.md</code>
+		endpoint. See <a href="/docs/seo">SEO</a>.
+	</Prop>
 	<Prop name="layout" type="'docs' | 'page'" default="'docs'">
 		<code>docs</code> is the three-column shell; <code>page</code> is full-bleed
 		content with the same header and footer but no sidebar or TOC.
