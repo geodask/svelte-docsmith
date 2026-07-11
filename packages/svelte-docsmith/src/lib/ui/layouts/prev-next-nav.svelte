@@ -9,7 +9,10 @@
 </script>
 
 {#if prev || next}
-	<nav class="flex justify-between gap-4 {bordered ? 'border-border mt-8 border-t pt-8' : 'mt-6'}">
+	<nav
+		aria-label="Pagination"
+		class="flex justify-between gap-4 {bordered ? 'border-border mt-8 border-t pt-8' : 'mt-6'}"
+	>
 		{#if prev}
 			<a
 				href={prev.url}
