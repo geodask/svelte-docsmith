@@ -22,6 +22,7 @@ export default defineConfig({
 				'src/lib/search/create-search.ts',
 				'src/lib/search/snippet.ts',
 				'src/lib/sitemap.ts',
+				'src/lib/generate-llms.ts',
 				'src/lib/normalize-path.ts',
 				'src/lib/toc/from-content.ts',
 				'src/lib/toc/toc.svelte.ts'

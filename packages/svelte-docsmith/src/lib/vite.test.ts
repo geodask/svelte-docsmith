@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { collectDocs, collectSearchDocs, docsmith } from './vite.js';
+import { collectDocs, collectSearchDocs, collectLlmsDocs, docsmith } from './vite.js';
 import type { Plugin } from 'vite';
 
 // Plugin hooks are typed as ObjectHook unions; in these plugins they are plain
@@ -281,13 +281,85 @@ describe('collectSearchDocs', () => {
 	});
 });
 
+describe('collectLlmsDocs', () => {
+	it('returns an empty array when the content dir does not exist', () => {
+		expect(collectLlmsDocs('/no/such/dir', '/no/such')).toEqual([]);
+	});
+
+	it('keeps the markdown body with headings and code, dropping frontmatter and script/style', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage(
+			'docs/guide',
+			'title: Guide\ndescription: How to use it\nsection: Guides',
+			[
+				'<script>',
+				"\timport { Callout } from 'svelte-docsmith';",
+				'</script>',
+				'<style>.x { color: red; }</style>',
+				'',
+				'## Getting started',
+				'',
+				'Install the **package**.',
+				'',
+				'```bash',
+				'npm i thing',
+				'```'
+			].join('\n')
+		);
+
+		const [doc] = collectLlmsDocs(path.join(routesDir, 'docs'), routesDir);
+
+		expect(doc.path).toBe('/docs/guide');
+		expect(doc.title).toBe('Guide');
+		expect(doc.description).toBe('How to use it');
+		expect(doc.section).toBe('Guides');
+		// Title prepended as an h1; markdown headings and code fences preserved.
+		expect(doc.content.startsWith('# Guide\n\n')).toBe(true);
+		expect(doc.content).toContain('## Getting started');
+		expect(doc.content).toContain('Install the **package**.');
+		expect(doc.content).toContain('```bash\nnpm i thing\n```');
+		// Frontmatter, script, and style blocks are removed.
+		expect(doc.content).not.toContain('---');
+		expect(doc.content).not.toContain('import {');
+		expect(doc.content).not.toContain('color: red');
+	});
+
+	it('skips pages without a title and sorts by path', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/b', 'title: Bravo', 'Second.');
+		writePage('docs/a', 'title: Alpha', 'First.');
+		writePage('docs/untitled', 'description: no title', 'Ignored.');
+
+		expect(collectLlmsDocs(path.join(routesDir, 'docs'), routesDir).map((d) => d.path)).toEqual([
+			'/docs/a',
+			'/docs/b'
+		]);
+	});
+});
+
 describe('docsmith() content plugin', () => {
 	it('resolves the content and search specifiers to virtual modules', () => {
 		const plugin = pluginNamed('docsmith-content');
 		const resolveId = plugin.resolveId as unknown as (id: string) => string | undefined;
 		expect(resolveId.call({}, 'svelte-docsmith/content')).toBe('\0svelte-docsmith:content');
 		expect(resolveId.call({}, 'svelte-docsmith/search')).toBe('\0svelte-docsmith:search');
+		expect(resolveId.call({}, 'svelte-docsmith/llms')).toBe('\0svelte-docsmith:llms');
 		expect(resolveId.call({}, 'something-else')).toBeUndefined();
+	});
+
+	it('loads the llms virtual module as an exported docs array', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'Full body markdown.');
+
+		const plugin = docsmith({ content: path.join(routesDir, 'docs'), routes: routesDir }).find(
+			(p) => p.name === 'docsmith-content'
+		)! as Plugin;
+		const load = plugin.load as unknown as Load;
+		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:llms') as string;
+
+		expect(out).toContain('export const docs =');
+		expect(out).toContain('Full body markdown.');
+		expect(out).toContain('"path":"/docs/intro"');
 	});
 
 	it('loads the search virtual module as an exported docs array', () => {
