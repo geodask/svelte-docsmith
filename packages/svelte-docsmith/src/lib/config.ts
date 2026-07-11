@@ -31,6 +31,13 @@ export type DocsmithConfig = {
 	url?: string;
 	/** Default social-share image (absolute URL, or a path resolved against `url`). */
 	ogImage?: string;
+	/**
+	 * Base URL for the "Edit this page" link, pointing at the directory that maps
+	 * to your app's working directory in the repo, e.g.
+	 * `https://github.com/you/repo/edit/main/apps/docs`. DocsShell appends each
+	 * page's source path. Omit to hide the edit link.
+	 */
+	editUrl?: string;
 	/** Optional GitHub URL; renders a link in the header when set. */
 	github?: string;
 	/** Optional version string, shown in the header (e.g. your library version). */
@@ -67,7 +74,15 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 			'[svelte-docsmith] config.title is required — the site title shown in the sidebar header.'
 		);
 	}
-	for (const key of ['github', 'version', 'logo', 'description', 'url', 'ogImage'] as const) {
+	for (const key of [
+		'github',
+		'version',
+		'logo',
+		'description',
+		'url',
+		'ogImage',
+		'editUrl'
+	] as const) {
 		if (config[key] !== undefined && typeof config[key] !== 'string') {
 			throw new Error(`[svelte-docsmith] config.${key} must be a string when set.`);
 		}
@@ -139,6 +154,10 @@ export type DocsContentItem = {
 	section?: string;
 	order?: number;
 	description?: string;
+	/** Source file path relative to the app cwd, for the "Edit this page" link. */
+	sourcePath?: string;
+	/** Last git commit date (ISO) for the page's source file. */
+	lastUpdated?: string;
 	/**
 	 * The page's `h2`/`h3` headings, extracted at build time by the `docsmith()`
 	 * vite plugin, so `DocsShell` can render the in-page TOC server-side. The

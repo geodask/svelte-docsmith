@@ -19,6 +19,7 @@
 	import PrevNextNav from './prev-next-nav.svelte';
 	import Breadcrumbs, { type Crumb } from './breadcrumbs.svelte';
 	import SeoHead from './seo-head.svelte';
+	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import TableOfContents from '../table-of-contents.svelte';
 	import type { Snippet } from 'svelte';
 
@@ -75,8 +76,26 @@
 
 	const nav = $derived(navFromContent(content));
 
-	// The content entry for the current route drives the SEO title/description.
+	// The content entry for the current route drives the SEO title/description,
+	// the "Edit this page" link, and the "Last updated" stamp.
 	const currentEntry = $derived(content.find((item) => item.path === page.url.pathname));
+
+	const editHref = $derived(
+		config.editUrl && currentEntry?.sourcePath
+			? config.editUrl.replace(/\/$/, '') + '/' + currentEntry.sourcePath
+			: undefined
+	);
+	const lastUpdatedLabel = $derived.by(() => {
+		const iso = currentEntry?.lastUpdated;
+		if (!iso) return undefined;
+		const d = new Date(iso);
+		return Number.isNaN(d.getTime())
+			? undefined
+			: new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: 'numeric' }).format(
+					d
+				);
+	});
+	const showFooterMeta = $derived(Boolean(editHref || lastUpdatedLabel));
 
 	// Ordered flat page list drives the prev/next links.
 	const flatNav = $derived(nav.flatMap((group) => group.items));
@@ -158,7 +177,29 @@
 			<main bind:this={contentEl} class="min-w-0 flex-1 py-6 lg:py-0">
 				<Breadcrumbs items={breadcrumbs} />
 				{@render children()}
-				<PrevNextNav {prev} {next} />
+
+				{#if showFooterMeta}
+					<div
+						class="text-muted-foreground border-border mt-10 flex flex-wrap items-center gap-3 border-t pt-6 text-sm"
+					>
+						{#if editHref}
+							<a
+								href={editHref}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
+							>
+								<SquarePen class="size-4" />
+								Edit this page
+							</a>
+						{/if}
+						{#if lastUpdatedLabel}
+							<span class="ml-auto">Last updated: {lastUpdatedLabel}</span>
+						{/if}
+					</div>
+				{/if}
+
+				<PrevNextNav {prev} {next} bordered={!showFooterMeta} />
 			</main>
 
 			<!-- Reserve the TOC column so its content filling in after hydration

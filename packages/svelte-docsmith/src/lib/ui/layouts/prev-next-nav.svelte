@@ -1,11 +1,15 @@
 <script lang="ts">
 	import type { NavItem } from '$lib/config.js';
 
-	const { prev, next }: { prev?: NavItem; next?: NavItem } = $props();
+	const {
+		prev,
+		next,
+		bordered = true
+	}: { prev?: NavItem; next?: NavItem; bordered?: boolean } = $props();
 </script>
 
 {#if prev || next}
-	<nav class="border-border mt-8 flex justify-between gap-4 border-t pt-8">
+	<nav class="flex justify-between gap-4 {bordered ? 'border-border mt-8 border-t pt-8' : 'mt-6'}">
 		{#if prev}
 			<a
 				href={prev.url}

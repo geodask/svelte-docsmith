@@ -24,7 +24,7 @@ describe('defineConfig', () => {
 		}
 	);
 
-	it.each(['github', 'version', 'description', 'url', 'ogImage'] as const)(
+	it.each(['github', 'version', 'description', 'url', 'ogImage', 'editUrl'] as const)(
 		'throws when %s is a non-string',
 		(key) => {
 			expect(() => defineConfig({ title: 'Docs', [key]: 123 })).toThrow(

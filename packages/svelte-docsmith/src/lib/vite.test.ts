@@ -114,6 +114,8 @@ describe('collectDocs', () => {
 				description: undefined,
 				section: undefined,
 				order: 0,
+				sourcePath: expect.any(String),
+				lastUpdated: undefined,
 				toc: []
 			},
 			{
@@ -122,6 +124,8 @@ describe('collectDocs', () => {
 				description: undefined,
 				section: 'Guides',
 				order: 1,
+				sourcePath: expect.any(String),
+				lastUpdated: undefined,
 				toc: []
 			}
 		]);

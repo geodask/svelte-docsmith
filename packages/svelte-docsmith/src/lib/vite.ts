@@ -12,6 +12,7 @@
  *  3. The **`?source` transform** powering `LiveExample`: importing
  *     `Component.svelte?source` yields that file's Shiki-highlighted source.
  */
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import GithubSlugger from 'github-slugger';
@@ -168,7 +169,23 @@ function extractToc(source: string): TocEntry[] {
  * deriving each page's URL from its directory relative to `routesDir`. Pure and
  * synchronous so it can be unit-tested.
  */
-type PageEntry = { source: string; front: Record<string, unknown>; url: string; title: string };
+type PageEntry = {
+	source: string;
+	front: Record<string, unknown>;
+	url: string;
+	title: string;
+	file: string;
+};
+
+/** Last git commit date (strict ISO) for a file, or undefined outside a repo. */
+function lastCommitDate(file: string): string | undefined {
+	const res = spawnSync('git', ['log', '-1', '--format=%cI', '--', file], {
+		cwd: path.dirname(file),
+		encoding: 'utf-8'
+	});
+	const date = res.status === 0 ? res.stdout.trim() : '';
+	return date || undefined;
+}
 
 /**
  * Walk every nav-worthy page under `contentDir` once: a page is nav-worthy when
@@ -184,7 +201,7 @@ function* eachTitledPage(contentDir: string, routesDir: string): Generator<PageE
 
 		const dir = path.dirname(file);
 		const url = '/' + path.relative(routesDir, dir).split(path.sep).join('/');
-		yield { source, front, url, title: front.title };
+		yield { source, front, url, title: front.title, file };
 	}
 }
 
@@ -199,13 +216,15 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 
 	const items: DocsContentItem[] = [];
 
-	for (const { source, front, url, title } of eachTitledPage(contentDir, routesDir)) {
+	for (const { source, front, url, title, file } of eachTitledPage(contentDir, routesDir)) {
 		items.push({
 			title,
 			path: url,
 			description: typeof front.description === 'string' ? front.description : undefined,
 			section: typeof front.section === 'string' ? front.section : undefined,
 			order: typeof front.order === 'number' ? front.order : undefined,
+			sourcePath: path.relative(process.cwd(), file).split(path.sep).join('/'),
+			lastUpdated: lastCommitDate(file),
 			toc: extractToc(source)
 		});
 	}
