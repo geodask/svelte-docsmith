@@ -2,7 +2,7 @@
 title: Theming
 description: Override the design tokens to make the system your own.
 section: Core Concepts
-order: 7
+order: 8
 ---
 
 <script>

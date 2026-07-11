@@ -6,7 +6,13 @@
  * doesn't care where it's registered). It must never import component code.
  */
 import rehypeSectionize from '@hbsnow/rehype-sectionize';
-import { transformerNotationHighlight } from '@shikijs/transformers';
+import {
+	transformerNotationDiff,
+	transformerNotationErrorLevel,
+	transformerNotationFocus,
+	transformerNotationHighlight,
+	transformerNotationWordHighlight
+} from '@shikijs/transformers';
 import { escapeSvelte, mdsvex, type MdsvexOptions } from 'mdsvex';
 import { fileURLToPath } from 'node:url';
 import rehypeSlug from 'rehype-slug';
@@ -66,7 +72,16 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 					highlighter.codeToHtml(code, {
 						lang: language,
 						themes,
-						transformers: [transformerNotationHighlight()]
+						// Comment-driven annotations authors write inside the fence:
+						// line highlight, diff (++/--), focus, error/warning, and
+						// word highlight. Each strips its own marker comment.
+						transformers: [
+							transformerNotationHighlight(),
+							transformerNotationDiff(),
+							transformerNotationFocus(),
+							transformerNotationErrorLevel(),
+							transformerNotationWordHighlight()
+						]
 					})
 				);
 				// Without a layout there is no `Components.pre` to render through —
