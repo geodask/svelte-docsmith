@@ -14,29 +14,29 @@ order: 2
 Svelte DocSmith is a SvelteKit library. Install it with your package manager of
 choice:
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']} value="pnpm">
-<TabItem value="pnpm">
+<Tabs>
+<TabItem label="pnpm">
 
 ```bash
 pnpm add -D svelte-docsmith
 ```
 
 </TabItem>
-<TabItem value="npm">
+<TabItem label="npm">
 
 ```bash
 npm install -D svelte-docsmith
 ```
 
 </TabItem>
-<TabItem value="yarn">
+<TabItem label="yarn">
 
 ```bash
 yarn add -D svelte-docsmith
 ```
 
 </TabItem>
-<TabItem value="bun">
+<TabItem label="bun">
 
 ```bash
 bun add -D svelte-docsmith
@@ -45,7 +45,7 @@ bun add -D svelte-docsmith
 </TabItem>
 </Tabs>
 
-<Callout type="note" title="Prerequisites">
+<Callout variant="note" title="Prerequisites">
 
 DocSmith expects **Svelte 5**, **SvelteKit 2**, and **Tailwind CSS v4** as peer
 dependencies, the same stack this documentation site runs on. A fresh

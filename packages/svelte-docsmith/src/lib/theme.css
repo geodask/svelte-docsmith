@@ -80,6 +80,31 @@
 	--shadow-2xl: var(--shadow-2xl);
 }
 
+/* A slim, rounded, theme-aware scrollbar — sits inset on transparent track so
+ * it reads as part of the surface, not a browser chrome. Used by scrolling
+ * overlays (the search palette, popovers) where the native bar looks heavy. */
+@utility scrollbar-slim {
+	scrollbar-width: thin;
+	scrollbar-color: color-mix(in oklab, var(--border) 85%, transparent) transparent;
+
+	&::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	&::-webkit-scrollbar-thumb {
+		border-radius: 9999px;
+		border: 3px solid transparent;
+		background-clip: padding-box;
+		background-color: color-mix(in oklab, var(--border) 85%, transparent);
+	}
+	&::-webkit-scrollbar-thumb:hover {
+		background-color: var(--muted-foreground);
+	}
+}
+
 @layer base {
 	:root {
 		--background: oklch(0.9383 0.0042 236.4993);

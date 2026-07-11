@@ -116,7 +116,7 @@ Those four files sit exactly here:
 	</FileTreeItem>
 </FileTree>
 
-<Callout type="tip" title="That's the whole loop">
+<Callout variant="tip" title="That's the whole loop">
 
 Drop a markdown file under `src/routes/docs/` and it appears in the sidebar,
 styled, highlighted, with breadcrumbs and a table of contents. To embed a

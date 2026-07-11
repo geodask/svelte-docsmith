@@ -7,6 +7,11 @@
 	const { children }: { children: Snippet } = $props();
 </script>
 
-<DocsShell config={siteConfig} content={docs} pattern>
+<DocsShell
+	config={siteConfig}
+	content={docs}
+	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
+	pattern
+>
 	{@render children()}
 </DocsShell>

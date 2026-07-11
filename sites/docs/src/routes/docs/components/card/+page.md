@@ -9,10 +9,10 @@ order: 11
 	import { Card, CardGrid, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
-## Card
-
-A card groups a title and description, optionally as a link. Give it an `href`
-and it becomes clickable, with a hover state and a trailing arrow.
+A `Card` groups a title and description, optionally as a link. Give it an `href`
+and it becomes clickable, with a hover state and a trailing arrow. `CardGrid`
+lays cards out in a responsive grid that reflows without breakpoints: as many
+columns as fit, down to one on narrow screens.
 
 <CardGrid>
 	<Card title="Introduction" href="/docs/introduction">
@@ -25,11 +25,6 @@ and it becomes clickable, with a hover state and a trailing arrow.
 		Override tokens or pick a pre-installed theme.
 	</Card>
 </CardGrid>
-
-## CardGrid
-
-`CardGrid` lays cards out in a responsive grid that reflows without breakpoints:
-as many columns as fit, down to one on narrow screens.
 
 ## Usage
 
@@ -46,9 +41,11 @@ as many columns as fit, down to one on narrow screens.
 </CardGrid>
 ```
 
-## Props
+## API reference
 
-<PropsTable title="Card">
+### Card
+
+<PropsTable>
 	<Prop name="title" type="string" required>
 		Card heading.
 	</Prop>
@@ -63,7 +60,9 @@ as many columns as fit, down to one on narrow screens.
 	</Prop>
 </PropsTable>
 
-<PropsTable title="CardGrid">
+### CardGrid
+
+<PropsTable>
 	<Prop name="children" type="Snippet">
 		The Cards to lay out.
 	</Prop>

@@ -9,8 +9,6 @@ order: 14
 	import { Badge, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
-## Badge
-
 Label a status, version, or category inline. Six intents cover the usual docs
 needs, neutral through danger, each driven by your theme tokens so they recolor
 with the rest of the site.
@@ -40,7 +38,7 @@ badge into a link.
 <Badge variant="primary" href="/docs/introduction">New</Badge>
 ```
 
-## Props
+## API reference
 
 <PropsTable>
 	<Prop name="variant" type="'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'outline'" default="'default'">
@@ -48,5 +46,8 @@ badge into a link.
 	</Prop>
 	<Prop name="href" type="string">
 		Renders the badge as a link.
+	</Prop>
+	<Prop name="external" type="boolean" default="false">
+		For a linked badge, open in a new tab with <code>rel="noopener noreferrer"</code>.
 	</Prop>
 </PropsTable>

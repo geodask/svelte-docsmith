@@ -53,7 +53,7 @@ order: 1
 `section` names the group and `order` sorts within it; groups themselves are
 ordered by the smallest `order` they contain.
 
-<Callout type="warning" title="A missing page is almost always frontmatter">
+<Callout variant="warning" title="A missing page is almost always frontmatter">
 
 A page with no `title` is skipped by the sidebar. If a page isn't showing up,
 check its frontmatter before anything else: a stray indent or a typo'd key is
@@ -116,15 +116,15 @@ with `Tabs` and `TabItem`. Pass the tab labels as `items`; each `TabItem`'s
   import { Tabs, TabItem } from 'svelte-docsmith';
 </script>
 
-<Tabs items={['npm', 'pnpm']} value="npm">
-<TabItem value="npm">
+<Tabs>
+<TabItem label="npm">
 
 ```bash
 npm i -D svelte-docsmith
 ```
 
   </TabItem>
-  <TabItem value="pnpm">
+  <TabItem label="pnpm">
 
 ```bash
 pnpm add -D svelte-docsmith

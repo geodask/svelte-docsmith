@@ -35,11 +35,10 @@ export interface DocsmithPreprocessOptions {
 }
 
 /**
- * Build the svelte-docsmith preprocessor: mdsvex with Shiki highlighting
- * (raw-code `highlight` hook — the correct mdsvex integration point, see the
- * repo's PLAN.md §4.5), heading slugs/anchor sections, and the packaged doc
- * layout. Unknown code-fence languages fall back to plain text instead of
- * failing the build.
+ * Build the svelte-docsmith preprocessor: mdsvex with Shiki highlighting (via
+ * the raw-code `highlight` hook, the correct mdsvex integration point), heading
+ * slugs/anchor sections, and the packaged doc layout. Unknown code-fence
+ * languages fall back to plain text instead of failing the build.
  */
 export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorGroup {
 	const themes = options.themes ?? DEFAULT_THEMES;

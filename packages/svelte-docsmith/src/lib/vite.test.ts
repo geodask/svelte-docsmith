@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { collectDocs, docsmith } from './vite.js';
+import { collectDocs, collectSearchDocs, docsmith } from './vite.js';
 import type { Plugin } from 'vite';
 
 // Plugin hooks are typed as ObjectHook unions; in these plugins they are plain
@@ -72,8 +72,32 @@ afterEach(() => {
 describe('collectDocs', () => {
 	beforeAll(() => {});
 
-	it('returns an empty array when the content dir does not exist', () => {
+	it('returns an empty array and warns when the content dir does not exist', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		expect(collectDocs('/no/such/dir', '/no/such')).toEqual([]);
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('content directory not found'));
+		warn.mockRestore();
+	});
+
+	it('warns when the content dir exists but has no titled pages', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		fs.mkdirSync(path.join(routesDir, 'docs'), { recursive: true });
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		expect(collectDocs(path.join(routesDir, 'docs'), routesDir)).toEqual([]);
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('no doc pages found'));
+		warn.mockRestore();
+	});
+
+	it('throws with the filename on invalid YAML frontmatter', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const dir = path.join(routesDir, 'docs', 'broken');
+		fs.mkdirSync(dir, { recursive: true });
+		fs.writeFileSync(path.join(dir, '+page.md'), '---\ntitle: "unterminated\n---\n\n# body\n');
+
+		expect(() => collectDocs(path.join(routesDir, 'docs'), routesDir)).toThrow(
+			/invalid YAML frontmatter in .*broken.*\+page\.md/s
+		);
 	});
 
 	it('reads frontmatter and derives the URL from the directory', () => {
@@ -126,6 +150,24 @@ describe('collectDocs', () => {
 		]);
 	});
 
+	it('slugs headings exactly like rehype-slug (github-slugger), incl. dupes', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage(
+			'docs/slugs',
+			'title: Slugs',
+			['## Anchors & copy buttons', '', '## Usage', '', '## Usage'].join('\n')
+		);
+
+		const [doc] = collectDocs(path.join(routesDir, 'docs'), routesDir);
+		expect((doc.toc ?? []).map((t) => t.id)).toEqual([
+			// github-slugger drops `&` but keeps the surrounding spaces → double hyphen,
+			// where the old hand-rolled slugify collapsed it to a single hyphen.
+			'anchors--copy-buttons',
+			'usage',
+			'usage-1'
+		]);
+	});
+
 	it('handles quoted values and colons inside frontmatter', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/x', 'title: "A: the beginning"\ndescription: "Uses http://x"');
@@ -154,12 +196,109 @@ describe('collectDocs', () => {
 	});
 });
 
+describe('collectSearchDocs', () => {
+	it('returns an empty array when the content dir does not exist', () => {
+		expect(collectSearchDocs('/no/such/dir', '/no/such')).toEqual([]);
+	});
+
+	it('reduces a page to plain-text body, headings, and metadata', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage(
+			'docs/guide',
+			'title: Guide\ndescription: How to use it\nsection: Guides',
+			[
+				'<script>',
+				"\timport { Callout } from 'svelte-docsmith';",
+				'</script>',
+				'',
+				'## Getting started',
+				'',
+				'Install the **package** and import `Callout` from [the library](/docs).',
+				'',
+				'```bash',
+				'npm i secretcode',
+				'```',
+				'',
+				'<Callout variant="tip">',
+				'',
+				'This is a helpful tip.',
+				'',
+				'</Callout>'
+			].join('\n')
+		);
+
+		const [doc] = collectSearchDocs(path.join(routesDir, 'docs'), routesDir);
+
+		expect(doc.path).toBe('/docs/guide');
+		expect(doc.title).toBe('Guide');
+		expect(doc.description).toBe('How to use it');
+		expect(doc.section).toBe('Guides');
+		expect(doc.headings).toEqual(['Getting started']);
+
+		// Prose is kept as plain text, with markdown punctuation resolved.
+		expect(doc.text).toContain('Getting started');
+		expect(doc.text).toContain('Install the package and import Callout from the library');
+		expect(doc.text).toContain('This is a helpful tip.');
+		// Code fences, <script> blocks, and tag syntax are dropped.
+		expect(doc.text).not.toContain('secretcode');
+		expect(doc.text).not.toContain('import {');
+		expect(doc.text).not.toContain('variant');
+		expect(doc.text).not.toMatch(/[*`[\]]/);
+	});
+
+	it('strips markdown table structure from the body text', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage(
+			'docs/table',
+			'title: Reference',
+			['| Name | Type |', '| ---- | ---- |', '| variant | string |', '| title | string |'].join(
+				'\n'
+			)
+		);
+
+		const [doc] = collectSearchDocs(path.join(routesDir, 'docs'), routesDir);
+		expect(doc.text).not.toContain('|');
+		expect(doc.text).not.toContain('----');
+		// Cell words survive as plain prose.
+		expect(doc.text).toContain('Name Type');
+		expect(doc.text).toContain('variant string');
+	});
+
+	it('skips pages without a title and sorts by path', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/b', 'title: Bravo', 'Second.');
+		writePage('docs/a', 'title: Alpha', 'First.');
+		writePage('docs/untitled', 'description: no title', 'Ignored.');
+
+		expect(collectSearchDocs(path.join(routesDir, 'docs'), routesDir).map((d) => d.path)).toEqual([
+			'/docs/a',
+			'/docs/b'
+		]);
+	});
+});
+
 describe('docsmith() content plugin', () => {
-	it('resolves the svelte-docsmith/content specifier to a virtual module', () => {
+	it('resolves the content and search specifiers to virtual modules', () => {
 		const plugin = pluginNamed('docsmith-content');
 		const resolveId = plugin.resolveId as unknown as (id: string) => string | undefined;
 		expect(resolveId.call({}, 'svelte-docsmith/content')).toBe('\0svelte-docsmith:content');
+		expect(resolveId.call({}, 'svelte-docsmith/search')).toBe('\0svelte-docsmith:search');
 		expect(resolveId.call({}, 'something-else')).toBeUndefined();
+	});
+
+	it('loads the search virtual module as an exported docs array', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'Searchable body text.');
+
+		const plugin = docsmith({ content: path.join(routesDir, 'docs'), routes: routesDir }).find(
+			(p) => p.name === 'docsmith-content'
+		)! as Plugin;
+		const load = plugin.load as unknown as Load;
+		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:search') as string;
+
+		expect(out).toContain('export const docs =');
+		expect(out).toContain('Searchable body text.');
+		expect(out).toContain('"path":"/docs/intro"');
 	});
 
 	it('loads the virtual module as an exported docs array', () => {
@@ -175,5 +314,56 @@ describe('docsmith() content plugin', () => {
 		expect(out).toContain('export const docs =');
 		expect(out).toContain('"title": "Intro"');
 		expect(out).toContain('"path": "/docs/intro"');
+	});
+
+	it('invalidates and full-reloads only when a page file changes', () => {
+		const handlers: Record<string, (file: string) => void> = {};
+		const mod = { id: '\0svelte-docsmith:content' };
+		const server = {
+			watcher: {
+				add: vi.fn(),
+				on: vi.fn((event: string, cb: (file: string) => void) => {
+					handlers[event] = cb;
+				})
+			},
+			moduleGraph: {
+				getModuleById: vi.fn(() => mod),
+				invalidateModule: vi.fn()
+			},
+			ws: { send: vi.fn() }
+		};
+
+		const plugin = pluginNamed('docsmith-content');
+		(plugin.configureServer as unknown as (s: typeof server) => void).call({}, server);
+
+		expect(server.watcher.add).toHaveBeenCalled();
+
+		// A non-page change is ignored.
+		handlers.change('src/routes/docs/notes.txt');
+		expect(server.moduleGraph.invalidateModule).not.toHaveBeenCalled();
+
+		// A page change invalidates the virtual module and triggers a reload.
+		handlers.change('src/routes/docs/intro/+page.md');
+		expect(server.moduleGraph.invalidateModule).toHaveBeenCalledWith(mod);
+		expect(server.ws.send).toHaveBeenCalledWith({ type: 'full-reload' });
+	});
+
+	it('does nothing on change when the virtual module is not in the graph', () => {
+		const handlers: Record<string, (file: string) => void> = {};
+		const server = {
+			watcher: {
+				add: vi.fn(),
+				on: vi.fn((e: string, cb: (f: string) => void) => (handlers[e] = cb))
+			},
+			moduleGraph: { getModuleById: vi.fn(() => undefined), invalidateModule: vi.fn() },
+			ws: { send: vi.fn() }
+		};
+
+		const plugin = pluginNamed('docsmith-content');
+		(plugin.configureServer as unknown as (s: typeof server) => void).call({}, server);
+
+		handlers.add('src/routes/docs/new/+page.md');
+		expect(server.moduleGraph.invalidateModule).not.toHaveBeenCalled();
+		expect(server.ws.send).not.toHaveBeenCalled();
 	});
 });

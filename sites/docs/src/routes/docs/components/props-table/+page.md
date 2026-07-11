@@ -9,8 +9,6 @@ order: 17
 	import { PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
-## Props Table
-
 Document a component's props the same way on every page: name, type, and
 description in one styled table, so the API reference reads consistently instead
 of drifting per author.
@@ -48,15 +46,19 @@ Wrap `Prop` rows in a `PropsTable`. Give each `Prop` a `name`; add `type`,
 </PropsTable>
 ```
 
-## Props
+## API reference
 
-<PropsTable title="PropsTable">
+### PropsTable
+
+<PropsTable>
 	<Prop name="title" type="string">
 		Optional caption, e.g. the component name when a page documents several.
 	</Prop>
 </PropsTable>
 
-<PropsTable title="Prop">
+### Prop
+
+<PropsTable>
 	<Prop name="name" type="string" required>
 		Property name.
 	</Prop>

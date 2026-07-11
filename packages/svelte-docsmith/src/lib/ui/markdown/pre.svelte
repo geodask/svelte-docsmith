@@ -46,7 +46,7 @@
 	 * Plain CSS (not @apply): these style Shiki's output and ship inside the
 	 * published package, where the consumer's Tailwind theme context isn't
 	 * available to resolve @apply (Tailwind v4 compiles scoped styles in
-	 * isolation). See PLAN.md §2.5.
+	 * isolation).
 	 */
 	:global(pre code) {
 		display: block;

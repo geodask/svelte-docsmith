@@ -9,16 +9,27 @@ export default defineConfig({
 		coverage: {
 			provider: 'v8',
 			reporter: ['text', 'json', 'html', 'lcov'],
-			exclude: [
-				'**/node_modules/**',
-				'**/dist/**',
-				'**/.svelte-kit/**',
-				'**/routes/**',
-				'**/app.d.ts',
-				'**/*.spec.ts',
-				'vite.config.ts',
-				'svelte.config.js'
-			]
+			// Gate only the framework-agnostic logic + runes stores — the pieces
+			// with real branches worth protecting. Presentational `.svelte`
+			// components and the vendored shadcn primitives are covered by usage,
+			// not unit tests, and would only dilute the threshold.
+			include: [
+				'src/lib/config.ts',
+				'src/lib/vite.ts',
+				'src/lib/preprocess.ts',
+				'src/lib/highlight.ts',
+				'src/lib/clipboard.svelte.ts',
+				'src/lib/search/create-search.ts',
+				'src/lib/search/snippet.ts',
+				'src/lib/toc/from-content.ts',
+				'src/lib/toc/toc.svelte.ts'
+			],
+			thresholds: {
+				statements: 92,
+				branches: 85,
+				functions: 95,
+				lines: 95
+			}
 		},
 		projects: [
 			{

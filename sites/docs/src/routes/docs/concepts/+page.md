@@ -45,7 +45,7 @@ points. They do different jobs:
   runs at build time and generates the content index (below) plus the `?source`
   transform that powers live examples.
 
-<Callout type="warning" title="You need both">
+<Callout variant="warning" title="You need both">
 
 The preprocessor and the Vite plugin are not interchangeable. The preprocessor
 renders your pages; the Vite plugin builds the sidebar and live-example source.

@@ -9,8 +9,6 @@ order: 13
 	import { Accordion, AccordionItem, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
-## Accordion
-
 Fold FAQs, optional details, or long asides behind a heading the reader expands
 on demand, one panel at a time by default, so the page stays scannable.
 
@@ -67,15 +65,19 @@ Pass `multiple` to let panels stay open independently:
 </Accordion>
 ```
 
-## Props
+## API reference
 
-<PropsTable title="Accordion">
+### Accordion
+
+<PropsTable>
 	<Prop name="multiple" type="boolean" default="false">
 		Allow several panels open at once.
 	</Prop>
 </PropsTable>
 
-<PropsTable title="AccordionItem">
+### AccordionItem
+
+<PropsTable>
 	<Prop name="title" type="string" required>
 		The heading that toggles the panel.
 	</Prop>

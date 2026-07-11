@@ -1,29 +1,52 @@
-<script lang="ts">
-	import * as Tabs from '$lib/ui/shadcn/tabs/index.js';
-	import type { WithChildren } from '$lib/types.js';
+<script lang="ts" module>
+	import { getContext } from 'svelte';
 
-	type TabsProps = {
-		items: string[];
-		value: string;
+	/** Which render pass a <TabItem> is in. See tabs-phase.svelte. */
+	export type TabsPhase = 'collect' | 'list' | 'panel';
+
+	export const TABS_PHASE = Symbol('docsmith-tabs-phase');
+	const TABS_CTX = Symbol('docsmith-tabs-ctx');
+
+	type TabsContext = {
+		/** Called by each <TabItem> during the collect pass, in document order. */
+		register: (value: string) => void;
 	};
 
-	const { children, items, value = items[0] }: WithChildren<TabsProps> = $props();
+	/** Read the enclosing <Tabs> context from a <TabItem>. */
+	export function getTabsContext(): TabsContext | undefined {
+		return getContext<TabsContext | undefined>(TABS_CTX);
+	}
 </script>
 
-<Tabs.Root class="my-6" {value}>
-	<Tabs.List class="not-prose mb-3">
-		{#each items as item (item)}
-			<!-- bits-ui v2 emits data-state="active"; the vendored trigger styles the
-			     active state with data-active (a skew from the CLI's registry version),
-			     so paint the active state here to match what's actually emitted. -->
-			<Tabs.Trigger
-				value={item}
-				class="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-			>
-				{item}
-			</Tabs.Trigger>
-		{/each}
-	</Tabs.List>
+<script lang="ts">
+	import { setContext, type Snippet } from 'svelte';
+	import * as TabsPrimitive from '$lib/ui/shadcn/tabs/index.js';
+	import TabsPhaseScope from './tabs-phase.svelte';
 
-	{@render children()}
-</Tabs.Root>
+	const {
+		value,
+		children
+	}: {
+		/** Value/label of the tab selected by default. Defaults to the first tab. */
+		value?: string;
+		children: Snippet;
+	} = $props();
+
+	// The first <TabItem> to register wins the default selection. Captured during
+	// the collect pass, which renders (below) before <Tabs.Root> reads it — so the
+	// correct panel is already selected in the server-rendered HTML.
+	let firstValue = $state<string | undefined>();
+	setContext<TabsContext>(TABS_CTX, {
+		register: (v) => (firstValue ??= v)
+	});
+</script>
+
+<!-- collect: registers each TabItem's value; renders nothing. -->
+<TabsPhaseScope phase="collect">{@render children()}</TabsPhaseScope>
+
+<TabsPrimitive.Root value={value ?? firstValue ?? ''} class="my-6">
+	<TabsPrimitive.List class="not-prose mb-3">
+		<TabsPhaseScope phase="list">{@render children()}</TabsPhaseScope>
+	</TabsPrimitive.List>
+	<TabsPhaseScope phase="panel">{@render children()}</TabsPhaseScope>
+</TabsPrimitive.Root>

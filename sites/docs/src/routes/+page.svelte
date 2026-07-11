@@ -27,7 +27,7 @@
 			copied = true;
 			setTimeout(() => (copied = false), 1600);
 		} catch {
-			/* clipboard unavailable — no-op */
+			/* clipboard unavailable, no-op */
 		}
 	}
 
@@ -50,7 +50,7 @@
 		{
 			icon: Smartphone,
 			title: 'Responsive shell',
-			body: 'Header, collapsible sidebar, and mobile nav — the whole chrome, out of the box.'
+			body: 'Header, collapsible sidebar, and mobile nav: the whole chrome, out of the box.'
 		},
 		{
 			icon: Copy,
@@ -67,15 +67,14 @@
 	const navGroups = [
 		{
 			group: 'Getting Started',
-			items: ['Introduction', 'Installation', 'Quick Start'],
+			items: ['Introduction', 'Installation', 'Quick Start', 'Configuration'],
 			active: 'Quick Start'
 		},
 		{
 			group: 'Core Concepts',
-			items: ['How it works', 'Writing pages', 'Live Examples', 'Theming'],
+			items: ['How it works', 'Writing pages', 'Live Examples', 'Theming', 'Search', 'SEO'],
 			active: ''
-		},
-		{ group: 'Reference', items: ['API Reference'], active: '' }
+		}
 	];
 </script>
 
@@ -93,19 +92,19 @@
 					class="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-[0.7rem] font-semibold"
 					>New</span
 				>
-				Docs powered by Svelte 5 + SvelteKit
+				Built with Svelte 5 + SvelteKit
 				<ArrowRight class="size-3" />
 			</a>
 
 			<h1
 				class="mt-6 text-5xl font-semibold tracking-[-0.03em] text-balance sm:text-6xl lg:text-[4.25rem] lg:leading-[1.02]"
 			>
-				Docs that <span class="text-primary">run</span>.
+				Craft documentation worthy of <span class="text-primary">legend</span>.
 			</h1>
 
 			<p class="text-muted-foreground mt-6 max-w-xl text-lg leading-relaxed text-pretty">
 				A documentation framework for Svelte. Your interactive examples live inside one real,
-				stateful app — not screenshots, not sandboxed islands. Markdown compiles to real routes, and
+				stateful app, not screenshots, not sandboxed islands. Markdown compiles to real routes, and
 				the sidebar builds itself.
 			</p>
 
@@ -114,7 +113,7 @@
 					href="/docs/quick-start"
 					class="group bg-primary text-primary-foreground inline-flex h-11 items-center gap-2 rounded-lg px-6 font-medium shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
 				>
-					Get started
+					Start smithing
 					<ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
 				</a>
 
@@ -140,7 +139,7 @@
 				{/snippet}
 			</CodeWindow>
 			<p class="text-muted-foreground mt-3 text-center text-sm">
-				Real component, real state — the button above is running, not a picture of one.
+				Real component, real state: the button above is running, not a picture of one.
 			</p>
 		</div>
 	</section>
@@ -151,12 +150,12 @@
 			<div use:reveal>
 				<p class="text-primary font-mono text-sm font-medium">Show, don't tell</p>
 				<h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-					Your examples are real components
+					Living examples, not screenshots
 				</h2>
 				<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
 					Drop a Svelte component straight into your markdown and it runs as part of the same app.
-					The rendered demo and its syntax-highlighted source come from one file, imported twice —
-					so the code you show and the code that runs can never drift.
+					The rendered demo and its syntax-highlighted source come from one file, imported twice, so
+					the code you show and the code that runs can never drift.
 				</p>
 				<a
 					href="/docs/live-examples"
@@ -212,14 +211,14 @@ and it becomes a real route.</pre>
 				<div use:reveal class="order-1 lg:order-2">
 					<p class="text-primary font-mono text-sm font-medium">No loaders, no config</p>
 					<h2 class="mt-3 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-						Markdown compiles to real routes
+						Markdown, hammered into routes
 					</h2>
 					<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
 						DocSmith leans on mdsvex, which turns markdown into real Svelte components. A file at
 						<span class="text-foreground font-mono text-sm">docs/quick-start/+page.md</span>
 						becomes the page
-						<span class="text-foreground font-mono text-sm">/docs/quick-start</span> — no catch-all route,
-						no content loader, no collection config to maintain.
+						<span class="text-foreground font-mono text-sm">/docs/quick-start</span>. No catch-all
+						route, no content loader, no collection config to maintain.
 					</p>
 					<a
 						href="/docs/concepts"
@@ -244,7 +243,7 @@ and it becomes a real route.</pre>
 					There is no navigation array to maintain. A Vite plugin reads each page's frontmatter at
 					build time; <span class="text-foreground font-mono text-sm">section</span> names the group
 					and <span class="text-foreground font-mono text-sm">order</span> sorts it. Add a page, and
-					it appears in the sidebar — automatically, in the right place.
+					it appears in the sidebar automatically, in the right place.
 				</p>
 			</div>
 
@@ -284,10 +283,10 @@ and it becomes a real route.</pre>
 		<div class="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8 lg:py-24">
 			<div class="mx-auto max-w-2xl text-center" use:reveal>
 				<h2 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-					Everything a docs site needs, wired up
+					Everything a docs site needs, ready off the anvil
 				</h2>
 				<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
-					You bring the content. DocSmith brings the pipeline, the layout, and the chrome.
+					You bring the words. DocSmith brings the pipeline, the layout, and the chrome.
 				</p>
 			</div>
 
@@ -322,10 +321,10 @@ and it becomes a real route.</pre>
 			</div>
 
 			<h2 class="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-				Ship documentation that runs
+				Docs, wrought to run
 			</h2>
 			<p class="text-muted-foreground mx-auto mt-4 max-w-xl text-lg leading-relaxed text-pretty">
-				Install the package, wire up the pipeline in three lines, and write your first page.
+				Install the package, wire up the pipeline in three lines, and shape your first page.
 			</p>
 
 			<div class="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -333,7 +332,7 @@ and it becomes a real route.</pre>
 					href="/docs/quick-start"
 					class="group bg-primary text-primary-foreground inline-flex h-11 items-center gap-2 rounded-lg px-6 font-medium shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
 				>
-					Get started
+					Light the forge
 					<ArrowRight class="size-4 transition-transform group-hover:translate-x-0.5" />
 				</a>
 				<a

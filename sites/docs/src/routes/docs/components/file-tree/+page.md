@@ -9,8 +9,6 @@ order: 16
 	import { FileTree, FileTreeItem, PropsTable, Prop } from 'svelte-docsmith';
 </script>
 
-## File Tree
-
 Sketch a folder layout so the reader sees where a file goes. Indentation and
 folder icons carry the structure, no ASCII art to keep aligned by hand.
 
@@ -48,9 +46,15 @@ call out the entry a guide is about to touch.
 </FileTree>
 ```
 
-## Props
+## API reference
 
-<PropsTable title="FileTreeItem">
+### FileTree
+
+Wraps its `<FileTreeItem>` children; no other props.
+
+### FileTreeItem
+
+<PropsTable>
 	<Prop name="name" type="string" required>
 		File or directory name.
 	</Prop>

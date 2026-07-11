@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	export type CalloutType = 'note' | 'tip' | 'warning' | 'danger';
+	export type CalloutVariant = 'note' | 'tip' | 'warning' | 'danger';
 </script>
 
 <script lang="ts">
@@ -11,32 +11,32 @@
 	import type { Snippet } from 'svelte';
 
 	const {
-		type = 'note',
+		variant = 'note',
 		title,
 		children
 	}: {
 		/** Visual intent. Default: `note`. */
-		type?: CalloutType;
-		/** Optional heading; defaults to the capitalized type. */
+		variant?: CalloutVariant;
+		/** Optional heading; defaults to the capitalized variant. */
 		title?: string;
 		children: Snippet;
 	} = $props();
 
-	const variants: Record<CalloutType, { icon: Component; label: string; klass: string }> = {
+	const variants: Record<CalloutVariant, { icon: Component; label: string; klass: string }> = {
 		note: { icon: Info, label: 'Note', klass: 'callout-note' },
 		tip: { icon: Lightbulb, label: 'Tip', klass: 'callout-tip' },
 		warning: { icon: TriangleAlert, label: 'Warning', klass: 'callout-warning' },
 		danger: { icon: CircleAlert, label: 'Danger', klass: 'callout-danger' }
 	};
 
-	const variant = $derived(variants[type]);
-	const Icon = $derived(variant.icon);
+	const resolved = $derived(variants[variant]);
+	const Icon = $derived(resolved.icon);
 </script>
 
-<div role="note" class="not-prose callout {variant.klass}">
+<div role="note" class="not-prose callout {resolved.klass}">
 	<Icon class="callout-icon" size={18} aria-hidden="true" />
 	<div class="callout-body">
-		<p class="callout-title">{title ?? variant.label}</p>
+		<p class="callout-title">{title ?? resolved.label}</p>
 		<div class="callout-content">{@render children()}</div>
 	</div>
 </div>

@@ -8,32 +8,38 @@
 	import { Button } from '$lib/ui/shadcn/button/index.js';
 	import * as Popover from '$lib/ui/shadcn/popover/index.js';
 	import { ScrollArea } from '$lib/ui/shadcn/scroll-area/index.js';
+	import { Separator } from '$lib/ui/shadcn/separator/index.js';
 	import * as Sheet from '$lib/ui/shadcn/sheet/index.js';
+	import { useSearch } from '$lib/search/context.svelte.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import Menu from '@lucide/svelte/icons/menu';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
+	import SearchIcon from '@lucide/svelte/icons/search';
 	import type { Snippet } from 'svelte';
 
 	const {
 		config,
-		nav,
-		title,
-		tocItems,
+		nav = [],
+		title = config.title,
+		tocItems = [],
 		tocActiveId = null,
 		logo,
 		actions
 	}: {
 		config: DocsmithConfig;
-		nav: NavGroup[];
-		/** Title of the current page, shown between the menu and controls. */
-		title: string;
+		/** Sidebar groups; omit on non-doc pages (the landing/`page` layout). */
+		nav?: NavGroup[];
+		/** Title shown between the menu and controls. Defaults to the site title. */
+		title?: string;
 		/** In-page TOC entries; the TOC popover is hidden when empty. */
-		tocItems: TocItem[];
+		tocItems?: TocItem[];
 		/** Id of the heading currently in view. */
 		tocActiveId?: string | null;
 		logo?: Snippet;
 		actions?: Snippet;
 	} = $props();
+
+	const search = useSearch();
 
 	let isMenuOpen = $state(false);
 	let isTocOpen = $state(false);
@@ -72,7 +78,26 @@
 					</a>
 				</div>
 				<ScrollArea class="my-4 h-[calc(100vh-8rem)] pb-10 pl-2">
-					<DocsSidebar {nav} class="static block h-auto w-full" />
+					{#if config.nav?.length}
+						<nav class="flex flex-col gap-0.5 px-5 pb-1">
+							{#each config.nav as link (link.href)}
+								<a
+									href={link.href}
+									target={link.external ? '_blank' : undefined}
+									rel={link.external ? 'noopener noreferrer' : undefined}
+									class="text-muted-foreground hover:text-foreground rounded-md py-1.5 text-sm font-medium transition-colors"
+								>
+									{link.label}
+								</a>
+							{/each}
+						</nav>
+						{#if nav.length}
+							<Separator class="bg-border/60 mx-5 my-2" />
+						{/if}
+					{/if}
+					{#if nav.length}
+						<DocsSidebar {nav} class="static block h-auto w-full" />
+					{/if}
 				</ScrollArea>
 			</Sheet.Content>
 		</Sheet.Root>
@@ -82,6 +107,13 @@
 		<div class="flex items-center gap-1">
 			{#if actions}
 				{@render actions()}
+			{/if}
+
+			{#if search}
+				<Button variant="ghost" size="icon" class="size-8" onclick={() => (search.open = true)}>
+					<SearchIcon class="size-4" />
+					<span class="sr-only">Search documentation</span>
+				</Button>
 			{/if}
 
 			<ThemeToggle />

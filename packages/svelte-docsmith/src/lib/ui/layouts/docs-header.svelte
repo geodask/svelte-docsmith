@@ -3,6 +3,7 @@
 	import { Button } from '$lib/ui/shadcn/button/index.js';
 	import { Separator } from '$lib/ui/shadcn/separator/index.js';
 	import GithubIcon from '$lib/ui/icons/github.svelte';
+	import SearchTrigger from '../search-trigger.svelte';
 	import ThemeToggle from '../theme-toggle.svelte';
 	import type { DocsmithConfig } from '$lib/config.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
@@ -11,20 +12,13 @@
 	const {
 		config,
 		logo,
-		actions,
-		standalone = false
+		actions
 	}: {
 		config: DocsmithConfig;
 		/** Custom logo mark; defaults to a book icon in a primary-tinted chip. */
 		logo?: Snippet;
 		/** Extra header controls, rendered before the theme toggle. */
 		actions?: Snippet;
-		/**
-		 * Show at every breakpoint (for pages without the docs mobile header, e.g.
-		 * a landing page). Default: desktop-only, since the docs shell pairs this
-		 * with a separate mobile header.
-		 */
-		standalone?: boolean;
 	} = $props();
 
 	let isScrolled = $state(false);
@@ -33,9 +27,7 @@
 <svelte:window onscroll={() => (isScrolled = window.scrollY > 50)} />
 
 <header
-	class="sticky top-0 z-40 w-full transition-all duration-200 {standalone
-		? 'block'
-		: 'hidden lg:block'} {isScrolled
+	class="sticky top-0 z-40 hidden w-full transition-all duration-200 lg:block {isScrolled
 		? 'bg-background/60 supports-backdrop-filter:bg-background/60 border-border/40 border-b backdrop-blur-xl'
 		: 'border-transparent bg-transparent'}"
 >
@@ -81,6 +73,8 @@
 					</Badge>
 				</div>
 			{/if}
+
+			<SearchTrigger />
 
 			<Separator orientation="vertical" class="bg-border/40 mx-1 min-h-0 h-6" />
 

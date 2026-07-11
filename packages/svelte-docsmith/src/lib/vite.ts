@@ -1,19 +1,23 @@
 /**
  * `svelte-docsmith/vite` — the build-time half of the framework. Node context
- * only. One `docsmith()` call in `vite.config.ts` wires two things:
+ * only. One `docsmith()` call in `vite.config.ts` wires three things:
  *
  *  1. A **content index** served as the virtual module `svelte-docsmith/content`
  *     — your doc pages' frontmatter, scanned at build time, so the sidebar nav
- *     is derived from content and never hand-written. No velite, no collection
- *     config, no aliases.
- *  2. The **`?source` transform** powering `LiveExample`: importing
+ *     is derived from content and never hand-written. No collection config, no
+ *     aliases.
+ *  2. A **search index** served as the virtual module `svelte-docsmith/search`
+ *     — the same pages reduced to plain-text bodies, in a separate chunk so it
+ *     can be lazy-loaded only when search opens.
+ *  3. The **`?source` transform** powering `LiveExample`: importing
  *     `Component.svelte?source` yields that file's Shiki-highlighted source.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import GithubSlugger from 'github-slugger';
 import yaml from 'js-yaml';
 import type { Plugin, ViteDevServer } from 'vite';
-import type { DocsContentItem } from './config.js';
+import type { DocsContentItem, SearchDoc } from './config.js';
 import { DEFAULT_THEMES, lazyHighlighter } from './highlight.js';
 
 export interface DocsmithViteOptions {
@@ -44,6 +48,8 @@ export function docsmith(options: DocsmithViteOptions = {}): Plugin[] {
 
 const CONTENT_SPECIFIER = 'svelte-docsmith/content';
 const VIRTUAL_CONTENT_ID = '\0svelte-docsmith:content';
+const SEARCH_SPECIFIER = 'svelte-docsmith/search';
+const VIRTUAL_SEARCH_ID = '\0svelte-docsmith:search';
 const PAGE_NAMES = ['+page.md', '+page.svx'];
 
 function isPageFile(file: string): boolean {
@@ -68,19 +74,10 @@ function listPageFiles(contentDir: string): string[] {
 
 type TocEntry = { id: string; title: string; depth: 2 | 3 };
 
-/** Slugify heading text the way rehype-slug (github-slugger) does for common
- *  cases: lowercase, drop punctuation/symbols, spaces → hyphens. */
-function slugify(text: string): string {
-	return text
-		.trim()
-		.toLowerCase()
-		.replace(/[^\p{L}\p{N}\s-]/gu, '')
-		.replace(/\s+/g, '-');
-}
-
 /** Strip inline markdown so a heading's TOC label is plain text. */
 function stripInlineMarkdown(text: string): string {
 	return text
+		.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
 		.replace(/`([^`]+)`/g, '$1')
 		.replace(/\*\*([^*]+)\*\*/g, '$1')
 		.replace(/\*([^*]+)\*/g, '$1')
@@ -90,14 +87,58 @@ function stripInlineMarkdown(text: string): string {
 }
 
 /**
+ * Reduce a markdown page to plain, searchable body text: prose and heading text
+ * with frontmatter, `<script>`/`<style>` blocks, fenced code, HTML/Svelte tags,
+ * and markdown punctuation removed. Feeds the generated search index. Code
+ * samples are intentionally dropped to keep the index small and prose-focused.
+ */
+function extractSearchText(source: string): string {
+	let body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+	// Component/setup blocks aren't prose; drop them whole before line scanning.
+	body = body.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+
+	const out: string[] = [];
+	let fence: string | null = null;
+
+	for (const line of body.split('\n')) {
+		const f = /^\s*(`{3,}|~{3,})/.exec(line);
+		if (f) {
+			const ch = f[1][0];
+			if (fence === null) fence = ch;
+			else if (ch === fence) fence = null;
+			continue;
+		}
+		if (fence !== null) continue;
+
+		// Skip table delimiter rows (`| --- | :--: |`) — pure structure, no words.
+		if (/^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(line)) continue;
+
+		const text = stripInlineMarkdown(
+			line
+				.replace(/<[^>]+>/g, ' ') // strip HTML/Svelte tags, keep their text content
+				.replace(/^\s{0,3}#{1,6}\s+/, '') // heading markers
+				.replace(/^\s{0,3}>\s?/, '') // blockquote markers
+				.replace(/^\s*[-*+]\s+/, '') // unordered list bullets
+				.replace(/^\s*\d+\.\s+/, '') // ordered list markers
+				.replace(/\s*\|\s*/g, ' ') // table cell separators → spaces, not "| a | b |"
+		).replace(/\s+/g, ' ');
+
+		if (text) out.push(text);
+	}
+
+	return out.join(' ');
+}
+
+/**
  * Extract `h2`/`h3` headings from a markdown page so the in-page TOC can be
- * server-rendered (no post-hydration pop-in). Skips fenced code blocks; ids
- * match rehype-slug for typical headings, and the runtime engine's DOM re-scan
- * corrects any edge cases after hydration.
+ * server-rendered (no post-hydration pop-in). Skips fenced code blocks. Ids are
+ * produced with the same `github-slugger` that `rehype-slug` uses at render
+ * time — including its duplicate-suffixing — so the SSR anchors match the real
+ * heading ids exactly, not just for common cases.
  */
 function extractToc(source: string): TocEntry[] {
 	const body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
-	const seen = new Map<string, number>();
+	const slugger = new GithubSlugger();
 	const toc: TocEntry[] = [];
 	let fence: string | null = null;
 
@@ -116,10 +157,7 @@ function extractToc(source: string): TocEntry[] {
 		const title = stripInlineMarkdown(m[2]);
 		if (!title) continue;
 
-		const base = slugify(title);
-		const n = seen.get(base) ?? 0;
-		seen.set(base, n + 1);
-		toc.push({ id: n > 0 ? `${base}-${n}` : base, title, depth: m[1].length as 2 | 3 });
+		toc.push({ id: slugger.slug(title), title, depth: m[1].length as 2 | 3 });
 	}
 	return toc;
 }
@@ -130,18 +168,40 @@ function extractToc(source: string): TocEntry[] {
  * deriving each page's URL from its directory relative to `routesDir`. Pure and
  * synchronous so it can be unit-tested.
  */
-export function collectDocs(contentDir: string, routesDir: string): DocsContentItem[] {
-	const items: DocsContentItem[] = [];
+type PageEntry = { source: string; front: Record<string, unknown>; url: string; title: string };
 
+/**
+ * Walk every nav-worthy page under `contentDir` once: a page is nav-worthy when
+ * its frontmatter has a string `title`. Yields the raw source, parsed
+ * frontmatter, derived URL, and title so both the nav index and the search
+ * index can be built from a single read of each file.
+ */
+function* eachTitledPage(contentDir: string, routesDir: string): Generator<PageEntry> {
 	for (const file of listPageFiles(contentDir)) {
 		const source = fs.readFileSync(file, 'utf-8');
-		const front = parseFrontmatter(source);
-		if (typeof front.title !== 'string') continue; // a page without a title isn't nav-worthy
+		const front = parseFrontmatter(source, file);
+		if (typeof front.title !== 'string') continue;
 
 		const dir = path.dirname(file);
 		const url = '/' + path.relative(routesDir, dir).split(path.sep).join('/');
+		yield { source, front, url, title: front.title };
+	}
+}
+
+export function collectDocs(contentDir: string, routesDir: string): DocsContentItem[] {
+	if (!fs.existsSync(contentDir)) {
+		console.warn(
+			`[svelte-docsmith] content directory not found: ${contentDir}\n` +
+				`  The sidebar will be empty. Create your doc pages there, or point docsmith() at the right place with \`content\`.`
+		);
+		return [];
+	}
+
+	const items: DocsContentItem[] = [];
+
+	for (const { source, front, url, title } of eachTitledPage(contentDir, routesDir)) {
 		items.push({
-			title: front.title,
+			title,
 			path: url,
 			description: typeof front.description === 'string' ? front.description : undefined,
 			section: typeof front.section === 'string' ? front.section : undefined,
@@ -150,14 +210,53 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 		});
 	}
 
+	if (items.length === 0) {
+		console.warn(
+			`[svelte-docsmith] no doc pages found under ${contentDir}\n` +
+				`  Add \`+page.md\` files with at least a \`title:\` in their frontmatter to populate the sidebar.`
+		);
+	}
+
 	// Stable output keeps the generated module diff-friendly across rebuilds.
 	return items.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function parseFrontmatter(source: string): Record<string, unknown> {
+/**
+ * Build the search records for every page under `contentDir`: title, section,
+ * description, heading list, and plain-text body. Served as the lazy-loaded
+ * `svelte-docsmith/search` virtual module so search can index bodies without
+ * bloating the eagerly-imported nav index. The missing-directory case is
+ * already reported by {@link collectDocs}, so this stays quiet.
+ */
+export function collectSearchDocs(contentDir: string, routesDir: string): SearchDoc[] {
+	if (!fs.existsSync(contentDir)) return [];
+
+	const docs: SearchDoc[] = [];
+
+	for (const { source, front, url, title } of eachTitledPage(contentDir, routesDir)) {
+		docs.push({
+			path: url,
+			title,
+			section: typeof front.section === 'string' ? front.section : undefined,
+			description: typeof front.description === 'string' ? front.description : undefined,
+			headings: extractToc(source).map((entry) => entry.title),
+			text: extractSearchText(source)
+		});
+	}
+
+	return docs.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function parseFrontmatter(source: string, file: string): Record<string, unknown> {
 	const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source);
 	if (!match) return {};
-	const data = yaml.load(match[1]);
+	let data: unknown;
+	try {
+		data = yaml.load(match[1]);
+	} catch (err) {
+		const reason = err instanceof Error ? err.message : String(err);
+		throw new Error(`[svelte-docsmith] invalid YAML frontmatter in ${file}\n${reason}`);
+	}
 	return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 }
 
@@ -171,27 +270,38 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 
 		resolveId(id) {
 			if (id === CONTENT_SPECIFIER) return VIRTUAL_CONTENT_ID;
+			if (id === SEARCH_SPECIFIER) return VIRTUAL_SEARCH_ID;
 		},
 
 		load(id) {
-			if (id !== VIRTUAL_CONTENT_ID) return;
-			// Watch each page file (not the directory) so editing frontmatter
-			// re-runs this load. A directory here is treated as an unresolvable
-			// import by vite:import-analysis; new/removed pages are handled by
-			// the watcher in configureServer.
-			for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
-			const docs = collectDocs(contentDir, routesDir);
-			return `export const docs = ${JSON.stringify(docs, null, 2)};\n`;
+			// Watch each page file (not the directory) so editing frontmatter or
+			// body re-runs this load. A directory here is treated as an
+			// unresolvable import by vite:import-analysis; new/removed pages are
+			// handled by the watcher in configureServer.
+			if (id === VIRTUAL_CONTENT_ID) {
+				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
+				const docs = collectDocs(contentDir, routesDir);
+				return `export const docs = ${JSON.stringify(docs, null, 2)};\n`;
+			}
+			if (id === VIRTUAL_SEARCH_ID) {
+				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
+				const docs = collectSearchDocs(contentDir, routesDir);
+				return `export const docs = ${JSON.stringify(docs)};\n`;
+			}
 		},
 
 		configureServer(server: ViteDevServer) {
 			server.watcher.add(contentDir);
 			const onChange = (file: string) => {
 				if (!isPageFile(file)) return;
-				const mod = server.moduleGraph.getModuleById(VIRTUAL_CONTENT_ID);
-				if (!mod) return;
-				server.moduleGraph.invalidateModule(mod);
-				server.ws.send({ type: 'full-reload' });
+				let invalidated = false;
+				for (const virtualId of [VIRTUAL_CONTENT_ID, VIRTUAL_SEARCH_ID]) {
+					const mod = server.moduleGraph.getModuleById(virtualId);
+					if (!mod) continue;
+					server.moduleGraph.invalidateModule(mod);
+					invalidated = true;
+				}
+				if (invalidated) server.ws.send({ type: 'full-reload' });
 			};
 			server.watcher.on('add', onChange);
 			server.watcher.on('unlink', onChange);

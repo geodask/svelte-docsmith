@@ -1,10 +1,12 @@
 import type { DocsmithConfig } from 'svelte-docsmith';
 import { version } from 'svelte-docsmith/package.json';
 
-// One config for the whole site — the docs shell, the landing page, and the
+// One config for the whole site: the docs shell, the landing page, and the
 // themes page all pass this, so the header/footer stay identical everywhere.
 export const siteConfig: DocsmithConfig = {
 	title: 'Svelte DocSmith',
+	description:
+		'A documentation framework for Svelte. Interactive examples in one real, stateful app, markdown as routes, and a sidebar that builds itself.',
 	github: 'https://github.com/geodask/svelte-docsmith',
 	version,
 	nav: [
@@ -19,7 +21,7 @@ export const siteConfig: DocsmithConfig = {
 				links: [
 					{ label: 'Introduction', href: '/docs/introduction' },
 					{ label: 'Quick Start', href: '/docs/quick-start' },
-					{ label: 'API Reference', href: '/docs/api-reference' }
+					{ label: 'Configuration', href: '/docs/configuration' }
 				]
 			},
 			{
