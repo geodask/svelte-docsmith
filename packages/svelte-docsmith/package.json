@@ -39,24 +39,24 @@
 			"default": "./dist/index.js"
 		},
 		"./preprocess": {
-			"types": "./dist/preprocess.d.ts",
-			"default": "./dist/preprocess.js"
+			"types": "./dist/buildtime/preprocess.d.ts",
+			"default": "./dist/buildtime/preprocess.js"
 		},
 		"./vite": {
-			"types": "./dist/vite.d.ts",
-			"default": "./dist/vite.js"
+			"types": "./dist/buildtime/vite/index.d.ts",
+			"default": "./dist/buildtime/vite/index.js"
 		},
 		"./content": {
-			"types": "./dist/content.d.ts",
-			"default": "./dist/content.js"
+			"types": "./dist/fallbacks/content.d.ts",
+			"default": "./dist/fallbacks/content.js"
 		},
 		"./search": {
-			"types": "./dist/search.d.ts",
-			"default": "./dist/search.js"
+			"types": "./dist/fallbacks/search.d.ts",
+			"default": "./dist/fallbacks/search.js"
 		},
 		"./llms": {
-			"types": "./dist/llms.d.ts",
-			"default": "./dist/llms.js"
+			"types": "./dist/fallbacks/llms.d.ts",
+			"default": "./dist/fallbacks/llms.js"
 		},
 		"./theme.css": "./dist/theme.css",
 		"./themes/*.css": "./dist/themes/*.css",

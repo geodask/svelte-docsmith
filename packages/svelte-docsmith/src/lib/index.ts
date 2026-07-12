@@ -2,29 +2,29 @@
 // shadcn primitives, the TOC engine, the clipboard helper, the markdown
 // renderer map — is internal and may change between releases.
 
-// Chrome
-export { default as DocsShell } from './ui/layouts/docs-shell.svelte';
-export { default as ErrorPage } from './ui/layouts/error-page.svelte';
-export { default as ThemeProvider } from './ui/theme-provider.svelte';
-export { default as ThemeToggle } from './ui/theme-toggle.svelte';
+// Chrome (site shell and theming)
+export { default as DocsShell } from './components/layouts/docs-shell.svelte';
+export { default as ErrorPage } from './components/layouts/error-page.svelte';
+export { default as ThemeProvider } from './components/chrome/theme-provider.svelte';
+export { default as ThemeToggle } from './components/chrome/theme-toggle.svelte';
 
 // Docs components (authored inside markdown or composed in pages)
-export { default as LiveExample } from './ui/live-example.svelte';
-export { default as Tabs } from './ui/tabs.svelte';
-export { default as TabItem } from './ui/tab-item.svelte';
-export { default as Callout, type CalloutVariant } from './ui/callout.svelte';
-export { default as Steps } from './ui/steps.svelte';
-export { default as Step } from './ui/step.svelte';
-export { default as Card } from './ui/card.svelte';
-export { default as CardGrid } from './ui/card-grid.svelte';
-export { default as Accordion } from './ui/accordion.svelte';
-export { default as AccordionItem } from './ui/accordion-item.svelte';
-export { default as Badge, type BadgeVariant } from './ui/badge.svelte';
-export { default as Kbd } from './ui/kbd.svelte';
-export { default as FileTree } from './ui/file-tree.svelte';
-export { default as FileTreeItem } from './ui/file-tree-item.svelte';
-export { default as PropsTable } from './ui/props-table.svelte';
-export { default as Prop } from './ui/prop.svelte';
+export { default as LiveExample } from './components/docs/live-example.svelte';
+export { default as Tabs } from './components/docs/tabs.svelte';
+export { default as TabItem } from './components/docs/tab-item.svelte';
+export { default as Callout, type CalloutVariant } from './components/docs/callout.svelte';
+export { default as Steps } from './components/docs/steps.svelte';
+export { default as Step } from './components/docs/step.svelte';
+export { default as Card } from './components/docs/card.svelte';
+export { default as CardGrid } from './components/docs/card-grid.svelte';
+export { default as Accordion } from './components/docs/accordion.svelte';
+export { default as AccordionItem } from './components/docs/accordion-item.svelte';
+export { default as Badge, type BadgeVariant } from './components/docs/badge.svelte';
+export { default as Kbd } from './components/docs/kbd.svelte';
+export { default as FileTree } from './components/docs/file-tree.svelte';
+export { default as FileTreeItem } from './components/docs/file-tree-item.svelte';
+export { default as PropsTable } from './components/docs/props-table.svelte';
+export { default as Prop } from './components/docs/prop.svelte';
 
 // Config
 export {
@@ -33,7 +33,7 @@ export {
 	type DocsContentItem,
 	type SearchDoc,
 	type LlmsDoc
-} from './config.js';
+} from './core/index.js';
 
 // Search engine (framework-agnostic; for building a custom search UI over the
 // generated `svelte-docsmith/search` index)
@@ -44,8 +44,8 @@ export {
 } from './search/create-search.js';
 
 // Sitemap (framework-agnostic; wire into a `sitemap.xml/+server.ts`)
-export { generateSitemap, type SitemapEntry } from './sitemap.js';
+export { generateSitemap, type SitemapEntry } from './generate/sitemap.js';
 
 // llms.txt (framework-agnostic; wire into `llms.txt/+server.ts` and
 // `llms-full.txt/+server.ts` over the generated `svelte-docsmith/llms` index)
-export { generateLlmsTxt, generateLlmsFullTxt, type LlmsSite } from './generate-llms.js';
+export { generateLlmsTxt, generateLlmsFullTxt, type LlmsSite } from './generate/llms.js';

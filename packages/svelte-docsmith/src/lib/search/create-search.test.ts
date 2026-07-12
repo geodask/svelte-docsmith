@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createSearchEngine } from './create-search.js';
-import type { SearchDoc } from '../config.js';
+import type { SearchDoc } from '$lib/core/content.js';
 
 const docs: SearchDoc[] = [
 	{

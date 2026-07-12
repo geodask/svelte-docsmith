@@ -6,7 +6,7 @@
  * without a DOM; the `<Search>` component lazy-loads both this and the index.
  */
 import { Document } from 'flexsearch';
-import type { SearchDoc } from '../config.js';
+import type { SearchDoc } from '$lib/core/content.js';
 import { buildSnippet } from './snippet.js';
 
 /** One result row: enough to render a link and a preview. */

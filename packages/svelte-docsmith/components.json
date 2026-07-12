@@ -5,10 +5,10 @@
 		"baseColor": "neutral"
 	},
 	"aliases": {
-		"components": "$lib/ui",
-		"utils": "$lib/shadcn",
-		"ui": "$lib/ui/shadcn",
-		"hooks": "$lib/hooks",
+		"components": "$lib/components",
+		"utils": "$lib/utils/cn",
+		"ui": "$lib/components/shadcn",
+		"hooks": "$lib/components/hooks",
 		"lib": "$lib"
 	},
 	"typescript": true,
