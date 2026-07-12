@@ -3,6 +3,10 @@
 [![NPM version](https://img.shields.io/npm/v/svelte-docsmith.svg?style=flat)](https://www.npmjs.com/package/svelte-docsmith)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/geodask/svelte-docsmith/master/.github/assets/hero.png" alt="Svelte DocSmith: craft documentation worthy of legend" width="100%" />
+</p>
+
 The documentation framework for Svelte 5 library authors whose interactive
 examples need to live inside one real, stateful SvelteKit app, not sandboxed as
 isolated islands.
