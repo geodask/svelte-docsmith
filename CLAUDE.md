@@ -43,7 +43,7 @@ Tests live only in `packages/svelte-docsmith` (vitest). Run a single file or pat
 
 ```bash
 cd packages/svelte-docsmith
-pnpm vitest run src/lib/toc/find-elements.spec.ts
+pnpm vitest run src/lib/toc/from-content.svelte.test.ts
 pnpm vitest run -t "some test name"
 ```
 
@@ -56,12 +56,16 @@ Vitest is configured with two workspace projects (`vite.config.ts`):
 
 ### `packages/svelte-docsmith` (the library)
 
-Plain, flat `src/lib` structure — no feature-sliced layering here. Everything exported from `src/lib/index.ts` is public API.
+`src/lib` is organized by concern, not flat. The public contract is `src/lib/index.ts` plus the package `exports` subpaths; everything else is internal and free to move. Because no external consumer imports internal paths (they only use `svelte-docsmith`, `/vite`, `/preprocess`, `/content`, `/search`, `/llms`), the layout below can change without a consumer-facing break, as long as `index.ts` and the export map stay stable.
 
-- `src/lib/toc/` — table-of-contents engine (DOM scanning, `IntersectionObserver`-based visibility tracking, reactive state via `.svelte.ts` runes files). `toc.svelte.ts` is the main reactive store; `find-elements.ts` and `visibility-observer.svelte.ts` are its collaborators.
-- `src/lib/ui/markdown/` — components used to render MDX/markdown output (headings, code blocks with `pre`/`code` wrappers for Shiki syntax highlighting).
-- `src/lib/ui/layouts/` — page-level layout components (e.g. `doc-page.svelte`) meant to be composed by consuming apps.
-- `src/lib/ui/shadcn/` — vendored shadcn-svelte primitives (button, card, sidebar, sheet, tabs, etc.), added/updated via the shadcn-svelte CLI per `components.json`. Treat these as generated/vendored — prefer editing usage sites over hand-editing primitives unless fixing a real bug.
+- `src/lib/core/` — the domain layer: framework-agnostic contracts and pure logic, no runtime or build deps. `config.ts` (`DocsmithConfig`, `defineConfig`), `content.ts` (the generated-index record types `DocsContentItem`/`SearchDoc`/`LlmsDoc`), `nav.ts` (`navFromContent`), re-exported through `core/index.ts`.
+- `src/lib/buildtime/` — Node-only build tooling. `preprocess.ts` (the `svelte-docsmith/preprocess` mdsvex + Shiki preprocessor), `vite/` (the `svelte-docsmith/vite` plugin, split into `pages.ts`/`frontmatter.ts`/`extract.ts`/`collect.ts`/`git.ts` collaborators behind `vite/index.ts`), `highlight.ts` (shared Shiki config), and `markdown-layout.svelte` (the injected mdsvex default layout). Named `buildtime`, not `build`, because a `build/` dir is gitignored.
+- `src/lib/generate/` — framework-agnostic string generators wired into routes: `sitemap.ts` and `llms.ts` (`generateLlmsTxt`/`generateLlmsFullTxt`).
+- `src/lib/fallbacks/` — the checked-in stand-ins for the generated virtual modules (`content`/`search`/`llms`) that throw a clear error (shared `missing-plugin.ts`) when the Vite plugin is absent. The export map points `svelte-docsmith/content` and friends here.
+- `src/lib/search/` — the client search engine (`create-search.ts`, `context.svelte.ts`, `snippet.ts`).
+- `src/lib/toc/` — table-of-contents engine (DOM scanning + `IntersectionObserver` visibility, reactive state via `.svelte.ts` runes files). `toc.svelte.ts` is the main store; `from-content.ts` builds the server-rendered list.
+- `src/lib/utils/` — small runtime helpers. `cn.ts` is the shadcn `cn()` plus its bits-ui type helpers (the `utils` alias in `components.json` points here); also `normalize-path.ts`, `clipboard.svelte.ts`, `types.ts`.
+- `src/lib/components/` — all Svelte components, split by role. `docs/` (the public authoring components dropped into markdown: `Callout`, `Card`, `Tabs`, `Badge`, `Steps`, `FileTree`, `PropsTable`, and the rest), `chrome/` (shared site-chrome widgets: theme provider/toggle, search UI, background, TOC display), `layouts/` (page composition, including `DocsShell` and `ErrorPage`), `markdown/` (the mdsvex tag-to-component renderer map), `shadcn/` (vendored shadcn-svelte primitives, added/updated via the CLI per `components.json`; treat as generated, prefer editing usage sites), and `icons/`. Public vs internal is decided solely by what `index.ts` re-exports, not by folder.
 - Files ending `.svelte.ts` use Svelte 5 runes and hold reactive state/logic; plain `.ts` files are framework-agnostic helpers.
 - Build: `svelte-kit sync && svelte-package && publint` produces the `dist/` that's published to npm (see `exports` in `package.json`).
 
