@@ -119,8 +119,16 @@
 	},
 	"keywords": [
 		"svelte",
+		"sveltekit",
+		"svelte5",
+		"docs",
+		"documentation",
+		"documentation-generator",
+		"docs-site",
+		"markdown",
+		"mdsvex",
+		"shiki",
 		"ui",
-		"component",
-		"docs"
+		"components"
 	]
 }
