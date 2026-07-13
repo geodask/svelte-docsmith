@@ -34,12 +34,12 @@ Create the file, and the page exists.
 
 The frontmatter block at the top of each page drives the sidebar. Four fields:
 
-| Field         | Required | Purpose                                                       |
-| ------------- | -------- | ------------------------------------------------------------- |
-| `title`       | yes      | The sidebar label and page heading.                           |
-| `description` | no       | One-line summary, shown under the title.                      |
-| `section`     | no       | Sidebar group heading. Entries without one fall under "Docs". |
-| `order`       | no       | Sort key within the group.                                    |
+| Field         | Required | Purpose                                                                    |
+| ------------- | -------- | -------------------------------------------------------------------------- |
+| `title`       | yes      | The sidebar label and page heading.                                        |
+| `description` | no       | One-line summary, shown under the title.                                   |
+| `section`     | no       | Sidebar group, a string or a nested path. Omitted pages fall under "Docs". |
+| `order`       | no       | Sort key within the group.                                                 |
 
 ```md
 ---
@@ -52,6 +52,24 @@ order: 1
 
 `section` names the group and `order` sorts within it; groups themselves are
 ordered by the smallest `order` they contain.
+
+### Nested sections
+
+Give `section` an array to nest a page inside a collapsible subsection. Each
+entry is one level of the group path:
+
+```md
+---
+title: Middleware
+section: [Guides, Advanced]
+order: 2
+---
+```
+
+This puts "Middleware" under a collapsible **Advanced** group inside **Guides**.
+Nesting can go as deep as you like, `order` still sorts each level, and a
+subsection inherits the smallest `order` of its pages. The branch holding the
+current page is expanded on load; the rest start collapsed.
 
 <Callout variant="warning" title="A missing page is almost always frontmatter">
 

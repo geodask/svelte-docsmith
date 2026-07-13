@@ -3,6 +3,8 @@
 	import { afterNavigate } from '$app/navigation';
 	import {
 		navFromContent,
+		flattenNav,
+		navTrail,
 		type DocsContentItem,
 		type DocsmithConfig,
 		type SearchDoc
@@ -128,8 +130,8 @@
 		readingTime && currentEntry?.readingTime ? `${currentEntry.readingTime} min read` : undefined
 	);
 
-	// Ordered flat page list drives the prev/next links.
-	const flatNav = $derived(nav.flatMap((group) => group.items));
+	// Ordered flat page list (leaves in sidebar reading order) drives prev/next.
+	const flatNav = $derived(flattenNav(nav));
 	const pageIndex = $derived(flatNav.findIndex((item) => item.url === pathname));
 	const prev = $derived(pageIndex > 0 ? flatNav[pageIndex - 1] : undefined);
 	const next = $derived(
@@ -137,13 +139,10 @@
 	);
 	const currentTitle = $derived(pageIndex >= 0 ? flatNav[pageIndex].title : config.title);
 
-	// Breadcrumb trail: the current page's sidebar group, then the page itself.
-	const currentGroup = $derived(
-		nav.find((group) => group.items.some((item) => item.url === pathname))
-	);
+	// Breadcrumb trail: the current page's sidebar group path, then the page
+	// itself (so a nested page reads e.g. Guides > Advanced > Middleware).
 	const breadcrumbs = $derived.by(() => {
-		const crumbs: Crumb[] = [];
-		if (currentGroup) crumbs.push({ title: currentGroup.title });
+		const crumbs: Crumb[] = (navTrail(nav, pathname) ?? []).map((title) => ({ title }));
 		if (pageIndex >= 0) crumbs.push({ title: currentTitle });
 		return crumbs;
 	});

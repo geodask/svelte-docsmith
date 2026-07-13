@@ -9,4 +9,12 @@ export {
 	type DocsmithFooterColumn
 } from './config.js';
 export type { DocsContentItem, SearchDoc, LlmsDoc } from './content.js';
-export { navFromContent, type NavItem, type NavGroup } from './nav.js';
+export {
+	navFromContent,
+	flattenNav,
+	navTrail,
+	isNavGroup,
+	type NavItem,
+	type NavGroup,
+	type NavNode
+} from './nav.js';
