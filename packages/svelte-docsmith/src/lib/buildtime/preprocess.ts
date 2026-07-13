@@ -64,6 +64,23 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 		layout,
 		highlight: {
 			highlighter: async (code, lang) => {
+				// A ```mermaid fence renders as a diagram, not highlighted code. The
+				// component is dynamic-imported so `mermaid` (an optional peer dep) is
+				// only pulled into pages that actually use it; JSON.stringify safely
+				// carries the multi-line source into the attribute.
+				if (lang === 'mermaid') {
+					// The pending branch renders server-side, reserving the diagram's
+					// space at first paint so it doesn't shift the page in on load.
+					// The client component reuses the same skeleton class until the
+					// diagram is ready, so the two never disagree on height.
+					return (
+						`{#await import('svelte-docsmith/mermaid')}` +
+						`<div class="docsmith-mermaid-skeleton not-prose" aria-hidden="true"></div>` +
+						`{:then { default: Mermaid }}` +
+						`<Mermaid code={${JSON.stringify(code)}} />` +
+						`{/await}`
+					);
+				}
 				const highlighter = await getHighlighter();
 				const language = lang && highlighter.getLoadedLanguages().includes(lang) ? lang : 'text';
 				// Shiki highlights the raw code; escapeSvelte makes the result safe

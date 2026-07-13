@@ -98,11 +98,37 @@ const docs = loadDocs();
 const current = docs.find((d) => d.active); // [!code highlight]
 ```
 
-Unknown languages fall back to plain text rather than failing the build, so a
-stray ` ```mermaid ` won't break your site.
+Unknown language tags fall back to plain text rather than failing the build, so
+an unfamiliar fence won't break your site.
 
 Line highlighting is just the start. See [Code blocks](/docs/code-blocks) for
 diffs, focus, error and warning lines, and word highlighting.
+
+## Diagrams
+
+Tag a fence `mermaid` and it renders as a diagram instead of code, via
+[Mermaid](https://mermaid.js.org), following the site's light and dark themes:
+
+````md
+```mermaid
+flowchart LR
+  A[".md file"] --> B["mdsvex"] --> C["Svelte route"]
+```
+````
+
+renders as:
+
+```mermaid
+flowchart LR
+  A[".md file"] --> B["mdsvex"] --> C["Svelte route"]
+```
+
+Mermaid runs in the browser, so add it to your project. It's an optional peer
+dependency, pulled in only on pages that use it:
+
+```bash
+npm i -D mermaid
+```
 
 ## Live examples
 
