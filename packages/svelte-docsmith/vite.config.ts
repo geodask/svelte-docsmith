@@ -26,7 +26,8 @@ export default defineConfig({
 				'src/lib/generate/sitemap.ts',
 				'src/lib/generate/llms.ts',
 				'src/lib/toc/from-content.ts',
-				'src/lib/toc/toc.svelte.ts'
+				'src/lib/toc/toc.svelte.ts',
+				'src/lib/components/docs/tabs-sync.svelte.ts'
 			],
 			thresholds: {
 				statements: 92,

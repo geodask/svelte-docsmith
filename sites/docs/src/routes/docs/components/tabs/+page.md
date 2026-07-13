@@ -68,6 +68,63 @@ pnpm add -D svelte-docsmith
 </Tabs>
 ````
 
+## Synced tabs
+
+Give related `Tabs` the same `syncKey` and they share one selection: pick `pnpm`
+in any block and every block with that key switches to `pnpm`, across the page
+and the rest of the site. The choice is remembered across reloads. Use it for
+package managers, runtimes, or any choice a reader makes once and keeps.
+
+Try it. These two blocks share `syncKey="demo-pm"`; changing one moves the other:
+
+<Tabs syncKey="demo-pm">
+<TabItem label="npm">
+
+```bash
+npm i -D svelte-docsmith
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```bash
+pnpm add -D svelte-docsmith
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```bash
+yarn add -D svelte-docsmith
+```
+
+</TabItem>
+</Tabs>
+
+<Tabs syncKey="demo-pm">
+<TabItem label="npm">
+
+```bash
+npx sv add svelte-docsmith
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```bash
+pnpm dlx sv add svelte-docsmith
+```
+
+</TabItem>
+<TabItem label="yarn">
+
+```bash
+yarn dlx sv add svelte-docsmith
+```
+
+</TabItem>
+</Tabs>
+
 ## API reference
 
 ### Tabs
@@ -75,6 +132,10 @@ pnpm add -D svelte-docsmith
 <PropsTable>
 	<Prop name="value" type="string" default="first tab">
 		Label of the tab selected by default.
+	</Prop>
+	<Prop name="syncKey" type="string">
+		Sync group. Blocks with the same key share their selection and remember it
+		across reloads.
 	</Prop>
 </PropsTable>
 
