@@ -45,4 +45,16 @@ describe('docsmith preprocessor', () => {
 		expect(code).not.toContain('<Components.pre>');
 		expect(code).toContain('{@html');
 	});
+
+	it('renders a mermaid fence as a lazily-imported diagram, not code', async () => {
+		const code = await render('```mermaid\nflowchart LR\n  A --> B\n```');
+		expect(code).toContain("import('svelte-docsmith/mermaid')");
+		expect(code).toContain('<Mermaid code={');
+		// A server-rendered skeleton reserves the space while the diagram loads.
+		expect(code).toContain('docsmith-mermaid-skeleton');
+		// Not routed through Shiki / the code <pre>.
+		expect(code).not.toContain('<Components.pre>');
+		// The source is carried as a JSON-encoded string.
+		expect(code).toContain('flowchart LR');
+	});
 });

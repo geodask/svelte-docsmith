@@ -58,6 +58,11 @@
 			"types": "./dist/fallbacks/llms.d.ts",
 			"default": "./dist/fallbacks/llms.js"
 		},
+		"./mermaid": {
+			"types": "./dist/components/docs/mermaid.svelte.d.ts",
+			"svelte": "./dist/components/docs/mermaid.svelte",
+			"default": "./dist/components/docs/mermaid.svelte"
+		},
 		"./theme.css": "./dist/theme.css",
 		"./themes/*.css": "./dist/themes/*.css",
 		"./package.json": "./package.json"
@@ -72,8 +77,14 @@
 	"license": "MIT",
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.16.0",
+		"mermaid": "^10.0.0 || ^11.0.0",
 		"svelte": "^5.0.0",
 		"tailwindcss": "^4.0.0"
+	},
+	"peerDependenciesMeta": {
+		"mermaid": {
+			"optional": true
+		}
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.12.2",
@@ -88,6 +99,7 @@
 		"@types/node": "^22",
 		"@vitest/coverage-v8": "4.1.9",
 		"jsdom": "^26.0.0",
+		"mermaid": "^11.16.0",
 		"publint": "^0.3.2",
 		"shadcn-svelte": "^1.3.0",
 		"svelte": "^5.56.4",
