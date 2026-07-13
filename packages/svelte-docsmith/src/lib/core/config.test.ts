@@ -120,4 +120,43 @@ describe('defineConfig', () => {
 		};
 		expect(defineConfig(config)).toBe(config);
 	});
+
+	it('throws when announcement is not an object', () => {
+		// @ts-expect-error — exercising the runtime guard for untyped callers
+		expect(() => defineConfig({ title: 'Docs', announcement: 'nope' })).toThrow(
+			/config\.announcement must be an object/
+		);
+	});
+
+	it('throws when announcement.text is missing or blank', () => {
+		// @ts-expect-error — exercising the runtime guard for untyped callers
+		expect(() => defineConfig({ title: 'Docs', announcement: { href: '/x' } })).toThrow(
+			/config\.announcement\.text is required/
+		);
+		expect(() => defineConfig({ title: 'Docs', announcement: { text: '  ' } })).toThrow(
+			/config\.announcement\.text is required/
+		);
+	});
+
+	it('throws when announcement.href is a non-string', () => {
+		expect(() =>
+			// @ts-expect-error — exercising the runtime guard for untyped callers
+			defineConfig({ title: 'Docs', announcement: { text: 'Hi', href: 42 } })
+		).toThrow(/config\.announcement\.href must be a string/);
+	});
+
+	it('throws when announcement.dismissible is a non-boolean', () => {
+		expect(() =>
+			// @ts-expect-error — exercising the runtime guard for untyped callers
+			defineConfig({ title: 'Docs', announcement: { text: 'Hi', dismissible: 'no' } })
+		).toThrow(/config\.announcement\.dismissible must be a boolean/);
+	});
+
+	it('accepts a valid announcement', () => {
+		const config = {
+			title: 'Docs',
+			announcement: { text: 'v1 is out', href: '/blog/v1', external: true, id: 'v1' }
+		};
+		expect(defineConfig(config)).toBe(config);
+	});
 });
