@@ -11,6 +11,14 @@ export const siteConfig: DocsmithConfig = {
 	editUrl: 'https://github.com/geodask/svelte-docsmith/edit/master/sites/docs',
 	github: 'https://github.com/geodask/svelte-docsmith',
 	version,
+	// Dogfood: the id tracks the library version, so the bar returns after each
+	// release (readers who dismissed the last one see the new one) and stays out
+	// of the way in between.
+	announcement: {
+		text: 'New: synced tabs and nested sidebar sections.',
+		href: '/docs/components/tabs',
+		id: version
+	},
 	nav: [
 		{ label: 'Docs', href: '/docs/introduction' },
 		{ label: 'Themes', href: '/themes' }
