@@ -80,6 +80,10 @@ const config = defineConfig({
 	</Prop>
 </PropsTable>
 
+This site runs one: the thin bar above the header is `config.announcement`. Its
+`id` tracks the library version, so it returns after each release and stays out
+of the way in between. Dismiss it and it holds until the next version.
+
 ## DocsShell
 
 The full documentation shell: header, sidebar, content area, and table of
