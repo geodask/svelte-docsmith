@@ -15,6 +15,7 @@
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
 	import ThemeProvider from '../chrome/theme-provider.svelte';
+	import AnnouncementBar from '../chrome/announcement-bar.svelte';
 	import DocsHeader from './docs-header.svelte';
 	import DocsFooter from './docs-footer.svelte';
 	import DocsMobileHeader from './docs-mobile-header.svelte';
@@ -186,6 +187,12 @@
 
 	{#if pattern}
 		<BackgroundPattern />
+	{/if}
+
+	<!-- Announcement bar (if configured) sits above the sticky header, so it
+	     scrolls away while the header stays pinned. -->
+	{#if config.announcement}
+		<AnnouncementBar announcement={config.announcement} />
 	{/if}
 
 	<!-- One header system everywhere: DocsHeader on desktop, DocsMobileHeader

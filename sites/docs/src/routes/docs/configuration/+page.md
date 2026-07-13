@@ -69,6 +69,12 @@ const config = defineConfig({
 	<Prop name="nav" type="DocsmithLink[]">
 		Top-level header navigation links.
 	</Prop>
+	<Prop name="announcement" type={'{ text, href?, external?, id?, dismissible? }'}>
+		A thin bar above the header. <code>text</code> is required; add an
+		<code>href</code> to link it. It's dismissible by default and stays dismissed
+		until you change <code>id</code> (or the text), so bump <code>id</code> to
+		re-show a new announcement.
+	</Prop>
 	<Prop name="footer" type={'{ copyright?, columns?, poweredBy? }'}>
 		Footer copyright line, titled link columns, and the “Powered by” toggle.
 	</Prop>

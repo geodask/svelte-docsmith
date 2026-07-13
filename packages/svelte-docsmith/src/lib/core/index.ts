@@ -6,7 +6,8 @@ export {
 	defineConfig,
 	type DocsmithConfig,
 	type DocsmithLink,
-	type DocsmithFooterColumn
+	type DocsmithFooterColumn,
+	type DocsmithAnnouncement
 } from './config.js';
 export type { DocsContentItem, SearchDoc, LlmsDoc } from './content.js';
 export {

@@ -16,6 +16,24 @@ export type DocsmithFooterColumn = {
 	links: DocsmithLink[];
 };
 
+/** A thin announcement bar shown at the top of every page. */
+export type DocsmithAnnouncement = {
+	/** The message text. */
+	text: string;
+	/** Optional link the bar points to. */
+	href?: string;
+	/** Open the link in a new tab with `rel="noopener"`. */
+	external?: boolean;
+	/**
+	 * Dismissal key. A dismissed bar stays dismissed until this value changes, so
+	 * bump it (or edit `text`) when you post a new announcement. Defaults to the
+	 * text itself.
+	 */
+	id?: string;
+	/** Let readers dismiss the bar. Defaults to `true`. */
+	dismissible?: boolean;
+};
+
 export type DocsmithConfig = {
 	/** Site title, shown in the header/sidebar and in the `<title>` suffix. */
 	title: string;
@@ -44,6 +62,8 @@ export type DocsmithConfig = {
 	version?: string;
 	/** Optional logo image src; falls back to the built-in book mark. */
 	logo?: string;
+	/** Optional announcement bar shown at the top of every page. */
+	announcement?: DocsmithAnnouncement;
 	/** Top-level header navigation links. */
 	nav?: DocsmithLink[];
 	/** Footer content, driven by data. */
@@ -85,6 +105,29 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 	] as const) {
 		if (config[key] !== undefined && typeof config[key] !== 'string') {
 			throw new Error(`[svelte-docsmith] config.${key} must be a string when set.`);
+		}
+	}
+	if (config.announcement !== undefined) {
+		const a = config.announcement;
+		if (typeof a !== 'object' || a === null) {
+			throw new Error(
+				'[svelte-docsmith] config.announcement must be an object ({ text, href?, id?, external?, dismissible? }).'
+			);
+		}
+		if (typeof a.text !== 'string' || a.text.trim() === '') {
+			throw new Error(
+				'[svelte-docsmith] config.announcement.text is required and must be a string.'
+			);
+		}
+		for (const key of ['href', 'id'] as const) {
+			if (a[key] !== undefined && typeof a[key] !== 'string') {
+				throw new Error(`[svelte-docsmith] config.announcement.${key} must be a string when set.`);
+			}
+		}
+		for (const key of ['external', 'dismissible'] as const) {
+			if (a[key] !== undefined && typeof a[key] !== 'boolean') {
+				throw new Error(`[svelte-docsmith] config.announcement.${key} must be a boolean when set.`);
+			}
 		}
 	}
 	if (config.nav !== undefined) {
