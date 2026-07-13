@@ -15,7 +15,7 @@ The fastest way to begin is the scaffolder. It creates a ready-to-run SvelteKit
 project already wired with DocSmith: the markdown pipeline, the Vite plugin, the
 style contract, a `DocsShell` layout, a 404 page, and a couple of sample pages.
 
-<Tabs>
+<Tabs syncKey="pkg">
 <TabItem label="pnpm">
 
 ```bash
@@ -63,7 +63,7 @@ already have.
 Svelte DocSmith is a SvelteKit library. Install it with your package manager of
 choice:
 
-<Tabs>
+<Tabs syncKey="pkg">
 <TabItem label="pnpm">
 
 ```bash
