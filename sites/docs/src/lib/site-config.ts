@@ -15,7 +15,8 @@ export const siteConfig: DocsmithConfig = {
 	// release (readers who dismissed the last one see the new one) and stays out
 	// of the way in between.
 	announcement: {
-		text: 'New: synced tabs and nested sidebar sections.',
+		tag: 'New',
+		text: 'Synced tabs and nested sidebar sections.',
 		href: '/docs/components/tabs',
 		id: version
 	},

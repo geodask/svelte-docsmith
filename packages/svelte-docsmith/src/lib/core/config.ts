@@ -20,6 +20,8 @@ export type DocsmithFooterColumn = {
 export type DocsmithAnnouncement = {
 	/** The message text. */
 	text: string;
+	/** Optional leading pill label, e.g. `'New'`, `'Beta'`, or a version. */
+	tag?: string;
 	/** Optional link the bar points to. */
 	href?: string;
 	/** Open the link in a new tab with `rel="noopener"`. */
@@ -119,7 +121,7 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 				'[svelte-docsmith] config.announcement.text is required and must be a string.'
 			);
 		}
-		for (const key of ['href', 'id'] as const) {
+		for (const key of ['tag', 'href', 'id'] as const) {
 			if (a[key] !== undefined && typeof a[key] !== 'string') {
 				throw new Error(`[svelte-docsmith] config.announcement.${key} must be a string when set.`);
 			}

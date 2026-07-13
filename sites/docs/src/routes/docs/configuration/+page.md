@@ -69,8 +69,9 @@ const config = defineConfig({
 	<Prop name="nav" type="DocsmithLink[]">
 		Top-level header navigation links.
 	</Prop>
-	<Prop name="announcement" type={'{ text, href?, external?, id?, dismissible? }'}>
-		A thin bar above the header. <code>text</code> is required; add an
+	<Prop name="announcement" type={'{ text, tag?, href?, external?, id?, dismissible? }'}>
+		A thin bar above the header. <code>text</code> is required; add a
+		<code>tag</code> for a leading pill (e.g. <code>"New"</code>) and an
 		<code>href</code> to link it. It's dismissible by default and stays dismissed
 		until you change <code>id</code> (or the text), so bump <code>id</code> to
 		re-show a new announcement.

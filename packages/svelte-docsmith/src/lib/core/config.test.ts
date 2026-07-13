@@ -152,10 +152,17 @@ describe('defineConfig', () => {
 		).toThrow(/config\.announcement\.dismissible must be a boolean/);
 	});
 
+	it('throws when announcement.tag is a non-string', () => {
+		expect(() =>
+			// @ts-expect-error — exercising the runtime guard for untyped callers
+			defineConfig({ title: 'Docs', announcement: { text: 'Hi', tag: 1 } })
+		).toThrow(/config\.announcement\.tag must be a string/);
+	});
+
 	it('accepts a valid announcement', () => {
 		const config = {
 			title: 'Docs',
-			announcement: { text: 'v1 is out', href: '/blog/v1', external: true, id: 'v1' }
+			announcement: { text: 'v1 is out', tag: 'New', href: '/blog/v1', external: true, id: 'v1' }
 		};
 		expect(defineConfig(config)).toBe(config);
 	});
