@@ -1,8 +1,6 @@
 @import 'tailwindcss';
 /* The whole svelte-docsmith CSS contract: package scan, design tokens,
- * typography/animation plugins, base styles. */
+ * typography/animation plugins, base styles. The baked-in default theme is
+ * Darkmatter, so no preset import is needed here; it matches defaultThemeSlug
+ * in themes-data.ts, so the /themes picker's default agrees with what renders. */
 @import 'svelte-docsmith/theme.css';
-/* Docs default preset — Darkmatter overrides the baked-in Tangerine tokens.
- * Matches defaultThemeSlug in themes-data.ts so the /themes picker's default
- * highlight agrees with what the site actually renders. */
-@import 'svelte-docsmith/themes/darkmatter.css';

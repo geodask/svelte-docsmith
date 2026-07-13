@@ -1,8 +1,10 @@
 /*
- * svelte-docsmith theme — Darkmatter (based on the tweakcn preset).
+ * svelte-docsmith theme — Darkmatter. The built-in default (based on the tweakcn
+ * preset): theme.css already ships these tokens, so you only import this file to
+ * return to Darkmatter after choosing another preset.
  *
- * A near-monochrome shell with a warm orange primary and a muted teal
- * secondary; light mode is crisp white, dark mode is deep near-black.
+ * A near-monochrome shell with a warm orange primary and a muted teal secondary;
+ * light mode is crisp white, dark mode is deep near-black.
  *
  *   @import 'svelte-docsmith/theme.css';
  *   @import 'svelte-docsmith/themes/darkmatter.css';
@@ -63,7 +65,7 @@
 	--border: oklch(0.252 0 0);
 	--input: oklch(0.252 0 0);
 	--ring: oklch(0.7214 0.1337 49.9802);
-	--destructive: oklch(0.594 0.0443 196.0233);
+	--destructive: oklch(0.7106 0.1661 22.2162);
 	--destructive-foreground: oklch(0.1797 0.0043 308.1928);
 	--chart-1: oklch(0.594 0.0443 196.0233);
 	--chart-2: oklch(0.7214 0.1337 49.9802);

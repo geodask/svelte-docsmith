@@ -4,8 +4,8 @@
 	import { siteConfig } from '$lib/site-config';
 	import { themes, defaultThemeSlug } from '$lib/themes-data';
 	import { themeStore } from '$lib/theme-store.svelte';
+	import ThemePicker from '$lib/components/theme-picker.svelte';
 	import ThemeShowcase from '$lib/components/theme-showcase.svelte';
-	import Check from '@lucide/svelte/icons/check';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';
@@ -13,6 +13,16 @@
 	// Picking a theme applies it to the whole site; the components below (and the
 	// chrome around them) re-skin live, so you see the theme in situ.
 	const activeSlug = $derived(themeStore.active ?? defaultThemeSlug);
+	const activeName = $derived(themes.find((t) => t.slug === activeSlug)?.name ?? '');
+	const isDefault = $derived(activeSlug === defaultThemeSlug);
+
+	// The exact import a consumer writes for the current selection. Darkmatter is
+	// the baked-in default, so it needs no preset line.
+	const importSnippet = $derived(
+		isDefault
+			? "@import 'svelte-docsmith/theme.css';"
+			: `@import 'svelte-docsmith/theme.css';\n@import 'svelte-docsmith/themes/${activeSlug}.css';`
+	);
 </script>
 
 <DocsShell
@@ -28,77 +38,63 @@
 		<div class="max-w-2xl">
 			<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Themes</h1>
 			<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
-				Eleven presets ship in the box. Pick one — it applies across the whole site instantly, so
-				the components below (and everything else) show the theme in place. Toggle dark mode to see
-				both sides. In your own project you pick one with a single CSS import.
+				Eleven presets ship in the box. Pick one and it applies across the whole site instantly, so
+				every component and the chrome around it show the theme exactly as it renders in a real
+				project. Toggle dark mode to see both sides.
 			</p>
 		</div>
 
-		<!-- Theme picker: applies site-wide -->
-		<div class="mt-8 flex flex-wrap gap-2">
-			{#each themes as t (t.slug)}
-				<button
-					onclick={() => themeStore.set(t.slug)}
-					class="flex items-center gap-2 rounded-full border py-1.5 pr-3 pl-1.5 text-sm font-medium transition-colors {activeSlug ===
-					t.slug
-						? 'border-primary bg-primary/10 text-foreground'
-						: 'border-border text-muted-foreground hover:text-foreground'}"
-				>
-					<span
-						class="size-4 rounded-full ring-1 ring-black/10"
-						style="background: {t.light.primary}"
-					></span>
-					{t.name}
-					{#if activeSlug === t.slug}<Check class="text-primary size-3.5" />{/if}
-				</button>
-			{/each}
-		</div>
+		<!-- Picker + controls -->
+		<div class="mt-8 flex flex-col gap-4">
+			<ThemePicker {themes} active={activeSlug} onselect={(slug) => themeStore.set(slug)} />
 
-		<!-- Controls -->
-		<div class="mt-5 flex flex-wrap items-center gap-3 text-sm">
-			<button
-				onclick={toggleMode}
-				class="border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors"
-			>
-				{#if mode.current === 'dark'}<Sun class="size-3.5" /> Light{:else}<Moon class="size-3.5" />
-					Dark{/if}
-			</button>
-			{#if themeStore.active}
+			<div class="flex flex-wrap items-center gap-3 text-sm">
 				<button
-					onclick={() => themeStore.reset()}
-					class="border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors"
+					type="button"
+					onclick={toggleMode}
+					aria-label="Toggle dark mode"
+					class="border-border text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors outline-none focus-visible:ring-2"
 				>
-					<RotateCcw class="size-3.5" /> Reset to default
+					{#if mode.current === 'dark'}
+						<Sun class="size-3.5" aria-hidden="true" /> Light
+					{:else}
+						<Moon class="size-3.5" aria-hidden="true" /> Dark
+					{/if}
 				</button>
-			{/if}
-			<span class="text-muted-foreground"
-				>Showing <span class="text-foreground font-medium"
-					>{themes.find((t) => t.slug === activeSlug)?.name}</span
-				></span
-			>
+
+				{#if themeStore.active}
+					<button
+						type="button"
+						onclick={() => themeStore.reset()}
+						class="border-border text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors outline-none focus-visible:ring-2"
+					>
+						<RotateCcw class="size-3.5" aria-hidden="true" /> Reset to default
+					</button>
+				{/if}
+
+				<span class="text-muted-foreground">
+					Showing <span class="text-foreground font-medium">{activeName}</span>
+					{#if isDefault}<span class="text-muted-foreground/80">(default)</span>{/if}
+				</span>
+			</div>
 		</div>
 
 		<!-- Live components in the applied theme -->
-		<div class="mt-6">
+		<div class="mt-8">
 			<ThemeShowcase />
 		</div>
 
 		<!-- How to use -->
-		<div class="border-border mt-14 max-w-2xl border-t pt-10">
-			<h2 class="text-2xl font-semibold tracking-tight">Use a theme in your project</h2>
+		<div class="border-border mt-16 max-w-2xl border-t pt-10">
+			<h2 class="text-2xl font-semibold tracking-tight">Use this theme in your project</h2>
 			<p class="text-muted-foreground mt-3 leading-relaxed">
 				The picker applies themes at runtime for this demo. In your own site you choose one at build
-				time — import its stylesheet after the base contract:
+				time with a single stylesheet import:
 			</p>
 			<pre
-				class="bg-card border-border mt-4 overflow-x-auto rounded-lg border p-4 font-mono text-sm"><span
-					class="text-muted-foreground">@import</span
-				> <span class="text-primary">'svelte-docsmith/theme.css'</span>;
-<span class="text-muted-foreground">@import</span> <span class="text-primary"
-					>'svelte-docsmith/themes/{activeSlug === defaultThemeSlug
-						? 'amethyst'
-						: activeSlug}.css'</span
-				>;</pre>
+				class="bg-card text-foreground border-border mt-4 overflow-x-auto rounded-lg border p-4 font-mono text-sm leading-relaxed"><code
+					>{importSnippet}</code
+				></pre>
 			<p class="text-muted-foreground mt-4 text-sm">
 				See <a
 					href="/docs/theming"

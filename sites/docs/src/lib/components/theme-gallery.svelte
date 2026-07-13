@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { mode } from 'mode-watcher';
-	import Check from '@lucide/svelte/icons/check';
-	import { themes } from '$lib/themes-data';
+	import { themes, defaultThemeSlug } from '$lib/themes-data';
+	import ThemePicker from './theme-picker.svelte';
 
 	// Scoped preview: applying a theme's tokens to this container cascades into
 	// every `bg-primary`/`text-foreground`/… utility inside it, so the preview
 	// re-skins without touching the rest of the page.
-	let selected = $state('tangerine');
+	let selected = $state(defaultThemeSlug);
 	const theme = $derived(themes.find((t) => t.slug === selected) ?? themes[0]);
 	const tokens = $derived(mode.current === 'dark' ? theme.dark : theme.light);
 	const styleVars = $derived(
@@ -18,26 +18,11 @@
 </script>
 
 <div class="not-prose my-6">
-	<div class="mb-4 flex flex-wrap gap-2">
-		{#each themes as t (t.slug)}
-			<button
-				onclick={() => (selected = t.slug)}
-				class="flex items-center gap-2 rounded-full border py-1.5 pr-3 pl-1.5 text-sm font-medium transition-colors {selected ===
-				t.slug
-					? 'border-primary/50 bg-primary/10 text-foreground'
-					: 'border-border text-muted-foreground hover:text-foreground'}"
-			>
-				<span class="size-4 rounded-full ring-1 ring-black/10" style="background: {t.light.primary}"
-				></span>
-				{t.name}
-				{#if selected === t.slug}<Check class="text-primary size-3.5" />{/if}
-			</button>
-		{/each}
-	</div>
+	<ThemePicker {themes} active={selected} onselect={(slug) => (selected = slug)} />
 
-	<div class="border-border overflow-hidden rounded-xl border">
-		<div class="bg-background text-foreground p-6 transition-colors" style={styleVars}>
-			<div class="mb-5 flex gap-2">
+	<div class="border-border mt-4 overflow-hidden rounded-xl border">
+		<div class="bg-background text-foreground p-6 transition-colors duration-200" style={styleVars}>
+			<div class="mb-5 flex flex-wrap gap-3">
 				{#each swatches as name (name)}
 					<div class="flex flex-col items-center gap-1.5">
 						<span class="border-border size-9 rounded-md border" style="background: var(--{name})"
@@ -54,11 +39,13 @@
 				</p>
 				<div class="mt-4 flex flex-wrap items-center gap-2">
 					<button
+						type="button"
 						class="bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm font-medium"
 					>
 						Primary
 					</button>
 					<button
+						type="button"
 						class="bg-secondary text-secondary-foreground rounded-md px-3 py-1.5 text-sm font-medium"
 					>
 						Secondary

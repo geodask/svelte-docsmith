@@ -1,13 +1,10 @@
 /*
- * svelte-docsmith theme — Tangerine (the default).
- *
- * These are the same tokens baked into theme.css, extracted as a named preset
- * so you can re-apply the default explicitly or use it as a starting point:
+ * svelte-docsmith theme — Tangerine. A warm terracotta primary on calm,
+ * faintly-cool neutrals. Import it after theme.css to swap the default Darkmatter
+ * tokens for this palette:
  *
  *   @import 'svelte-docsmith/theme.css';
  *   @import 'svelte-docsmith/themes/tangerine.css';
- *
- * Warm terracotta primary on calm, faintly-cool neutrals.
  */
 
 :root {

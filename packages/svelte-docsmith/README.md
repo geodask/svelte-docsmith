@@ -173,8 +173,8 @@ plugin you already added:
 
 ## Themes
 
-Eleven presets ship in the box. Pick one with a single import after the base
-contract:
+Eleven presets ship in the box. **Darkmatter** is the default, applied by
+`theme.css`; import any other preset after it to switch:
 
 ```css
 @import 'svelte-docsmith/theme.css';
