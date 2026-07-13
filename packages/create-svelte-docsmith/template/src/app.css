@@ -5,7 +5,8 @@
  * typography and animation plugins. */
 @import 'svelte-docsmith/theme.css';
 
-/* Prefer a different look? Import a preset after theme.css and it wins:
- *   @import 'svelte-docsmith/themes/darkmatter.css';
- * Available: darkmatter, tangerine, amethyst, graphite, evergreen, rose, ocean,
- * nord, claude, bubblegum, mono. Or override individual tokens yourself. */
+/* Darkmatter is the default, already applied by theme.css. Prefer a different
+ * look? Import a preset after theme.css and it wins:
+ *   @import 'svelte-docsmith/themes/amethyst.css';
+ * Available: tangerine, amethyst, graphite, evergreen, rose, ocean, nord,
+ * claude, bubblegum, mono. Or override individual tokens yourself. */

@@ -1,6 +1,6 @@
 ---
 title: Theming
-description: Override the design tokens to make the system your own.
+description: The whole look is design tokens behind one stylesheet. Restyle it by redefining tokens, not editing components.
 section: Core Concepts
 order: 8
 ---
@@ -10,48 +10,56 @@ order: 8
 	import { Callout } from 'svelte-docsmith';
 </script>
 
+DocSmith ships its entire look as shadcn-style design tokens behind a single
+stylesheet. You restyle the whole system by redefining tokens, not by touching
+components, so a rebrand is a handful of CSS variables instead of a fork.
+
 ## One import, one contract
 
-The entire look ships as design tokens behind a single stylesheet import:
+The style contract is one import on top of Tailwind:
 
 ```css
 @import 'tailwindcss';
 @import 'svelte-docsmith/theme.css';
 ```
 
-`theme.css` makes Tailwind scan the package, registers the shadcn token set for
-`:root` and `.dark`, and pulls in the typography and animation plugins. Every
-component reads these tokens, so you rebrand the whole system by redefining
-tokens, not by editing components.
+`theme.css` does three things: it makes Tailwind scan the package so the
+components' utility classes are generated, it registers the shadcn token set for
+`:root` and `.dark`, and it pulls in the typography and animation plugins. Every
+component reads those tokens, so the tokens are the only surface you style.
 
-## Pre-installed themes
+On its own, `theme.css` gives you the default theme, **Darkmatter**: a
+near-monochrome shell with a warm orange primary. You import nothing else to get
+it.
 
-The default look is **Darkmatter**. Eleven presets ship in the box. Pick one below
-to preview it, and toggle the site's dark mode to see both:
+## The presets
+
+Eleven presets ship in the box. Pick one below to preview it, and toggle the
+site's dark mode to see both sides:
 
 <ThemeGallery />
 
-To use a preset, import its stylesheet _after_ `theme.css`. It redefines the
-color tokens (and, for some, the corner radius) and nothing else:
+A preset is a stylesheet that redefines the color tokens, and for some the corner
+radius, and nothing else. Import it after `theme.css` and it wins:
 
 ```css
 @import 'tailwindcss';
 @import 'svelte-docsmith/theme.css';
-@import 'svelte-docsmith/themes/darkmatter.css';
+@import 'svelte-docsmith/themes/amethyst.css';
 ```
 
-Bundled presets: **Darkmatter** (default, near-monochrome with a warm orange
-primary), **Tangerine** (warm terracotta), **Amethyst** (violet), **Graphite**
-(near-monochrome, tighter corners), **Evergreen** (deep green), **Rosé** (warm
-rose, rounder corners), **Ocean** (cool teal-blue), **Nord** (arctic slate),
-**Claude** (warm ochre), **Bubblegum** (pink and cyan), and **Mono** (zero-chroma,
-square corners). Each covers light and dark. Want your own brand color instead?
-Skip the preset and override tokens directly.
+Darkmatter is already baked into `theme.css`, so you only import
+`themes/darkmatter.css` to return to it after trying another preset.
 
-## Override a token
+Available: `darkmatter` (default), `tangerine`, `amethyst`, `graphite`,
+`evergreen`, `rose`, `ocean`, `nord`, `claude`, `bubblegum`, and `mono`. Each
+covers light and dark. Want your own brand color instead? Skip the preset and
+override the tokens directly.
 
-Redefine any token _after_ the import and it wins. Tokens are OKLCH; change the
-primary color and every button, link, and accent follows:
+## Overriding tokens
+
+Redefine any token after the import and it wins. Tokens are OKLCH, so change the
+primary and every button, link, and accent follows:
 
 ```css
 @import 'tailwindcss';
@@ -65,15 +73,15 @@ primary color and every button, link, and accent follows:
 
 <Callout variant="warning" title="Order decides the winner">
 
-If an override isn't taking effect, import order is almost always the cause.
-Your redefinition has to come _after_ the `theme.css` import, or the package's
-own value wins. The same rule applies to preset stylesheets.
+If an override is not taking effect, import order is almost always the cause.
+Your redefinition has to come after the `theme.css` import, or the package's own
+value wins. The same rule applies to preset stylesheets.
 
 </Callout>
 
-## The tokens
+## The token set
 
-The set is standard shadcn. The ones you'll reach for most:
+The tokens are standard shadcn. The ones you reach for most:
 
 | Token                                | Controls                              |
 | ------------------------------------ | ------------------------------------- |
@@ -88,13 +96,14 @@ The set is standard shadcn. The ones you'll reach for most:
 
 ## Dark mode
 
-Dark mode is class-based: tokens have a `.dark` variant, and DocSmith styles
+Dark mode is class-based: every token has a `.dark` variant, and DocSmith styles
 respond to a `dark` class on the `<html>` element. The docs site toggles it with
 [`mode-watcher`](https://github.com/svecosystem/mode-watcher). Drop its
 `<ModeWatcher />` in your root layout and the theme toggle and system preference
 work out of the box.
 
-Override tokens for both themes by redefining them under each selector:
+An override only covers the theme whose selector you write it under, so set a
+token for both modes to change both:
 
 ```css
 :root {

@@ -8,8 +8,8 @@ import * as p from '@clack/prompts';
 const templateDir = fileURLToPath(new URL('./template', import.meta.url));
 
 const PRESETS = [
-	{ value: 'default', label: 'Default (Tangerine)' },
-	{ value: 'darkmatter', label: 'Darkmatter' },
+	{ value: 'default', label: 'Default (Darkmatter)' },
+	{ value: 'tangerine', label: 'Tangerine' },
 	{ value: 'amethyst', label: 'Amethyst' },
 	{ value: 'graphite', label: 'Graphite' },
 	{ value: 'evergreen', label: 'Evergreen' },
