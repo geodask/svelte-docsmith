@@ -15,6 +15,34 @@ type PageEntry = {
 };
 
 /**
+ * Read a page's `section` frontmatter: a string is one level, an array is a
+ * nested group path. Non-string array members are dropped; anything else is
+ * treated as no section.
+ */
+function readSection(value: unknown): string | string[] | undefined {
+	if (typeof value === 'string') return value;
+	if (Array.isArray(value)) {
+		const segs = value.filter((s): s is string => typeof s === 'string');
+		return segs.length ? segs : undefined;
+	}
+	return undefined;
+}
+
+/** The most-specific (last) group segment, for the compact search-result pill. */
+function sectionLabel(value: unknown): string | undefined {
+	const section = readSection(value);
+	if (section === undefined) return undefined;
+	return Array.isArray(section) ? section[section.length - 1] : section;
+}
+
+/** The full group path joined, so nested pages group under one llms.txt heading. */
+function sectionKey(value: unknown): string | undefined {
+	const section = readSection(value);
+	if (section === undefined) return undefined;
+	return Array.isArray(section) ? section.join(' / ') : section;
+}
+
+/**
  * Walk every nav-worthy page under `contentDir` once: a page is nav-worthy when
  * its frontmatter has a string `title`. Yields the raw source, parsed
  * frontmatter, derived URL, and title so every index (nav, search, llms) can be
@@ -54,7 +82,7 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 			title,
 			path: url,
 			description: typeof front.description === 'string' ? front.description : undefined,
-			section: typeof front.section === 'string' ? front.section : undefined,
+			section: readSection(front.section),
 			order: typeof front.order === 'number' ? front.order : undefined,
 			sourcePath: path.relative(process.cwd(), file).split(path.sep).join('/'),
 			lastUpdated: lastCommitDate(file),
@@ -90,7 +118,7 @@ export function collectSearchDocs(contentDir: string, routesDir: string): Search
 		docs.push({
 			path: url,
 			title,
-			section: typeof front.section === 'string' ? front.section : undefined,
+			section: sectionLabel(front.section),
 			description: typeof front.description === 'string' ? front.description : undefined,
 			headings: extractToc(source).map((entry) => entry.title),
 			text: extractSearchText(source)
@@ -115,7 +143,7 @@ export function collectLlmsDocs(contentDir: string, routesDir: string): LlmsDoc[
 		docs.push({
 			path: url,
 			title,
-			section: typeof front.section === 'string' ? front.section : undefined,
+			section: sectionKey(front.section),
 			order: typeof front.order === 'number' ? front.order : undefined,
 			description: typeof front.description === 'string' ? front.description : undefined,
 			content: extractLlmsContent(source, title)

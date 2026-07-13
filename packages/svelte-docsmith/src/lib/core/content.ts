@@ -14,7 +14,12 @@
 export type DocsContentItem = {
 	title: string;
 	path: string;
-	section?: string;
+	/**
+	 * Sidebar group. A string places the page in a single top-level group; an
+	 * array names a nested group path (e.g. `['Guides', 'Advanced']`), building
+	 * collapsible subsections. Omitted pages fall under "Docs".
+	 */
+	section?: string | string[];
 	order?: number;
 	description?: string;
 	/** Source file path relative to the app cwd, for the "Edit this page" link. */
