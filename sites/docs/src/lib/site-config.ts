@@ -22,7 +22,8 @@ export const siteConfig: DocsmithConfig = {
 	},
 	nav: [
 		{ label: 'Docs', href: '/docs/introduction' },
-		{ label: 'Themes', href: '/themes' }
+		{ label: 'Themes', href: '/themes' },
+		{ label: 'Changelog', href: '/changelog' }
 	],
 	footer: {
 		copyright: '© 2026 George Daskalakis. All rights reserved.',

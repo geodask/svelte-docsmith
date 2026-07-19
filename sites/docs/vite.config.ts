@@ -4,5 +4,9 @@ import { defineConfig } from 'vite';
 import { docsmith } from 'svelte-docsmith/vite';
 
 export default defineConfig({
-	plugins: [docsmith(), tailwindcss(), sveltekit()]
+	plugins: [
+		docsmith({ changelog: '../../packages/svelte-docsmith/CHANGELOG.md' }),
+		tailwindcss(),
+		sveltekit()
+	]
 });
