@@ -286,7 +286,7 @@
 		/* Shrink to the type's own width so a short signature isn't a wide slab;
 		   the script measures this before choosing a position. */
 		width: max-content;
-		max-width: min(36rem, 80vw);
+		max-width: min(32rem, 78vw);
 		padding: 0.5rem 0.7rem;
 		border: 1px solid var(--border);
 		border-radius: var(--radius, 0.5rem);
@@ -301,14 +301,43 @@
 	:global(pre .twoslash-hover:hover .twoslash-popup-container) {
 		display: block;
 	}
+	/* The signature keeps Shiki's own colours and monospace. */
 	:global(pre .twoslash-popup-code) {
+		display: block;
 		font-family: var(--font-mono, ui-monospace, monospace);
+		white-space: pre-wrap;
 	}
+
+	/* Prose, by contrast, is prose. Inside a <pre> it would otherwise inherit
+	   monospace and whatever token colour the hovered span happened to carry,
+	   which reads as more code rather than an explanation of it. */
 	:global(pre .twoslash-popup-docs) {
-		margin-top: 0.4rem;
-		padding-top: 0.4rem;
+		margin-top: 0.5rem;
+		padding-top: 0.5rem;
 		border-top: 1px solid var(--border);
+		font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+		font-size: 0.92em;
+		line-height: 1.55;
 		color: var(--muted-foreground);
+		white-space: normal;
+	}
+
+	/* Each @param is its own line: the tags are inline spans, so without this
+	   they run together into one paragraph. */
+	:global(pre .twoslash-popup-docs-tags) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+	:global(pre .twoslash-popup-docs-tag) {
+		display: block;
+	}
+	/* And the tag name needs a gap, or it reads as "@paramcallbackfn". */
+	:global(pre .twoslash-popup-docs-tag-name) {
+		margin-right: 0.4em;
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 0.92em;
+		color: var(--primary);
 	}
 	/* A snippet that deliberately shows an error (// @errors:) marks the line. */
 	:global(pre .twoslash-error) {
