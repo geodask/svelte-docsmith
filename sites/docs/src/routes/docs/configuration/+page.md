@@ -100,7 +100,9 @@ thing.
 		File extensions compiled as markdown.
 	</Prop>
 	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
-		Shiki themes for the dual light/dark render.
+		Shiki themes for the dual light/dark render of markdown code fences. The
+		Vite plugin has its own <code>themes</code> for live example source; set
+		both to the same pair or the two will not match.
 	</Prop>
 	<Prop name="langs" type="string[]">
 		Extra Shiki languages on top of the built-in set. An unknown fence language
@@ -117,7 +119,7 @@ thing.
 	</Prop>
 	<Prop name="twoslash" type="boolean" default="false">
 		Enable Twoslash on fences marked <code>twoslash</code>. Needs the optional
-		peer dependencies; see [Code blocks](/docs/code-blocks).
+		peer dependencies; see <a href="/docs/code-blocks">Code blocks</a>.
 	</Prop>
 	<Prop name="remarkPlugins" type="PluggableList">
 		Extra remark plugins, appended after DocSmith's own.
@@ -141,7 +143,11 @@ your pages into the generated indexes and serves the `?source` imports that
 		Routes root, used to derive each page's URL from its location.
 	</Prop>
 	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
-		Shiki themes for the <code>?source</code> render.
+		Shiki themes for the <code>?source</code> render behind
+		<a href="/docs/live-examples">Live Examples</a>. Separate from the
+		preprocessor's <code>themes</code>, because the two run from different
+		config files; set them to the same pair or your example source will not
+		match your code blocks.
 	</Prop>
 	<Prop name="changelog" type="string | false" default="'CHANGELOG.md'">
 		Path to the changelog that feeds the release index. Point it at the package
