@@ -78,7 +78,12 @@
 	];
 </script>
 
-<DocsShell config={siteConfig} layout="page" pattern>
+<DocsShell
+	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
+	config={siteConfig}
+	layout="page"
+	pattern
+>
 	<!-- ─────────────────────────── Hero ─────────────────────────── -->
 	<section
 		class="mx-auto grid max-w-7xl items-center gap-12 px-4 pt-16 pb-20 md:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:px-8 lg:pt-24 lg:pb-28"

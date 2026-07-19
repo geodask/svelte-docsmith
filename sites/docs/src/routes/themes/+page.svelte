@@ -26,6 +26,7 @@
 </script>
 
 <DocsShell
+	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 	config={siteConfig}
 	layout="page"
 	pattern
