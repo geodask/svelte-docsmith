@@ -82,10 +82,13 @@ describe('docsmith preprocessor', () => {
 		expect(code).toContain('<Components.pre>');
 	});
 
+	// The tests below compile their snippet with TypeScript, which takes well
+	// over vitest's 5s default the first time on a cold machine. The work is the
+	// point of the feature, so give it room rather than trimming the assertion.
 	it('annotates a twoslash fence with hover types when enabled', async () => {
 		const code = await render('```ts twoslash\nconst greeting = "hi";\n```', { twoslash: true });
 		expect(code).toContain('twoslash-hover');
-	});
+	}, 60_000);
 
 	it('falls back to a plain block instead of failing the build on a bad snippet', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -96,13 +99,13 @@ describe('docsmith preprocessor', () => {
 		expect(code).not.toContain('twoslash-hover');
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('twoslash could not annotate'));
 		warn.mockRestore();
-	});
+	}, 60_000);
 
 	it('does not run twoslash on a fence that did not ask for it', async () => {
 		const code = await render('```ts\nconst n: number = "not a number";\n```', { twoslash: true });
 		expect(code).toContain('<Components.pre>');
 		expect(code).not.toContain('twoslash-hover');
-	});
+	}, 60_000);
 
 	it('highlights lines given as a range in the fence meta', async () => {
 		const code = await render('```ts {2-3}\nconst a = 1;\nconst b = 2;\nconst c = 3;\n```');
