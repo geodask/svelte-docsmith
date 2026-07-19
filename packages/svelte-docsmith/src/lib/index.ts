@@ -26,6 +26,13 @@ export { default as FileTreeItem } from './components/docs/file-tree-item.svelte
 export { default as PropsTable } from './components/docs/props-table.svelte';
 export { default as Prop } from './components/docs/prop.svelte';
 
+// Landing page sections (for the marketing page in front of your docs)
+export { default as Hero } from './components/landing/hero.svelte';
+export { default as FeatureGrid } from './components/landing/feature-grid.svelte';
+export { default as Feature } from './components/landing/feature.svelte';
+export { default as CTA } from './components/landing/cta.svelte';
+export { default as Action } from './components/landing/action.svelte';
+
 // Config
 export {
 	defineConfig,
