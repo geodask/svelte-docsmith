@@ -6,9 +6,12 @@
 	import SearchTrigger from '../chrome/search-trigger.svelte';
 	import { useSearch } from '$lib/search/context.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
-	import type { DocsmithConfig } from '$lib/core/index.js';
+	import type { DocsmithConfig, DocsmithLink } from '$lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import type { Snippet } from 'svelte';
+	import { page } from '$app/state';
+	import { cn } from '$lib/utils/cn.js';
+	import { normalizePath } from '$lib/utils/normalize-path.js';
 
 	const {
 		config,
@@ -24,6 +27,23 @@
 
 	// Present only when the consumer passed a `search` loader to DocsShell.
 	const search = useSearch();
+
+	const current = $derived(normalizePath(page.url.pathname));
+
+	/**
+	 * A header link is usually the entry point to a whole section rather than a
+	 * page you sit on: "Docs" points at `/docs/introduction`, and should stay lit
+	 * while the reader moves through `/docs/*`. So match the link's first segment,
+	 * not the exact path. The root is exempt, since every path starts with `/`.
+	 */
+	function isActive(link: DocsmithLink): boolean {
+		if (link.external) return false;
+		const href = normalizePath(link.href);
+		if (href === current) return true;
+		if (href === '/') return false;
+		const section = '/' + href.split('/').filter(Boolean)[0];
+		return current === section || current.startsWith(section + '/');
+	}
 
 	let isScrolled = $state(false);
 </script>
@@ -59,7 +79,11 @@
 							href={link.href}
 							target={link.external ? '_blank' : undefined}
 							rel={link.external ? 'noopener noreferrer' : undefined}
-							class="text-muted-foreground hover:text-foreground rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+							aria-current={isActive(link) ? 'page' : undefined}
+							class={cn(
+								'hover:text-foreground rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+								isActive(link) ? 'text-foreground bg-muted/60' : 'text-muted-foreground'
+							)}
 						>
 							{link.label}
 						</a>

@@ -138,6 +138,38 @@ plain `text` block.)
 
 </Callout>
 
+## Highlight lines by number
+
+Comment markers can't reach every line. Inside a Svelte template region an HTML
+comment is stripped without highlighting anything, so mark those lines from the
+fence itself instead. A single line, a list, or a range all work.
+
+````md
+```svelte {4}
+<DocsShell
+	config={siteConfig}
+	content={docs}
+	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
+>
+	{@render children()}
+</DocsShell>
+```
+````
+
+renders as:
+
+```svelte {4}
+<DocsShell
+	config={siteConfig}
+	content={docs}
+	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
+>
+	{@render children()}
+</DocsShell>
+```
+
+Ranges and lists use the same syntax: `{2-4}`, `{1,5}`, or both together.
+
 ## Filenames and line numbers
 
 Add `title=` to label a block with the file it belongs to, and `showLineNumbers`
