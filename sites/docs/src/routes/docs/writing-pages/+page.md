@@ -130,6 +130,22 @@ dependency, pulled in only on pages that use it:
 npm i -D mermaid
 ```
 
+A diagram is only as readable as its labels for anyone using a screen reader.
+Give one an accessible name and description with Mermaid's `accTitle` and
+`accDescr` directives, and both land in the rendered SVG:
+
+````md
+```mermaid
+flowchart LR
+  accTitle: Markdown build pipeline
+  accDescr: A .md file is processed by mdsvex, which produces a Svelte route.
+  A[".md file"] --> B["mdsvex"] --> C["Svelte route"]
+```
+````
+
+If a diagram fails to parse, or `mermaid` isn't installed, the source is shown
+as a plain code block instead so the page never loses the content.
+
 ## Live examples
 
 To show a real, running component next to its source, put the component in
