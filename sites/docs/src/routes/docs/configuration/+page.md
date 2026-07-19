@@ -161,7 +161,7 @@ yourself. Use `ThemeProvider` directly to wrap a page you build outside
 A styled 404 / error screen that keeps the site chrome (header, search, footer,
 theme). Drop it into a SvelteKit `+error.svelte`:
 
-```svelte
+```svelte title="src/routes/+error.svelte"
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
 	import { ErrorPage } from 'svelte-docsmith';

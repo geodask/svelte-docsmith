@@ -107,7 +107,7 @@ dependencies, the same stack this documentation site runs on. A fresh
 Components are styled with Tailwind and shadcn design tokens. The whole contract
 is one import in your app's stylesheet:
 
-```css
+```css title="src/app.css"
 @import 'tailwindcss';
 @import 'svelte-docsmith/theme.css';
 ```
