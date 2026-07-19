@@ -77,7 +77,7 @@ frontmatter, so pass the `seo` prop to set or override the head:
 `generateSitemap` builds a `sitemap.xml` from your content index. Add a
 `src/routes/sitemap.xml/+server.ts`:
 
-```ts
+```ts title="src/routes/sitemap.xml/+server.ts"
 import { docs } from 'svelte-docsmith/content';
 import { generateSitemap } from 'svelte-docsmith';
 import { siteConfig } from '$lib/site-config';
@@ -113,7 +113,7 @@ standard defines: `llms.txt` (a curated index of links) and `llms-full.txt`
 
 Add `src/routes/llms.txt/+server.ts`:
 
-```ts
+```ts title="src/routes/llms.txt/+server.ts"
 import { docs } from 'svelte-docsmith/llms';
 import { generateLlmsTxt } from 'svelte-docsmith';
 import { siteConfig } from '$lib/site-config';
@@ -131,7 +131,7 @@ export function GET() {
 
 And `src/routes/llms-full.txt/+server.ts`, identical but for `generateLlmsFullTxt`:
 
-```ts
+```ts title="src/routes/llms-full.txt/+server.ts"
 import { docs } from 'svelte-docsmith/llms';
 import { generateLlmsFullTxt } from 'svelte-docsmith';
 import { siteConfig } from '$lib/site-config';
@@ -174,7 +174,7 @@ The split button copies the page as Markdown, and its dropdown links to the raw
 available at `<path>.md`, so add one catch-all endpoint,
 `src/routes/[...slug].md/+server.ts`:
 
-```ts
+```ts title="src/routes/[...slug].md/+server.ts"
 import { docs } from 'svelte-docsmith/llms';
 import { error } from '@sveltejs/kit';
 import type { EntryGenerator, RequestHandler } from './$types';

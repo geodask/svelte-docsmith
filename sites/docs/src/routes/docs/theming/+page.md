@@ -18,7 +18,7 @@ components, so a rebrand is a handful of CSS variables instead of a fork.
 
 The style contract is one import on top of Tailwind:
 
-```css
+```css title="src/app.css"
 @import 'tailwindcss';
 @import 'svelte-docsmith/theme.css';
 ```
@@ -42,7 +42,7 @@ site's dark mode to see both sides:
 A preset is a stylesheet that redefines the color tokens, and for some the corner
 radius, and nothing else. Import it after `theme.css` and it wins:
 
-```css
+```css title="src/app.css"
 @import 'tailwindcss';
 @import 'svelte-docsmith/theme.css';
 @import 'svelte-docsmith/themes/amethyst.css';
@@ -61,7 +61,7 @@ override the tokens directly.
 Redefine any token after the import and it wins. Tokens are OKLCH, so change the
 primary and every button, link, and accent follows:
 
-```css
+```css title="src/app.css"
 @import 'tailwindcss';
 @import 'svelte-docsmith/theme.css';
 

@@ -19,7 +19,7 @@ Pass a `search` loader to `DocsShell`. It hands back the generated index, which
 DocSmith lazily fetches the first time the palette opens, so it never weighs down
 your initial load:
 
-```svelte
+```svelte title="src/routes/docs/+layout.svelte"
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
 	import { DocsShell } from 'svelte-docsmith';

@@ -27,7 +27,7 @@ In `svelte.config.js`, add `.md` to your extensions and call `docsmith()`. It
 bundles mdsvex, Shiki highlighting with a generous language set, heading
 anchors, and the DocSmith page layout:
 
-```js
+```js title="svelte.config.js"
 import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { docsmith } from 'svelte-docsmith/preprocess';
@@ -45,7 +45,7 @@ export default {
 In `vite.config.ts`, add `docsmith()`. It scans your pages' frontmatter into the
 `svelte-docsmith/content` module and powers live examples:
 
-```ts
+```ts title="vite.config.ts"
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { docsmith } from 'svelte-docsmith/vite';
@@ -62,7 +62,7 @@ export default defineConfig({
 In `src/routes/docs/+layout.svelte`, render `DocsShell`. It builds the sidebar
 from the generated content index, so there is no nav array to maintain:
 
-```svelte
+```svelte title="src/routes/docs/+layout.svelte"
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
 	import { DocsShell, type DocsmithConfig } from 'svelte-docsmith';
@@ -85,7 +85,7 @@ from the generated content index, so there is no nav array to maintain:
 Create `src/routes/docs/getting-started/+page.md`. The frontmatter drives the
 sidebar; everything below it is your content:
 
-````md
+````md title="src/routes/docs/getting-started/+page.md"
 ---
 title: Getting Started
 description: Your first steps.
