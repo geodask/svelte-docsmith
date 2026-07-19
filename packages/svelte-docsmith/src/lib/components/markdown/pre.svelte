@@ -20,9 +20,65 @@
 		startLine?: number;
 		children: Snippet;
 	} = $props();
+
+	/**
+	 * Twoslash popups are absolutely positioned inside the code block, which is a
+	 * scroll container, so anything reaching past its edges is clipped: a hover
+	 * near the last line shows a sliver of the type and nothing else. CSS can't
+	 * fix this, because a horizontally scrolling element must also clip
+	 * vertically. So on hover the popup is promoted to fixed positioning, whose
+	 * containing block is the viewport rather than the scroller.
+	 *
+	 * Without JavaScript the popup still opens on hover, clipped as before, so
+	 * this only ever improves on the CSS-only behaviour.
+	 */
+	function unclipPopups(node: HTMLElement) {
+		const GAP = 6;
+
+		const place = (event: Event) => {
+			const target = event.target as HTMLElement | null;
+			const trigger = target?.closest?.('.twoslash-hover') as HTMLElement | null;
+			if (!trigger) return;
+			const popup = trigger.querySelector('.twoslash-popup-container') as HTMLElement | null;
+			if (!popup) return;
+
+			// Measure while visible but before committing a position, so the popup's
+			// own width decides whether it flips to stay on screen.
+			popup.style.position = 'fixed';
+			popup.style.left = '0px';
+			popup.style.top = '0px';
+			const rect = trigger.getBoundingClientRect();
+			const { width, height } = popup.getBoundingClientRect();
+
+			const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+			// Below the token unless that would run off the bottom, then above it.
+			const below = rect.bottom + GAP;
+			const top = below + height > window.innerHeight - 8 ? rect.top - height - GAP : below;
+
+			popup.style.left = `${left}px`;
+			popup.style.top = `${Math.max(8, top)}px`;
+		};
+
+		const reset = (event: Event) => {
+			const trigger = (event.target as HTMLElement | null)?.closest?.(
+				'.twoslash-hover'
+			) as HTMLElement | null;
+			const popup = trigger?.querySelector('.twoslash-popup-container') as HTMLElement | null;
+			if (popup) popup.removeAttribute('style');
+		};
+
+		node.addEventListener('mouseover', place);
+		node.addEventListener('mouseout', reset);
+		return {
+			destroy() {
+				node.removeEventListener('mouseover', place);
+				node.removeEventListener('mouseout', reset);
+			}
+		};
+	}
 </script>
 
-<div class="rounded-md overflow-hidden bg-muted mt-2 shadow-md text-sm relative">
+<div class="rounded-md overflow-hidden bg-muted mt-2 shadow-md text-sm relative" use:unclipPopups>
 	{#if title}
 		<!-- The filename bar doubles as the copy button's row, so the button stops
 		     floating over the first line of code when a title is present. -->
@@ -214,18 +270,22 @@
 	/* --- Twoslash hovers ---
 	   Restyled from @shikijs/twoslash's rich theme onto our tokens so the popup
 	   belongs to the site in both colour schemes. Underline marks a token as
-	   inspectable; the popup itself is a plain hidden sibling revealed on hover,
-	   so it needs no JavaScript. */
+	   inspectable; the popup is a hidden sibling revealed on hover. `unclipPopups`
+	   then promotes it to fixed positioning so the code block's scrolling does not
+	   clip it — see the comment there. */
 	:global(pre .twoslash-hover) {
 		position: relative;
 		border-bottom: 1px dotted color-mix(in oklch, var(--muted-foreground) 55%, transparent);
 	}
 	:global(pre .twoslash-popup-container) {
 		position: absolute;
-		z-index: 20;
+		z-index: 40;
 		display: none;
 		left: 0;
 		top: 1.6em;
+		/* Shrink to the type's own width so a short signature isn't a wide slab;
+		   the script measures this before choosing a position. */
+		width: max-content;
 		max-width: min(36rem, 80vw);
 		padding: 0.5rem 0.7rem;
 		border: 1px solid var(--border);
