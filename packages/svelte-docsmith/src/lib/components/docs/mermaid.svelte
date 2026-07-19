@@ -1,3 +1,25 @@
+<script module lang="ts">
+	type Mermaid = (typeof import('mermaid'))['default'];
+
+	// One shared import; the bundler dedupes the chunk, this dedupes the promise.
+	let loaded: Promise<Mermaid> | undefined;
+	const loadMermaid = () => (loaded ??= import('mermaid').then((m) => m.default));
+
+	// `mermaid.initialize()` writes global config and `render()` is async, so two
+	// diagrams rendering concurrently can apply each other's theme — most visibly
+	// when one falls back to a built-in theme and reconfigures for everyone. Every
+	// initialize/render pair runs through this queue so they never interleave.
+	let chain: Promise<unknown> = Promise.resolve();
+
+	function serialize<T>(job: () => Promise<T>): Promise<T> {
+		const result = chain.then(job, job);
+		// Swallow rejections on the chain itself so one bad diagram doesn't stall
+		// the queue for the rest of the page.
+		chain = result.catch(() => {});
+		return result;
+	}
+</script>
+
 <script lang="ts">
 	import { onMount } from 'svelte';
 
@@ -7,13 +29,20 @@
 	// client-side — mermaid needs a DOM — with a `<pre>` source fallback.
 	const { code }: { code: string } = $props();
 
+	// Graph ids must be unique among elements currently in the document: mermaid
+	// clears whatever already carries the id it's given, so a shared id silently
+	// wipes another diagram that's already on the page. `$props.id()` is unique per
+	// instance and stays unique even if two copies of this module end up loaded.
+	const uid = $props.id();
+	// Bumped per render, because the theme toggle re-renders while this instance's
+	// previous SVG is still mounted — reusing the id would delete it mid-swap.
+	let renders = 0;
+
 	let svg = $state('');
 	let failed = $state(false);
 	// Whether the last render targeted dark mode, so we only re-render when the
 	// site theme actually flips (not on every unrelated <html> class change).
 	let lastDark: boolean | undefined;
-	// Fresh id per render — mermaid rejects a re-used graph id.
-	let seq = 0;
 
 	// Reused canvas for normalizing color tokens (see resolveColor); `false` once
 	// we've determined this browser's canvas can't parse oklch.
@@ -73,9 +102,9 @@
 	}
 
 	async function render() {
-		let mermaid;
+		let mermaid: Mermaid;
 		try {
-			mermaid = (await import('mermaid')).default;
+			mermaid = await loadMermaid();
 		} catch {
 			// `mermaid` isn't installed — fall back to the source.
 			failed = true;
@@ -94,13 +123,17 @@
 		for (const attempt of attempts) {
 			if (!attempt) continue;
 			try {
-				mermaid.initialize({
-					startOnLoad: false,
-					securityLevel: 'strict',
-					fontFamily: 'inherit',
-					...attempt
+				// Configure and render as one unit so a concurrent diagram can't
+				// re-initialize mermaid between the two calls.
+				const result = await serialize(() => {
+					mermaid.initialize({
+						startOnLoad: false,
+						securityLevel: 'strict',
+						fontFamily: 'inherit',
+						...attempt
+					});
+					return mermaid.render(`${uid}-${(renders += 1)}`, code);
 				});
-				const result = await mermaid.render(`docsmith-mermaid-${(seq += 1)}`, code);
 				svg = result.svg;
 				failed = false;
 				return;
