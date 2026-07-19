@@ -44,30 +44,35 @@
 	// site theme actually flips (not on every unrelated <html> class change).
 	let lastDark: boolean | undefined;
 
-	// Reused canvas for normalizing color tokens (see resolveColor); `false` once
-	// we've determined this browser's canvas can't parse oklch.
-	let colorCanvas: CanvasRenderingContext2D | null | undefined | false;
+	// Reused canvas for normalizing color tokens (see resolveColor); `null` once
+	// we've determined this browser gives us no 2d context to work with.
+	let colorCanvas: CanvasRenderingContext2D | null | undefined;
+
+	// Assigning an unparseable colour to `fillStyle` is silently ignored rather
+	// than throwing, so we set this first and check whether it survived. Any
+	// colour works as long as it's an unlikely design token, since an unchanged
+	// `fillStyle` is what tells us the assignment was rejected.
+	const SENTINEL = '#010203';
 
 	// Resolve a CSS color to a concrete `#rrggbb` string mermaid's color math
 	// (khroma) can parse. Our design tokens are `oklch(...)`, which khroma can't
-	// read, so we normalize through a canvas — but only after confirming the
-	// canvas actually understands oklch (older engines silently ignore it and
-	// leave the sentinel behind). Returns null when it can't be resolved safely.
+	// read. Reading `fillStyle` back is not enough to convert them: a browser
+	// serializes a wide-gamut colour unchanged, so Chrome hands back the same
+	// `oklch(...)` string it was given. Painting a pixel and reading its bytes
+	// forces the conversion to sRGB. Returns null when the value can't be
+	// resolved, which also covers an engine that doesn't understand oklch at all.
 	function resolveColor(value: string): string | null {
-		if (colorCanvas === undefined) {
-			const ctx = document.createElement('canvas').getContext('2d');
-			// Probe: a mid-grey oklch. If the canvas can't parse it the fillStyle
-			// stays at the black sentinel, so we know not to trust it for tokens.
-			if (ctx) {
-				ctx.fillStyle = '#000';
-				ctx.fillStyle = 'oklch(0.5 0 0)';
-			}
-			colorCanvas = ctx && ctx.fillStyle !== '#000000' ? ctx : false;
-		}
-		if (!colorCanvas) return null;
-		colorCanvas.fillStyle = '#000';
-		colorCanvas.fillStyle = value.trim();
-		return colorCanvas.fillStyle;
+		colorCanvas ??= document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+		const ctx = colorCanvas;
+		const input = value.trim();
+		if (!ctx || !input) return null;
+		ctx.fillStyle = SENTINEL;
+		ctx.fillStyle = input;
+		if (ctx.fillStyle === SENTINEL && input.toLowerCase() !== SENTINEL) return null;
+		ctx.clearRect(0, 0, 1, 1);
+		ctx.fillRect(0, 0, 1, 1);
+		const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+		return `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
 	}
 
 	// Map the site's design tokens onto mermaid's documented theme variables, so a
