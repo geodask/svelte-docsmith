@@ -1,5 +1,49 @@
 # svelte-docsmith
 
+## 0.9.0
+
+### Minor Changes
+
+- bdf9f7a: Publish your releases as a page and a feed. The `docsmith()` plugin now parses a Changesets `CHANGELOG.md` into the generated `svelte-docsmith/changelog` module, and the new `Changelog` component renders it. Because the entries come from the changelog you already ship, the page cannot fall behind what actually went out.
+
+  Commit hashes are stripped, multi-paragraph entries survive intact, and each entry's markdown is rendered to HTML at build time so your site needs no runtime markdown renderer. Release dates come from git, specifically the commit that first introduced each version's heading; no date is invented when the history isn't available. Point the new `changelog` option at the package you publish (`docsmith({ changelog: '../../packages/my-lib/CHANGELOG.md' })`) or set it to `false` to skip.
+
+  `generateFeed` builds an Atom feed from the same index, for a `changelog.xml/+server.ts` alongside the existing sitemap and llms.txt endpoints. Atom rather than RSS because it requires an unambiguous id and timestamp per entry, which a version and its release date give exactly.
+
+  A release that deserves more than a terse entry can have a hand-written page at `src/routes/changelog/<version>/`, which the generated entry then links to instead of to its anchor, so the ones worth writing up get a proper post while the rest stay generated.
+
+- 38e18a1: Add filenames and line numbers to code blocks. A fence's metadata now drives both: ` ```ts title="vite.config.ts" ` puts a filename bar above the block, and `showLineNumbers` adds a gutter. Pair `startLine=12` with numbering when the snippet is lifted out of a longer file so the numbers match the real source.
+
+  Number every block by default with the new `lineNumbers` preprocessor option; an individual fence still opts out with `noLineNumbers`. The numbers are a CSS counter over Shiki's existing per-line spans, so they add no markup and stay out of what the copy button copies. When a block has a title, the copy button moves into the filename bar instead of floating over the first line of code.
+
+- fd1caa0: Add landing page sections, so the marketing page in front of your docs is built from the same design tokens as the docs themselves rather than hand-rolled.
+
+  Five new components: `Hero` (headline, description, call-to-action buttons, and an optional second column for a code sample or screenshot; without one it centres on a single column), `FeatureGrid` and `Feature` (a two or three column grid of icon-and-text cells, with an optional tinted band for alternating against neighbouring sections), `CTA` (the closing panel, with a soft glow behind the heading), and `Action` (the call-to-action link used by `Hero` and `CTA`, in filled and outlined variants).
+
+  Each renders its own full-width `<section>` with the container and spacing already set, so a landing page is a handful of components rather than a wall of layout classes. They use only design tokens, so they follow every theme preset and both colour schemes without configuration.
+
+- 7873879: Add Mermaid diagram support. A ` ```mermaid ` code fence now renders as a diagram instead of highlighted code, themed to match the site — diagrams draw their colors, borders and text from your design tokens and follow the light/dark toggle. Diagrams render in the browser, and `mermaid` is an **optional peer dependency** pulled in only on pages that actually contain one — install it (`npm i -D mermaid`) to use diagrams; sites without them stay lean and need nothing. A `<pre>` source fallback shows if a diagram fails to parse or `mermaid` isn't installed.
+- 683746a: Highlight code lines by number from the fence: ` ```svelte {4} `, with lists and ranges (`{1,5}`, `{2-4}`) too. This is the only way to mark a line inside a Svelte template region, where Shiki's comment markers cannot reach: an HTML comment there is stripped without highlighting anything, so the marker silently does nothing. Comment markers keep working everywhere they already did.
+
+  Header nav links now show which one is active. A link is matched on its section rather than its exact path, since a header link is usually the entry point to an area rather than a page you sit on: "Docs" pointing at `/docs/introduction` stays lit across all of `/docs/*`. External links are never marked, and a link to `/` matches only the root. The active link also carries `aria-current="page"`.
+
+- 95682b2: Add Twoslash, so a code sample can show real types on hover. Mark a fence with ` ```ts twoslash ` and the block is compiled by TypeScript, then annotated with the types it actually infers rather than ones written by hand beside the code. Svelte fences work too, via `twoslash-svelte`.
+
+  It is opt-in twice: `docsmith({ twoslash: true })` in the preprocessor, then per fence. `@shikijs/twoslash`, `twoslash-svelte`, and `typescript` are optional peer dependencies, loaded only when a fence asks for them, so sites that don't use Twoslash pay nothing.
+
+  Because the snippet really is compiled, it has to typecheck, and an unresolved import or a type error means there is no type to show. Rather than fail the build over one block, DocSmith falls back to an ordinary highlight and warns which block it was. The usual Twoslash directives apply: `// @errors: 2322` to show an error deliberately, `// @noErrors` to silence one, and `// ---cut---` to keep setup lines out of the rendered output while still compiling them.
+
+  The hover popup is restyled from the stock rich theme onto your design tokens, so it matches the site in both colour schemes.
+
+### Patch Changes
+
+- cde0197: Stop the header showing a stray divider when search isn't wired. The separator between the search trigger and the header action icons rendered unconditionally, so a site that passed no `search` loader to `DocsShell` got a rule with nothing before it. It now appears only alongside the trigger it divides.
+- a58f3ea: Stop the code block clipping Twoslash hover popups. A code block is a scroll container, so an absolutely positioned popup was cut off at its edges: hovering a token on the last line showed a sliver of the type and nothing else. CSS alone can't solve it, because an element that scrolls horizontally must also clip vertically. The popup is now promoted to fixed positioning on hover, so it escapes the block, and it flips above the token when there isn't room below. Popups also shrink to the width of the type rather than always filling the maximum. Without JavaScript the popup still opens on hover exactly as before.
+
+  The popup's documentation also reads as documentation now. Sitting inside a `<pre>`, it inherited monospace and whatever token colour the hovered word happened to carry, so the prose looked like more code; it is now sans-serif and muted, with the signature alone staying mono. Each `@param` is its own line with a space after the tag, rather than the whole block running together as `@paramcallbackfn`.
+
+  The `@param` tags also took on the colour of whatever word you hovered, because the dark-theme swap repaints every `span` inside a code block with `--shiki-dark`, which those spans inherited from the hovered token. The popup's documentation now defines that variable itself, so tags read as tags and their text as prose.
+
 ## 0.8.0
 
 ### Minor Changes

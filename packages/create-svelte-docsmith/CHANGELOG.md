@@ -1,5 +1,15 @@
 # create-svelte-docsmith
 
+## 0.3.0
+
+### Minor Changes
+
+- fd1caa0: Scaffold a landing page. The site root was a redirect into `/docs/introduction`; it is now a real `+page.svelte` built from the new landing sections, with a hero carrying your site title, a six-cell feature grid, and a closing call to action. So `npm create svelte-docsmith` produces a complete site rather than only a docs section, and the page doubles as a worked example to edit. Delete it and add a `+page.ts` redirect back if you'd rather not have one.
+
+### Patch Changes
+
+- Pin the starter template to `svelte-docsmith@^0.9.0` so freshly scaffolded projects install the current release.
+
 ## 0.2.1
 
 ### Patch Changes
