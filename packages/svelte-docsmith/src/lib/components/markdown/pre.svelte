@@ -312,6 +312,12 @@
 	   monospace and whatever token colour the hovered span happened to carry,
 	   which reads as more code rather than an explanation of it. */
 	:global(pre .twoslash-popup-docs) {
+		/* The dark-theme swap repaints every span inside `.shiki` with
+		   `--shiki-dark`, which these spans inherit from whichever token was
+		   hovered — so docs took on the colour of the word above them. Redefining
+		   the variable here resolves it to prose colours instead of fighting an
+		   `!important` rule. */
+		--shiki-dark: var(--muted-foreground);
 		margin-top: 0.5rem;
 		padding-top: 0.5rem;
 		border-top: 1px solid var(--border);
@@ -332,8 +338,13 @@
 	:global(pre .twoslash-popup-docs-tag) {
 		display: block;
 	}
+	:global(pre .twoslash-popup-docs-tag-value) {
+		--shiki-dark: var(--muted-foreground);
+		color: var(--muted-foreground);
+	}
 	/* And the tag name needs a gap, or it reads as "@paramcallbackfn". */
 	:global(pre .twoslash-popup-docs-tag-name) {
+		--shiki-dark: var(--primary);
 		margin-right: 0.4em;
 		font-family: var(--font-mono, ui-monospace, monospace);
 		font-size: 0.92em;
