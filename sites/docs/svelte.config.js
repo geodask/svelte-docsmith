@@ -5,7 +5,7 @@ import { docsmith } from 'svelte-docsmith/preprocess';
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	extensions: ['.svelte', '.md'],
-	preprocess: [vitePreprocess(), docsmith()],
+	preprocess: [vitePreprocess(), docsmith({ twoslash: true })],
 	kit: {
 		adapter: adapter()
 	}
