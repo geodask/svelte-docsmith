@@ -1,5 +1,16 @@
 # svelte-docsmith
 
+## 0.8.0
+
+### Minor Changes
+
+- 4a1b3d4: Add an announcement bar. Set `announcement` in your config (`{ text, tag?, href?, external?, id?, dismissible? }`) to show a thin bar above the header on every page, with an optional leading `tag` pill (e.g. `"New"`) carrying the accent color. It's dismissible by default and, once dismissed, stays dismissed (persisted in `localStorage`) until you change its `id` or `text`, so a new announcement shows again. A blocking head script keeps an already-dismissed bar from flashing in and shifting the layout on reload. The bar sits above the sticky header, so it scrolls away as the reader moves down the page.
+- d8d5377: Add nested sidebar sections. A page's `section` frontmatter now accepts an array as well as a string: `section: [Guides, Advanced]` nests the page inside a collapsible **Advanced** subsection under **Guides**. Nesting can go any number of levels deep; `order` still sorts each level, and a subsection takes the smallest `order` of its pages so it slots into reading order. In the sidebar, nested groups are collapsible (a caret on the right of the row), with the branch containing the current page expanded on load and the rest collapsed. Breadcrumbs and the prev/next pager follow the full nested path. Single-string `section` values are unchanged.
+
+  Also makes sidebar ordering deterministic: pages that share an `order` (for example all defaulting to `0`) now tie-break by title instead of by filesystem scan order, so the sidebar is stable across machines.
+
+- aa8ff92: Add synced tab groups. Give related `<Tabs>` a `syncKey` and they share one selection: choosing (say) `pnpm` in any block selects it in every block with the same key, and the choice is remembered across reloads and navigation via `localStorage`. Ideal for package-manager, runtime, or OS variant blocks that a reader picks once. Tabs without a `syncKey` are unchanged, and the server still renders the default tab so there's no hydration flash.
+
 ## 0.7.0
 
 ### Minor Changes
