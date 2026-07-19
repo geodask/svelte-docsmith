@@ -56,3 +56,8 @@ export { generateSitemap, type SitemapEntry } from './generate/sitemap.js';
 // llms.txt (framework-agnostic; wire into `llms.txt/+server.ts` and
 // `llms-full.txt/+server.ts` over the generated `svelte-docsmith/llms` index)
 export { generateLlmsTxt, generateLlmsFullTxt, type LlmsSite } from './generate/llms.js';
+
+// Changelog (the generated `svelte-docsmith/changelog` index, plus its feed)
+export { default as Changelog } from './components/changelog/changelog.svelte';
+export type { ChangelogRelease, ChangelogGroup } from './core/changelog.js';
+export { generateFeed, type FeedSite } from './generate/feed.js';

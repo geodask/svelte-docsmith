@@ -22,8 +22,10 @@ import type { Plugin, ViteDevServer } from 'vite';
 import { DEFAULT_THEMES, lazyHighlighter } from '../highlight.js';
 import { isPageFile, listPageFiles } from './pages.js';
 import { collectDocs, collectLlmsDocs, collectSearchDocs } from './collect.js';
+import { collectReleases } from './releases.js';
 
 export { collectDocs, collectLlmsDocs, collectSearchDocs } from './collect.js';
+export { collectReleases } from './releases.js';
 
 export interface DocsmithViteOptions {
 	/** Directory scanned for doc pages. Default: `'src/routes/docs'`. */
@@ -35,6 +37,18 @@ export interface DocsmithViteOptions {
 	routes?: string;
 	/** Shiki themes for the `?source` render. Default: github-light/github-dark. */
 	themes?: { light: string; dark: string };
+	/**
+	 * Path to the `CHANGELOG.md` that feeds the generated
+	 * `svelte-docsmith/changelog` index. Default: `'CHANGELOG.md'` in the app
+	 * directory; point it at the package whose releases you publish. Set `false`
+	 * to skip the changelog entirely.
+	 */
+	changelog?: string | false;
+	/**
+	 * Route the changelog is served at, used to build feed links and to find
+	 * hand-written per-release pages. Default: `'/changelog'`.
+	 */
+	changelogPath?: string;
 }
 
 /**
@@ -57,10 +71,16 @@ const SEARCH_SPECIFIER = 'svelte-docsmith/search';
 const VIRTUAL_SEARCH_ID = '\0svelte-docsmith:search';
 const LLMS_SPECIFIER = 'svelte-docsmith/llms';
 const VIRTUAL_LLMS_ID = '\0svelte-docsmith:llms';
+const CHANGELOG_SPECIFIER = 'svelte-docsmith/changelog';
+const VIRTUAL_CHANGELOG_ID = '\0svelte-docsmith:changelog';
 
 function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	const contentDir = path.resolve(options.content ?? 'src/routes/docs');
 	const routesDir = path.resolve(options.routes ?? 'src/routes');
+	const changelogFile =
+		options.changelog === false ? undefined : path.resolve(options.changelog ?? 'CHANGELOG.md');
+	const changelogRoute = options.changelogPath ?? '/changelog';
+	const changelogOverrides = path.join(routesDir, changelogRoute.replace(/^\//, ''));
 
 	return {
 		name: 'docsmith-content',
@@ -70,6 +90,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			if (id === CONTENT_SPECIFIER) return VIRTUAL_CONTENT_ID;
 			if (id === SEARCH_SPECIFIER) return VIRTUAL_SEARCH_ID;
 			if (id === LLMS_SPECIFIER) return VIRTUAL_LLMS_ID;
+			if (id === CHANGELOG_SPECIFIER) return VIRTUAL_CHANGELOG_ID;
 		},
 
 		load(id) {
@@ -91,6 +112,12 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
 				const docs = collectLlmsDocs(contentDir, routesDir);
 				return `export const docs = ${JSON.stringify(docs)};\n`;
+			}
+			if (id === VIRTUAL_CHANGELOG_ID) {
+				if (!changelogFile) return `export const releases = [];\n`;
+				this.addWatchFile(changelogFile);
+				const releases = collectReleases(changelogFile, changelogOverrides, changelogRoute);
+				return `export const releases = ${JSON.stringify(releases)};\n`;
 			}
 		},
 

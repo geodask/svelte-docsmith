@@ -58,6 +58,10 @@
 			"types": "./dist/fallbacks/llms.d.ts",
 			"default": "./dist/fallbacks/llms.js"
 		},
+		"./changelog": {
+			"types": "./dist/fallbacks/changelog.d.ts",
+			"default": "./dist/fallbacks/changelog.js"
+		},
 		"./mermaid": {
 			"types": "./dist/components/docs/mermaid.svelte.d.ts",
 			"svelte": "./dist/components/docs/mermaid.svelte",
@@ -121,6 +125,7 @@
 		"flexsearch": "^0.8.212",
 		"github-slugger": "^2.0.0",
 		"js-yaml": "^4.1.0",
+		"marked": "^18.0.6",
 		"mdsvex": "^0.12.3",
 		"mode-watcher": "^1.0.2",
 		"rehype-slug": "^6.0.0",
