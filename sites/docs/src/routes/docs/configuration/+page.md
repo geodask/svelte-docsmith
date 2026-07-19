@@ -16,11 +16,14 @@ their own pages in the [Components](/docs/components/callout) section.
 
 ## Package exports
 
-- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
+- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, `generateFeed`, `generateLlmsTxt`, `generateLlmsFullTxt`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
 - **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor for `svelte.config.js`.
-- **`svelte-docsmith/vite`**: the Vite plugin (content index, search index, and the `?source` transform).
+- **`svelte-docsmith/vite`**: the Vite plugin (content, search, llms and changelog indexes, plus the `?source` transform).
 - **`svelte-docsmith/content`**: the generated sidebar index, exported as `docs`.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
+- **`svelte-docsmith/llms`**: the generated per-page markdown index, exported as `docs` (see [SEO](/docs/seo)).
+- **`svelte-docsmith/changelog`**: the generated release index, exported as `releases` (see [Changelog](/docs/changelog)).
+- **`svelte-docsmith/mermaid`**: the diagram component, imported for you by a ` ```mermaid ` fence. You never import it directly.
 - **`svelte-docsmith/theme.css`**: the base style contract.
 - **`svelte-docsmith/themes/*.css`**: the pre-installed theme presets (see [Theming](/docs/theming)).
 
@@ -84,6 +87,71 @@ const config = defineConfig({
 This site runs one: the thin bar above the header is `config.announcement`. Its
 `id` tracks the library version, so it returns after each release and stays out
 of the way in between. Dismiss it and it holds until the next version.
+
+## docsmith() preprocessor
+
+From `svelte-docsmith/preprocess`, registered in `svelte.config.js`. It bundles
+mdsvex, Shiki, heading anchors and the page layout, so markdown compiles to real
+routes. Every option has a working default; pass none and it does the right
+thing.
+
+<PropsTable title="docsmith() — preprocess">
+	<Prop name="extensions" type="string[]" default="['.md']">
+		File extensions compiled as markdown.
+	</Prop>
+	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
+		Shiki themes for the dual light/dark render.
+	</Prop>
+	<Prop name="langs" type="string[]">
+		Extra Shiki languages on top of the built-in set. An unknown fence language
+		falls back to plain text rather than failing the build.
+	</Prop>
+	<Prop name="layout" type="string | false">
+		Absolute path to a custom mdsvex layout, or <code>false</code> for none. A
+		custom layout must export a <code>pre</code> component from its module
+		script, since code fences render through it.
+	</Prop>
+	<Prop name="lineNumbers" type="boolean" default="false">
+		Number every code block. A fence overrides it either way with
+		<code>showLineNumbers</code> or <code>noLineNumbers</code>.
+	</Prop>
+	<Prop name="twoslash" type="boolean" default="false">
+		Enable Twoslash on fences marked <code>twoslash</code>. Needs the optional
+		peer dependencies; see [Code blocks](/docs/code-blocks).
+	</Prop>
+	<Prop name="remarkPlugins" type="PluggableList">
+		Extra remark plugins, appended after DocSmith's own.
+	</Prop>
+	<Prop name="rehypePlugins" type="PluggableList">
+		Extra rehype plugins, appended after DocSmith's own (slug, sectionize).
+	</Prop>
+</PropsTable>
+
+## docsmith() Vite plugin
+
+From `svelte-docsmith/vite`, added to `plugins` in `vite.config.ts`. It scans
+your pages into the generated indexes and serves the `?source` imports that
+[Live Examples](/docs/live-examples) use.
+
+<PropsTable title="docsmith() — vite">
+	<Prop name="content" type="string" default="'src/routes/docs'">
+		Directory scanned for doc pages.
+	</Prop>
+	<Prop name="routes" type="string" default="'src/routes'">
+		Routes root, used to derive each page's URL from its location.
+	</Prop>
+	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
+		Shiki themes for the <code>?source</code> render.
+	</Prop>
+	<Prop name="changelog" type="string | false" default="'CHANGELOG.md'">
+		Path to the changelog that feeds the release index. Point it at the package
+		you publish, or <code>false</code> to skip it.
+	</Prop>
+	<Prop name="changelogPath" type="string" default="'/changelog'">
+		Route the changelog is served at. Used to build feed links and to find
+		hand-written per-release pages.
+	</Prop>
+</PropsTable>
 
 ## DocsShell
 
