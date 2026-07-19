@@ -5,6 +5,7 @@
 	"main": "index.js",
 	"private": true,
 	"scripts": {
+		"ci:version": "node scripts/sync-template-pin.mjs pre && changeset version && node scripts/sync-template-pin.mjs post",
 		"ci:publish": "turbo run build --filter=svelte-docsmith && changeset publish",
 		"build": "turbo run build",
 		"test": "turbo run test",

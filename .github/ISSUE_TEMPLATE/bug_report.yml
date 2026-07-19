@@ -1,0 +1,99 @@
+name: Bug report
+description: Report a reproducible problem in svelte-docsmith
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. A minimal reproduction is the single biggest factor in whether it gets fixed quickly. Please search existing issues and discussions before opening a new one.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: "A clear description of the bug: what you expected, and what happened instead."
+    validations:
+      required: true
+  - type: input
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Link to a minimal repo or StackBlitz that reproduces the issue. Please don't paste a whole project.
+      placeholder: https://github.com/... or https://stackblitz.com/...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How do we trigger the bug from your reproduction?
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      description: Your best guess. It helps route the issue, and "Not sure" is fine.
+      options:
+        - Not sure
+        - Markdown / preprocess (mdsvex, Shiki, mermaid)
+        - Vite plugin (content index, search, llms)
+        - A component (Callout, Tabs, Cards, etc.)
+        - Layout / sidebar / navigation
+        - Theming
+        - Search
+        - CLI (create-svelte-docsmith)
+        - Types / build
+    validations:
+      required: true
+  - type: input
+    id: docsmith-version
+    attributes:
+      label: svelte-docsmith version
+      placeholder: e.g. 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: kit-version
+    attributes:
+      label: Svelte / SvelteKit version
+      placeholder: e.g. Svelte 5.x / SvelteKit 2.x
+    validations:
+      required: true
+  - type: input
+    id: node-version
+    attributes:
+      label: Node version
+      placeholder: output of `node -v`
+    validations:
+      required: true
+  - type: dropdown
+    id: package-manager
+    attributes:
+      label: Package manager
+      options:
+        - pnpm
+        - npm
+        - yarn
+        - bun
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output / stack trace
+      description: Any relevant error output. This will be rendered as code, so no need for backticks.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and discussions for a duplicate
+          required: true
+        - label: I provided a minimal reproduction, not my whole app
+          required: true

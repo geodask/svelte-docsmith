@@ -45,6 +45,9 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         uses: changesets/action@v1
         with:
+          # ci:version wraps `changeset version` to keep the CLI template's
+          # svelte-docsmith pin in range (scripts/sync-template-pin.mjs).
+          version: pnpm ci:version
           publish: pnpm ci:publish
           # The following ensures the PR created can't be merged
           # until it passes the test workflow
