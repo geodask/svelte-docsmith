@@ -39,6 +39,11 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Safety net: releases re-pin the template automatically (ci:version),
+      # this catches a pin that went stale some other way.
+      - name: Check the CLI template pin
+        run: node scripts/sync-template-pin.mjs check
+
       - name: Typecheck
         run: pnpm typecheck
 

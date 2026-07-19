@@ -4,13 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Publishing is **enabled and CI-gated**: `release.yml` runs the full `lint`/`typecheck`/`test`/`build` verify job (reusing `ci.yml`) before `changeset publish`, so a release only goes out if the checks pass. The repo is green at the root and CI enforces that on every PR. First public release is `svelte-docsmith@0.1.0`; the package is pre-1.0, so minor releases may carry breaking changes until v1.0.
+Publishing is **enabled and CI-gated**: `release.yml` runs the full `lint`/`typecheck`/`test`/`build` verify job (reusing `ci.yml`) before `changeset publish`, so a release only goes out if the checks pass. The repo is green at the root and CI enforces that on every PR. Two packages are published to npm: `svelte-docsmith` (the library) and `create-svelte-docsmith` (the scaffolding CLI). Both are pre-1.0, so minor releases may carry breaking changes until v1.0.
 
 ## What this is
 
-Svelte DocSmith is a framework/library for building documentation sites with Svelte 5 + SvelteKit. Components are based on shadcn-svelte (style: new-york) with themes from tweakcn. This is a pnpm/turbo monorepo with two workspaces:
+Svelte DocSmith is a framework/library for building documentation sites with Svelte 5 + SvelteKit. Components are based on shadcn-svelte (style: new-york) with themes from tweakcn. This is a pnpm/turbo monorepo with three workspaces:
 
 - `packages/svelte-docsmith` — the publishable library (npm package `svelte-docsmith`). Source of truth for all reusable components/utilities (TOC, markdown renderers, shadcn UI primitives, etc.), exported via `src/lib/index.ts`.
+- `packages/create-svelte-docsmith` — the scaffolding CLI (npm package `create-svelte-docsmith`). `npm create svelte-docsmith@latest` scaffolds a SvelteKit + Tailwind v4 project wired with DocSmith (preprocessor, Vite plugin, `DocsShell` layout, sample pages, llms.txt/sitemap endpoints). Plain Node + `@clack/prompts`, no build step; the starter lives in `template/` and pins a `svelte-docsmith` version that must be bumped when the library's template-facing surface changes.
 - `sites/docs` — the documentation site that consumes `svelte-docsmith` as a `workspace:*` dependency. This is the dogfooding/reference app and where the markdown doc pages live.
 
 ## Commands
@@ -79,4 +80,5 @@ Content is authored as `+page.md` files under `src/routes/docs/`, preprocessed b
 
 - Formatting/linting is centralized: both workspaces call out to the root `.prettierrc` (`prettier --config ../../.prettierrc`). Tabs, single quotes, no trailing commas, 100 print width.
 - ESLint config (`eslint.config.js`, flat config) applies `js.configs.recommended`, `typescript-eslint` recommended, and `eslint-plugin-svelte` recommended, with prettier conflict rules disabled.
-- Releases are managed with Changesets (`.changeset/`), publishing only `svelte-docsmith`. Add a changeset for any consumer-facing library change; on push to `master`, `release.yml` opens a "Version Packages" PR and, once that PR merges, runs the verify gate then `pnpm ci:publish` (build + `changeset publish`). The docs display the current library version automatically via `import { version } from 'svelte-docsmith/package.json'` in `sites/docs/src/lib/site-config.ts`.
+- Releases are managed with Changesets (`.changeset/`), publishing `svelte-docsmith` and `create-svelte-docsmith`. Add a changeset for any consumer-facing change to either package; on push to `master`, `release.yml` opens a "Version Packages" PR (via `pnpm ci:version`) and, once that PR merges, runs the verify gate then `pnpm ci:publish` (build + `changeset publish`). The docs display the current library version automatically via `import { version } from 'svelte-docsmith/package.json'` in `sites/docs/src/lib/site-config.ts`.
+- The CLI template's `svelte-docsmith` pin is kept in range automatically: `ci:version` wraps `changeset version` with `scripts/sync-template-pin.mjs`, which adds a `create-svelte-docsmith` patch changeset and re-pins the template whenever a library release escapes the pin's caret range. CI runs the script's `check` mode as a safety net, so never bump the template pin by hand without a matching CLI changeset.
