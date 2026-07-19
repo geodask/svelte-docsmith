@@ -1,6 +1,6 @@
 {
 	"name": "svelte-docsmith",
-	"version": "0.8.0",
+	"version": "0.9.0",
 	"description": "A framework for building beautiful documentation sites with Svelte.",
 	"scripts": {
 		"dev": "vite dev",
