@@ -103,4 +103,16 @@ describe('docsmith preprocessor', () => {
 		expect(code).toContain('<Components.pre>');
 		expect(code).not.toContain('twoslash-hover');
 	});
+
+	it('highlights lines given as a range in the fence meta', async () => {
+		const code = await render('```ts {2-3}\nconst a = 1;\nconst b = 2;\nconst c = 3;\n```');
+		expect((code.match(/highlighted/g) ?? []).length).toBeGreaterThanOrEqual(2);
+	});
+
+	it('reaches a svelte markup line, where a comment marker cannot', async () => {
+		// An HTML comment inside a template region is stripped without applying
+		// anything, so the meta range is the only way to highlight one.
+		const code = await render('```svelte {2}\n<DocsShell\n\tsearch={loader}\n>\n</DocsShell>\n```');
+		expect(code).toContain('highlighted');
+	});
 });

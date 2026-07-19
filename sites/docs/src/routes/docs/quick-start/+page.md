@@ -30,11 +30,11 @@ anchors, and the DocSmith page layout:
 ```js title="svelte.config.js"
 import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { docsmith } from 'svelte-docsmith/preprocess';
+import { docsmith } from 'svelte-docsmith/preprocess'; // [!code ++]
 
 export default {
-	extensions: ['.svelte', '.md'],
-	preprocess: [vitePreprocess(), docsmith()],
+	extensions: ['.svelte', '.md'], // [!code ++]
+	preprocess: [vitePreprocess(), docsmith()], // [!code ++]
 	kit: { adapter: adapter() }
 };
 ```
@@ -48,11 +48,11 @@ In `vite.config.ts`, add `docsmith()`. It scans your pages' frontmatter into the
 ```ts title="vite.config.ts"
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { docsmith } from 'svelte-docsmith/vite';
+import { docsmith } from 'svelte-docsmith/vite'; // [!code ++]
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [docsmith(), tailwindcss(), sveltekit()]
+	plugins: [docsmith(), tailwindcss(), sveltekit()] // [!code ++]
 });
 ```
 

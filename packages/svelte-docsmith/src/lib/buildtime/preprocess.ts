@@ -11,7 +11,8 @@ import {
 	transformerNotationErrorLevel,
 	transformerNotationFocus,
 	transformerNotationHighlight,
-	transformerNotationWordHighlight
+	transformerNotationWordHighlight,
+	transformerMetaHighlight
 } from '@shikijs/transformers';
 import { escapeSvelte, mdsvex, type MdsvexOptions } from 'mdsvex';
 import { fileURLToPath } from 'node:url';
@@ -105,6 +106,11 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 				// line highlight, diff (++/--), focus, error/warning, and
 				// word highlight. Each strips its own marker comment.
 				const notation = [
+					// Line ranges from the fence meta (```svelte {4,7-9}). The only way
+					// to highlight a line in markup: Shiki's comment markers are not
+					// recognised inside a Svelte template region, where an HTML comment
+					// is stripped without applying anything.
+					transformerMetaHighlight(),
 					transformerNotationHighlight(),
 					transformerNotationDiff(),
 					transformerNotationFocus(),
@@ -116,6 +122,8 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 					highlighter.codeToHtml(code, {
 						lang: language,
 						themes,
+						// transformerMetaHighlight reads the raw fence meta from here.
+						meta: { __raw: meta ?? '' },
 						transformers: [...extra, ...notation]
 					});
 
