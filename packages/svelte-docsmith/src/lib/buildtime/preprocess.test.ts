@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { docsmith, type DocsmithPreprocessOptions } from './preprocess.js';
 
 type MarkupResult = { code: string } | void;
@@ -74,5 +74,33 @@ describe('docsmith preprocessor', () => {
 		const code = await render('```ts showLineNumbers startLine=12\nconst a = 1;\n```');
 		expect(code).toContain('lineNumbers');
 		expect(code).toContain('startLine={12}');
+	});
+
+	it('leaves a twoslash fence as a plain block when the option is off', async () => {
+		const code = await render('```ts twoslash\nconst a: string = 1;\n```');
+		expect(code).not.toContain('twoslash-hover');
+		expect(code).toContain('<Components.pre>');
+	});
+
+	it('annotates a twoslash fence with hover types when enabled', async () => {
+		const code = await render('```ts twoslash\nconst greeting = "hi";\n```', { twoslash: true });
+		expect(code).toContain('twoslash-hover');
+	});
+
+	it('falls back to a plain block instead of failing the build on a bad snippet', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const code = await render('```ts twoslash\nconst n: number = "not a number";\n```', {
+			twoslash: true
+		});
+		expect(code).toContain('<Components.pre>');
+		expect(code).not.toContain('twoslash-hover');
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('twoslash could not annotate'));
+		warn.mockRestore();
+	});
+
+	it('does not run twoslash on a fence that did not ask for it', async () => {
+		const code = await render('```ts\nconst n: number = "not a number";\n```', { twoslash: true });
+		expect(code).toContain('<Components.pre>');
+		expect(code).not.toContain('twoslash-hover');
 	});
 });

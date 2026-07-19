@@ -164,3 +164,43 @@ can still opt out with `noLineNumbers`:
 ```js title="svelte.config.js"
 docsmith({ lineNumbers: true });
 ```
+
+## Real types on hover
+
+Add `twoslash` to a TypeScript or Svelte fence and the block is run through the
+TypeScript compiler, so hovering a token shows its actual inferred type rather
+than a hand-written guess.
+
+````md
+```ts twoslash
+const version = '0.9.0';
+const parts = version.split('.').map(Number);
+```
+````
+
+renders as (hover `parts` or `version`):
+
+```ts twoslash
+const version = '0.9.0';
+const parts = version.split('.').map(Number);
+```
+
+Twoslash is opt-in twice over: enable it in the preprocessor, then mark the
+individual fences that want it.
+
+```js title="svelte.config.js"
+docsmith({ twoslash: true });
+```
+
+It needs three optional peer dependencies, pulled in only if you use it:
+
+```bash
+npm i -D @shikijs/twoslash twoslash-svelte typescript
+```
+
+Because the snippet really is compiled, it has to typecheck: an unresolved
+import or a type error means there is no type to show. Rather than fail your
+build over one block, DocSmith falls back to an ordinary highlight and warns
+which block it was. Use `// @errors: 2322` to show an error deliberately,
+`// @noErrors` to silence one, and `// ---cut---` to hide setup lines from the
+rendered output while still compiling them.

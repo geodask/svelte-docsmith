@@ -18,7 +18,8 @@ import { fileURLToPath } from 'node:url';
 import rehypeSlug from 'rehype-slug';
 import type { PreprocessorGroup } from 'svelte/compiler';
 import { DEFAULT_LANGS, DEFAULT_THEMES, lazyHighlighter } from './highlight.js';
-import { parseFenceMeta } from './fence-meta.js';
+import { parseFenceMeta, hasTwoslash } from './fence-meta.js';
+import { twoslashTransformer, twoslashFailure } from './twoslash.js';
 
 export interface DocsmithPreprocessOptions {
 	/** File extensions compiled as markdown. Default: `['.md']`. */
@@ -44,6 +45,14 @@ export interface DocsmithPreprocessOptions {
 	 * `noLineNumbers` override it either way. Default: `false`.
 	 */
 	lineNumbers?: boolean;
+	/**
+	 * Enable Twoslash on fences that ask for it with ```ts twoslash, adding real
+	 * hover types from the TypeScript compiler. Requires the optional peer
+	 * dependencies `@shikijs/twoslash`, `twoslash-svelte`, and `typescript`.
+	 * A snippet that fails to typecheck falls back to a plain highlight with a
+	 * build warning rather than failing the build. Default: `false`.
+	 */
+	twoslash?: boolean;
 }
 
 /**
@@ -92,24 +101,50 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 				}
 				const highlighter = await getHighlighter();
 				const language = lang && highlighter.getLoadedLanguages().includes(lang) ? lang : 'text';
-				// Shiki highlights the raw code; escapeSvelte makes the result safe
-				// to embed in a Svelte component.
-				const html = escapeSvelte(
+				// Comment-driven annotations authors write inside the fence:
+				// line highlight, diff (++/--), focus, error/warning, and
+				// word highlight. Each strips its own marker comment.
+				const notation = [
+					transformerNotationHighlight(),
+					transformerNotationDiff(),
+					transformerNotationFocus(),
+					transformerNotationErrorLevel(),
+					transformerNotationWordHighlight()
+				];
+
+				const render = (extra: typeof notation = []) =>
 					highlighter.codeToHtml(code, {
 						lang: language,
 						themes,
-						// Comment-driven annotations authors write inside the fence:
-						// line highlight, diff (++/--), focus, error/warning, and
-						// word highlight. Each strips its own marker comment.
-						transformers: [
-							transformerNotationHighlight(),
-							transformerNotationDiff(),
-							transformerNotationFocus(),
-							transformerNotationErrorLevel(),
-							transformerNotationWordHighlight()
-						]
-					})
-				);
+						transformers: [...extra, ...notation]
+					});
+
+				let rendered: string;
+				if (options.twoslash && hasTwoslash(meta)) {
+					const loaded = await twoslashTransformer();
+					if ('error' in loaded) {
+						console.warn(`[svelte-docsmith] ${loaded.error}`);
+						rendered = render();
+					} else {
+						try {
+							rendered = render([loaded.transformer]);
+						} catch (error) {
+							// One snippet that doesn't typecheck must not take the site
+							// down; fall back to a plain highlight and say which it was.
+							console.warn(
+								`[svelte-docsmith] twoslash could not annotate a ${language} block: ` +
+									twoslashFailure(error)
+							);
+							rendered = render();
+						}
+					}
+				} else {
+					rendered = render();
+				}
+
+				// escapeSvelte makes the highlighted result safe to embed in a
+				// Svelte component.
+				const html = escapeSvelte(rendered);
 				// Without a layout there is no `Components.pre` to render through —
 				// keep Shiki's own <pre> as-is.
 				if (layout === undefined) return `{@html \`${html}\`}`;

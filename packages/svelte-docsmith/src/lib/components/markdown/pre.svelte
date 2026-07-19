@@ -211,6 +211,50 @@
 		}
 	}
 
+	/* --- Twoslash hovers ---
+	   Restyled from @shikijs/twoslash's rich theme onto our tokens so the popup
+	   belongs to the site in both colour schemes. Underline marks a token as
+	   inspectable; the popup itself is a plain hidden sibling revealed on hover,
+	   so it needs no JavaScript. */
+	:global(pre .twoslash-hover) {
+		position: relative;
+		border-bottom: 1px dotted color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+	}
+	:global(pre .twoslash-popup-container) {
+		position: absolute;
+		z-index: 20;
+		display: none;
+		left: 0;
+		top: 1.6em;
+		max-width: min(36rem, 80vw);
+		padding: 0.5rem 0.7rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius, 0.5rem);
+		background: var(--popover, var(--card));
+		color: var(--popover-foreground, var(--foreground));
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+		white-space: pre-wrap;
+		text-align: left;
+		font-size: 0.85em;
+		line-height: 1.5;
+	}
+	:global(pre .twoslash-hover:hover .twoslash-popup-container) {
+		display: block;
+	}
+	:global(pre .twoslash-popup-code) {
+		font-family: var(--font-mono, ui-monospace, monospace);
+	}
+	:global(pre .twoslash-popup-docs) {
+		margin-top: 0.4rem;
+		padding-top: 0.4rem;
+		border-top: 1px solid var(--border);
+		color: var(--muted-foreground);
+	}
+	/* A snippet that deliberately shows an error (// @errors:) marks the line. */
+	:global(pre .twoslash-error) {
+		background: color-mix(in oklch, oklch(0.62 0.2 25) 14%, transparent);
+	}
+
 	/* --- Word highlight (// [!code word:name]): a primary-tinted inline pill --- */
 	:global(pre .highlighted-word) {
 		border-radius: 0.3rem;
