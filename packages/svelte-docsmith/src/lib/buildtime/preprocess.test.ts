@@ -57,4 +57,22 @@ describe('docsmith preprocessor', () => {
 		// The source is carried as a JSON-encoded string.
 		expect(code).toContain('flowchart LR');
 	});
+
+	it('passes a fence title through to the pre component', async () => {
+		const code = await render('```ts title="vite.config.ts"\nconst a = 1;\n```');
+		expect(code).toContain('<Components.pre title="vite.config.ts">');
+	});
+
+	it('marks a fence that opts into line numbers, and leaves others alone', async () => {
+		expect(await render('```ts showLineNumbers\nconst a = 1;\n```')).toContain(
+			'<Components.pre lineNumbers>'
+		);
+		expect(await render('```ts\nconst a = 1;\n```')).toContain('<Components.pre>');
+	});
+
+	it('carries startLine so a lifted snippet numbers from the right place', async () => {
+		const code = await render('```ts showLineNumbers startLine=12\nconst a = 1;\n```');
+		expect(code).toContain('lineNumbers');
+		expect(code).toContain('startLine={12}');
+	});
 });

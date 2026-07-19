@@ -137,3 +137,30 @@ literally instead of applying it, as the "You write" blocks above do, put it in 
 plain `text` block.)
 
 </Callout>
+
+## Filenames and line numbers
+
+Add `title=` to label a block with the file it belongs to, and `showLineNumbers`
+to number it. Pair `startLine=` with numbering when the snippet is lifted out of
+a longer file, so the numbers match the real source.
+
+````md
+```ts title="vite.config.ts" showLineNumbers
+import { docsmith } from 'svelte-docsmith/vite';
+export default { plugins: [docsmith()] };
+```
+````
+
+renders as:
+
+```ts title="vite.config.ts" showLineNumbers
+import { docsmith } from 'svelte-docsmith/vite';
+export default { plugins: [docsmith()] };
+```
+
+Numbering every block by default is a preprocessor option, and a single fence
+can still opt out with `noLineNumbers`:
+
+```js title="svelte.config.js"
+docsmith({ lineNumbers: true });
+```

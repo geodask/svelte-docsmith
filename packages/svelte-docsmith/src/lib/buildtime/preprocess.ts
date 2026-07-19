@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import rehypeSlug from 'rehype-slug';
 import type { PreprocessorGroup } from 'svelte/compiler';
 import { DEFAULT_LANGS, DEFAULT_THEMES, lazyHighlighter } from './highlight.js';
+import { parseFenceMeta } from './fence-meta.js';
 
 export interface DocsmithPreprocessOptions {
 	/** File extensions compiled as markdown. Default: `['.md']`. */
@@ -38,6 +39,11 @@ export interface DocsmithPreprocessOptions {
 	remarkPlugins?: MdsvexOptions['remarkPlugins'];
 	/** Extra rehype plugins, appended after docsmith's own (slug, sectionize). */
 	rehypePlugins?: MdsvexOptions['rehypePlugins'];
+	/**
+	 * Number every code block by default. Per-fence `showLineNumbers` /
+	 * `noLineNumbers` override it either way. Default: `false`.
+	 */
+	lineNumbers?: boolean;
 }
 
 /**
@@ -63,7 +69,10 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 		extensions: options.extensions ?? ['.md'],
 		layout,
 		highlight: {
-			highlighter: async (code, lang) => {
+			// mdsvex passes the fence's trailing metadata as the third argument,
+			// which is where `title=` and the line-number flags come from.
+			highlighter: async (code, lang, meta) => {
+				const fence = parseFenceMeta(meta);
 				// A ```mermaid fence renders as a diagram, not highlighted code. The
 				// component is dynamic-imported so `mermaid` (an optional peer dep) is
 				// only pulled into pages that actually use it; JSON.stringify safely
@@ -110,7 +119,15 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 					.replace(/^<pre[^>]*>/, '')
 					.replace(/<\/pre>\s*$/, '')
 					.trim();
-				return `<Components.pre>{@html \`${inner}\`}</Components.pre>`;
+				const showNumbers = fence.lineNumbers ?? options.lineNumbers ?? false;
+				const attrs = [
+					fence.title ? `title=${JSON.stringify(fence.title)}` : '',
+					showNumbers ? 'lineNumbers' : '',
+					showNumbers && fence.startLine !== undefined ? `startLine={${fence.startLine}}` : ''
+				]
+					.filter(Boolean)
+					.join(' ');
+				return `<Components.pre${attrs ? ' ' + attrs : ''}>{@html \`${inner}\`}</Components.pre>`;
 			}
 		},
 		remarkPlugins: options.remarkPlugins,

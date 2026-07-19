@@ -6,18 +6,46 @@
 
 	const clipboard = useClipboard();
 
-	const { children }: { children: Snippet } = $props();
+	const {
+		title,
+		lineNumbers = false,
+		startLine = 1,
+		children
+	}: {
+		/** Filename or caption, from the fence's `title=` metadata. */
+		title?: string;
+		/** Number the lines, from `showLineNumbers`. */
+		lineNumbers?: boolean;
+		/** First line's number, from `startLine=`. */
+		startLine?: number;
+		children: Snippet;
+	} = $props();
 </script>
 
 <div class="rounded-md overflow-hidden bg-muted mt-2 shadow-md text-sm relative">
-	<ScrollArea orientation="both" class="relative">
-		<CopyButton
-			copied={clipboard.copied}
-			onclick={() => clipboard.copy()}
-			class="bg-muted absolute top-2 right-2 z-10"
-		/>
+	{#if title}
+		<!-- The filename bar doubles as the copy button's row, so the button stops
+		     floating over the first line of code when a title is present. -->
+		<div class="docsmith-code-title">
+			<span class="docsmith-code-title-text">{title}</span>
+			<CopyButton copied={clipboard.copied} onclick={() => clipboard.copy()} class="bg-muted" />
+		</div>
+	{/if}
 
-		<pre class="not-prose shiki max-h-[32rem] flex shrink" use:clipboard.readText>
+	<ScrollArea orientation="both" class="relative">
+		{#if !title}
+			<CopyButton
+				copied={clipboard.copied}
+				onclick={() => clipboard.copy()}
+				class="bg-muted absolute top-2 right-2 z-10"
+			/>
+		{/if}
+
+		<pre
+			class="not-prose shiki max-h-[32rem] flex shrink"
+			class:docsmith-line-numbers={lineNumbers}
+			style={lineNumbers && startLine !== 1 ? `--docsmith-line-start: ${startLine - 1}` : undefined}
+			use:clipboard.readText>
 			{@render children()}
 		</pre>
 	</ScrollArea>
@@ -42,6 +70,64 @@
 		display: inline-block;
 		width: 100%;
 		padding-inline: 1rem;
+	}
+
+	/* --- Filename bar --- */
+	.docsmith-code-title {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.4rem 0.5rem 0.4rem 1rem;
+		border-bottom: 1px solid var(--border);
+		background: color-mix(in oklch, var(--muted) 60%, var(--background));
+	}
+	.docsmith-code-title-text {
+		font-family: var(--font-mono, ui-monospace, monospace);
+		font-size: 0.78rem;
+		color: var(--muted-foreground);
+		overflow-wrap: anywhere;
+	}
+
+	/* --- Line numbers ---
+	   A CSS counter on Shiki's existing per-line spans, so numbering adds no DOM
+	   and stays out of the text the copy button reads. `--docsmith-line-start`
+	   offsets the counter for a snippet lifted out of a larger file. */
+	:global(pre.docsmith-line-numbers code) {
+		counter-reset: docsmith-line var(--docsmith-line-start, 0);
+	}
+	:global(pre.docsmith-line-numbers span.line) {
+		counter-increment: docsmith-line;
+		position: relative;
+		padding-inline-start: 3.2rem;
+	}
+	:global(pre.docsmith-line-numbers span.line::before) {
+		content: counter(docsmith-line);
+		position: absolute;
+		left: 0;
+		width: 2.4rem;
+		text-align: right;
+		color: color-mix(in oklch, var(--muted-foreground) 65%, transparent);
+		/* Numbers are decoration, not content: keep them out of selections and
+		   off the clipboard. */
+		user-select: none;
+	}
+	/* The diff gutter glyph would collide with the number, so shift it over. */
+	:global(pre.docsmith-line-numbers span.line.diff::before) {
+		content: counter(docsmith-line);
+	}
+	:global(pre.docsmith-line-numbers span.line.diff::after) {
+		position: absolute;
+		left: 2.7rem;
+		font-weight: 600;
+	}
+	:global(pre.docsmith-line-numbers span.line.diff.add::after) {
+		content: '+';
+		color: oklch(0.6 0.15 150);
+	}
+	:global(pre.docsmith-line-numbers span.line.diff.remove::after) {
+		content: '−';
+		color: oklch(0.58 0.19 25);
 	}
 
 	/* Two tiers of annotation. EMPHASIS (highlight, word) tints with the theme's
