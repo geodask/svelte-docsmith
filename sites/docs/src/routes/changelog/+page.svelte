@@ -6,6 +6,7 @@
 </script>
 
 <DocsShell
+	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 	config={siteConfig}
 	content={docs}
 	layout="page"

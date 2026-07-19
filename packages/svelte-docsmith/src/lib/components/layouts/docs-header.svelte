@@ -4,6 +4,7 @@
 	import { Separator } from '$lib/components/shadcn/separator/index.js';
 	import GithubIcon from '$lib/components/icons/github.svelte';
 	import SearchTrigger from '../chrome/search-trigger.svelte';
+	import { useSearch } from '$lib/search/context.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import type { DocsmithConfig } from '$lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
@@ -20,6 +21,9 @@
 		/** Extra header controls, rendered before the theme toggle. */
 		actions?: Snippet;
 	} = $props();
+
+	// Present only when the consumer passed a `search` loader to DocsShell.
+	const search = useSearch();
 
 	let isScrolled = $state(false);
 </script>
@@ -76,7 +80,12 @@
 
 			<SearchTrigger />
 
-			<Separator orientation="vertical" class="bg-border/40 mx-1 min-h-0 h-6" />
+			<!-- The separator divides the search trigger from the action icons, so
+			     it only earns its place when there is a trigger to divide from.
+			     Without this a site that hasn't wired search shows a stray rule. -->
+			{#if search}
+				<Separator orientation="vertical" class="bg-border/40 mx-1 min-h-0 h-6" />
+			{/if}
 
 			<div class="flex items-center gap-0.5">
 				{#if actions}
