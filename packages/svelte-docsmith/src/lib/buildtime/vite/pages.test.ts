@@ -4,9 +4,6 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { readSourcePages, toPage, withCommitDates } from './pages.js';
 
-/** A file this repo tracks, so git really has a commit date for it. */
-const TRACKED = path.resolve('src/lib/buildtime/vite/pages.ts');
-
 let root: string;
 
 function writePage(relDir: string, contents: string) {
@@ -57,34 +54,36 @@ describe('readSourcePages', () => {
 	});
 });
 
+// Pure: the caller walks git and hands the dates in, so these are literals and
+// the suite never depends on this checkout's own history.
 describe('withCommitDates', () => {
-	it('dates a page from the commit that last touched it', () => {
-		const [page] = withCommitDates([toPage(TRACKED, '---\ntitle: Pages\n---\n')]);
+	const PAGE = path.resolve('/app/src/routes/docs/intro/+page.md');
+	const dates = new Map([[PAGE, '2026-05-01']]);
 
-		expect(page.lastUpdated).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+	it('dates a page from the commit that last touched it', () => {
+		const [page] = withCommitDates([toPage(PAGE, '---\ntitle: Intro\n---\n')], dates);
+
+		expect(page.lastUpdated).toBe('2026-05-01');
 	});
 
 	it('prefers a frontmatter lastUpdated over the git date, so archives keep their real date', () => {
-		const source = "---\ntitle: Pages\nlastUpdated: '2026-03-04'\n---\n";
+		const source = "---\ntitle: Intro\nlastUpdated: '2026-03-04'\n---\n";
 
-		const [page] = withCommitDates([toPage(TRACKED, source)]);
+		const [page] = withCommitDates([toPage(PAGE, source)], dates);
 
 		expect(page.lastUpdated).toBe('2026-03-04');
 	});
 
-	it('leaves the date undefined for a page outside a repository', () => {
-		root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-root-'));
-		const file = path.join(root, '+page.md');
-
-		const [page] = withCommitDates([toPage(file, '---\ntitle: Loose\n---\n')]);
+	it('leaves the date undefined for a page the walk never saw', () => {
+		const [page] = withCommitDates([toPage(PAGE, '---\ntitle: Intro\n---\n')], new Map());
 
 		expect(page.lastUpdated).toBeUndefined();
 	});
 
 	it('does not date an untitled page, which no index carries', () => {
-		// TRACKED really does have a commit date, so an undefined date here can
-		// only mean the lookup was skipped.
-		const [page] = withCommitDates([toPage(TRACKED, '---\ndescription: a stub\n---\n')]);
+		// The map really does hold a date for this file, so an undefined date here
+		// can only mean the lookup was skipped.
+		const [page] = withCommitDates([toPage(PAGE, '---\ndescription: a stub\n---\n')], dates);
 
 		expect(page.lastUpdated).toBeUndefined();
 	});

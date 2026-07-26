@@ -25,6 +25,13 @@ index is a projection of the same source pages, which is what keeps them
 agreeing on which pages exist and where they live.
 _Avoid_: page entry, doc file
 
+**Last updated**:
+The day a page's content was last accurate. Taken from the page's own
+frontmatter when it declares one, otherwise from the commit that last touched
+the file. Archiving writes it into frontmatter, so a frozen copy keeps the day
+it was really accurate rather than the day it was copied.
+_Avoid_: commit date, page date, modified date, mtime
+
 **Content index**:
 The generated record of every doc page's frontmatter, URL, headings and reading
 time. Imported eagerly, because navigation is built from it.

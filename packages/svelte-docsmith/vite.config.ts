@@ -20,6 +20,7 @@ export default defineConfig({
 				'src/lib/core/docs-page.ts',
 				'src/lib/buildtime/vite/**/*.ts',
 				'src/lib/buildtime/archive.ts',
+				'src/lib/buildtime/git.ts',
 				'src/lib/buildtime/preprocess.ts',
 				'src/lib/buildtime/highlight.ts',
 				'src/lib/utils/clipboard.svelte.ts',
