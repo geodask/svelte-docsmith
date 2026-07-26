@@ -95,6 +95,10 @@ That is the whole wiring. No redirect, no route changes. `DocsShell` reads the
 active version from the URL and scopes the sidebar, search, prev/next, and
 breadcrumbs to it.
 
+If you use [`ErrorPage`](/docs/configuration#errorpage), pass it `versions` too.
+A 404 under an archived prefix then keeps that version's search scope and its
+`noindex`, instead of falling back to the current version.
+
 ## What readers get
 
 Once at least one archive exists, a **version switcher** appears in the header.
