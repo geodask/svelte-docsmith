@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { marked } from 'marked';
 import { parseChangelog } from '../changelog.js';
 import { changelogDates } from '../git.js';
@@ -58,9 +57,4 @@ export function collectReleases(
 			...(override ? { path: `${routePath}/${override}` } : {})
 		};
 	});
-}
-
-/** Default location of a monorepo package's changelog, relative to the app. */
-export function defaultChangelogPath(cwd = process.cwd()): string {
-	return path.resolve(cwd, 'CHANGELOG.md');
 }

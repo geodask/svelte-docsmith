@@ -1,21 +1,65 @@
-import fs from 'node:fs';
+/**
+ * The three generated indexes, each a projection of the same page list. Nothing
+ * here reads the filesystem or spawns a process: a build hands these functions
+ * pages read by `./pages.js`, and a test hands them literals. Both go down the
+ * same path, so what the sidebar, search and llms.txt show is decided in one
+ * place and can be checked without a docs root on disk.
+ */
 import path from 'node:path';
 import type { DocsContentItem, LlmsDoc, SearchDoc } from '$lib/core/content.js';
 import type { DocsVersions } from '$lib/core/version.js';
-import { listPageFiles } from './pages.js';
-import { parseFrontmatter } from './frontmatter.js';
+import { titleOf, type SourcePage } from './pages.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
-import { lastCommitDate } from '../git.js';
 
-type PageEntry = {
-	source: string;
-	front: Record<string, unknown>;
-	url: string;
-	title: string;
-	file: string;
-	/** Version id when the page sits under a declared version folder, else undefined. */
-	version: string | undefined;
+/** Where the pages sit, which is what turns a page's file into a URL and a version. */
+export type IndexOptions = {
+	/** The docs root the pages were read from. */
+	contentDir: string;
+	/** Routes root, so `<routes>/docs/intro/+page.md` becomes `/docs/intro`. */
+	routesDir: string;
+	/** Declared versions, when the site has them. */
+	versions?: DocsVersions;
 };
+
+/** A page resolved against the site's layout: its URL, title and owning version. */
+type IndexedPage = SourcePage & { url: string; title: string; version: string | undefined };
+
+/**
+ * Resolve every titled page against the site's layout. Shared by all three
+ * indexes so they can never disagree about which pages exist or where they live.
+ */
+function indexedPages(pages: SourcePage[], options: IndexOptions): IndexedPage[] {
+	const resolved: IndexedPage[] = [];
+
+	for (const page of pages) {
+		const title = titleOf(page);
+		if (title === undefined) continue;
+		const dir = path.dirname(page.file);
+		resolved.push({
+			...page,
+			url: '/' + path.relative(options.routesDir, dir).split(path.sep).join('/'),
+			title,
+			version: versionOf(dir)
+		});
+	}
+
+	// Stable output keeps the generated modules diff-friendly across rebuilds.
+	return resolved.sort((a, b) => a.url.localeCompare(b.url));
+
+	/**
+	 * A page belongs to an archived version when its first directory segment under
+	 * the docs root is that archive's id; everything else is the current version,
+	 * which lives unprefixed at the docs root. No versions ⇒ undefined, which
+	 * keeps an unversioned site's index byte-for-byte what it was.
+	 */
+	function versionOf(dir: string): string | undefined {
+		const { versions } = options;
+		if (!versions) return undefined;
+		const firstSegment = path.relative(options.contentDir, dir).split(path.sep)[0];
+		const archived = versions.archived?.find((v) => v.id === firstSegment);
+		return archived ? archived.id : versions.current.id;
+	}
+}
 
 /**
  * Read a page's `section` frontmatter: a string is one level, an array is a
@@ -46,159 +90,72 @@ function sectionKey(value: unknown): string | undefined {
 }
 
 /**
- * Walk every nav-worthy page under `contentDir` once: a page is nav-worthy when
- * its frontmatter has a string `title`. Yields the raw source, parsed
- * frontmatter, derived URL, and title so every index (nav, search, llms) can be
- * built from a single read of each file.
+ * A frontmatter field, when it holds the type the index expects. Frontmatter is
+ * whatever the author typed, so a field of the wrong type is dropped rather than
+ * carried into the index as one.
  */
-function* eachTitledPage(
-	contentDir: string,
-	routesDir: string,
-	versions: DocsVersions | undefined
-): Generator<PageEntry> {
-	for (const file of listPageFiles(contentDir)) {
-		const source = fs.readFileSync(file, 'utf-8');
-		const front = parseFrontmatter(source, file);
-		if (typeof front.title !== 'string') continue;
+function stringField(front: Record<string, unknown>, key: string): string | undefined {
+	return typeof front[key] === 'string' ? front[key] : undefined;
+}
 
-		const dir = path.dirname(file);
-		const url = '/' + path.relative(routesDir, dir).split(path.sep).join('/');
-		yield { source, front, url, title: front.title, file, version: versionOf(dir) };
-	}
-
-	/**
-	 * A page belongs to an archived version when its first directory segment under
-	 * the content dir is that archive's id; everything else is the current
-	 * version, which lives unprefixed at the docs root. No versions ⇒ undefined,
-	 * which keeps an unversioned site's index byte-for-byte what it was.
-	 */
-	function versionOf(dir: string): string | undefined {
-		if (!versions) return undefined;
-		const firstSegment = path.relative(contentDir, dir).split(path.sep)[0];
-		const archived = versions.archived?.find((v) => v.id === firstSegment);
-		return archived ? archived.id : versions.current.id;
-	}
+/** As {@link stringField}, for the numeric fields. */
+function numberField(front: Record<string, unknown>, key: string): number | undefined {
+	return typeof front[key] === 'number' ? front[key] : undefined;
 }
 
 /**
- * Scan `contentDir` for `+page.md`/`+page.svx` files and read the frontmatter
- * fields the sidebar needs (plus the heading list for a server-rendered TOC and
- * an estimated reading time), deriving each page's URL from its directory
- * relative to `routesDir`. Pure and synchronous so it can be unit-tested.
+ * The sidebar's index: the frontmatter fields navigation needs, plus the heading
+ * list for a server-rendered TOC and an estimated reading time. Served as the
+ * eagerly-imported `svelte-docsmith/content` virtual module.
+ *
+ * `lastUpdated` is read off the page rather than looked up here, so pass pages
+ * that have been through `withCommitDates` or the column comes out blank.
  */
-export function collectDocs(
-	contentDir: string,
-	routesDir: string,
-	versions?: DocsVersions
-): DocsContentItem[] {
-	if (!fs.existsSync(contentDir)) {
-		console.warn(
-			`[svelte-docsmith] content directory not found: ${contentDir}\n` +
-				`  The sidebar will be empty. Create your doc pages there, or point docsmith() at the right place with \`content\`.`
-		);
-		return [];
-	}
-
-	const items: DocsContentItem[] = [];
-
-	for (const { source, front, url, title, file, version } of eachTitledPage(
-		contentDir,
-		routesDir,
-		versions
-	)) {
-		items.push({
-			title,
-			path: url,
-			description: typeof front.description === 'string' ? front.description : undefined,
-			section: readSection(front.section),
-			order: typeof front.order === 'number' ? front.order : undefined,
-			sourcePath: path.relative(process.cwd(), file).split(path.sep).join('/'),
-			// Frontmatter wins over git so an archived page keeps the date it last
-			// really changed: archiving copies every page in one commit, which would
-			// otherwise stamp the whole archive with the day it was created.
-			lastUpdated: typeof front.lastUpdated === 'string' ? front.lastUpdated : lastCommitDate(file),
-			readingTime: readingMinutes(extractSearchText(source)),
-			toc: extractToc(source),
-			version
-		});
-	}
-
-	if (items.length === 0) {
-		console.warn(
-			`[svelte-docsmith] no doc pages found under ${contentDir}\n` +
-				`  Add \`+page.md\` files with at least a \`title:\` in their frontmatter to populate the sidebar.`
-		);
-	}
-
-	// Stable output keeps the generated module diff-friendly across rebuilds.
-	return items.sort((a, b) => a.path.localeCompare(b.path));
+export function contentIndex(pages: SourcePage[], options: IndexOptions): DocsContentItem[] {
+	return indexedPages(pages, options).map((page) => ({
+		title: page.title,
+		path: page.url,
+		description: stringField(page.frontmatter, 'description'),
+		section: readSection(page.frontmatter.section),
+		order: numberField(page.frontmatter, 'order'),
+		sourcePath: path.relative(process.cwd(), page.file).split(path.sep).join('/'),
+		lastUpdated: page.lastUpdated,
+		readingTime: readingMinutes(extractSearchText(page.source)),
+		toc: extractToc(page.source),
+		version: page.version
+	}));
 }
 
 /**
- * Build the search records for every page under `contentDir`: title, section,
- * description, heading list, and plain-text body. Served as the lazy-loaded
- * `svelte-docsmith/search` virtual module so search can index bodies without
- * bloating the eagerly-imported nav index. The missing-directory case is
- * already reported by {@link collectDocs}, so this stays quiet.
+ * The search index: title, section, description, heading list, and plain-text
+ * body. Served as the lazy-loaded `svelte-docsmith/search` virtual module so
+ * search can index bodies without bloating the eagerly-imported content index.
  */
-export function collectSearchDocs(
-	contentDir: string,
-	routesDir: string,
-	versions?: DocsVersions
-): SearchDoc[] {
-	if (!fs.existsSync(contentDir)) return [];
-
-	const docs: SearchDoc[] = [];
-
-	for (const { source, front, url, title, version } of eachTitledPage(
-		contentDir,
-		routesDir,
-		versions
-	)) {
-		docs.push({
-			path: url,
-			title,
-			section: sectionLabel(front.section),
-			description: typeof front.description === 'string' ? front.description : undefined,
-			headings: extractToc(source).map((entry) => entry.title),
-			text: extractSearchText(source),
-			version
-		});
-	}
-
-	return docs.sort((a, b) => a.path.localeCompare(b.path));
+export function searchIndex(pages: SourcePage[], options: IndexOptions): SearchDoc[] {
+	return indexedPages(pages, options).map((page) => ({
+		path: page.url,
+		title: page.title,
+		section: sectionLabel(page.frontmatter.section),
+		description: stringField(page.frontmatter, 'description'),
+		headings: extractToc(page.source).map((entry) => entry.title),
+		text: extractSearchText(page.source),
+		version: page.version
+	}));
 }
 
 /**
- * Build the LLM records for every page: title, section, description, and the
- * full markdown content. Served as the `svelte-docsmith/llms` virtual module and
- * consumed server-side by `llms.txt` / `llms-full.txt` routes, so it never ships
- * to the client.
+ * The LLM index: title, section, description, and the full markdown content.
+ * Served as the `svelte-docsmith/llms` virtual module and consumed server-side
+ * by `llms.txt` / `llms-full.txt` routes, so it never ships to the client.
  */
-export function collectLlmsDocs(
-	contentDir: string,
-	routesDir: string,
-	versions?: DocsVersions
-): LlmsDoc[] {
-	if (!fs.existsSync(contentDir)) return [];
-
-	const docs: LlmsDoc[] = [];
-
-	for (const { source, front, url, title, version } of eachTitledPage(
-		contentDir,
-		routesDir,
-		versions
-	)) {
-		docs.push({
-			path: url,
-			title,
-			section: sectionKey(front.section),
-			order: typeof front.order === 'number' ? front.order : undefined,
-			description: typeof front.description === 'string' ? front.description : undefined,
-			content: extractLlmsContent(source, title),
-			version
-		});
-	}
-
-	return docs.sort((a, b) => a.path.localeCompare(b.path));
+export function llmsIndex(pages: SourcePage[], options: IndexOptions): LlmsDoc[] {
+	return indexedPages(pages, options).map((page) => ({
+		path: page.url,
+		title: page.title,
+		section: sectionKey(page.frontmatter.section),
+		order: numberField(page.frontmatter, 'order'),
+		description: stringField(page.frontmatter, 'description'),
+		content: extractLlmsContent(page.source, page.title),
+		version: page.version
+	}));
 }
