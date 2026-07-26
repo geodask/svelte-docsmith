@@ -31,6 +31,9 @@ export type ChangelogRelease = {
 	 * A hand-written page for this release, when `src/routes/changelog/<version>/`
 	 * exists. The generated entry is the fallback, so a release that deserves a
 	 * proper write-up can have one without the rest going undocumented.
+	 *
+	 * Joined to the origin for the feed with exactly one slash between, so the
+	 * leading slash is optional.
 	 */
 	path?: string;
 };

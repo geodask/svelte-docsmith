@@ -19,11 +19,12 @@ export function normalizePath(pathname: string): string {
 }
 
 /**
- * A base of `/` addresses everything, so it behaves as the empty base: with it
- * spelled `/`, the boundary check below would look for `//`. Reachable through
- * `docsBaseFrom` when a site puts its docs at the routes root.
+ * A base as a string prefix. The site root addresses everything, so it has no
+ * prefix: spelled `/`, the boundary check below would look for `//`. `''` and
+ * `/` are therefore the same base, and callers may pass whichever they hold.
+ * Reachable through `docsBaseFrom` when a site puts its docs at the routes root.
  */
-function baseOf(base: string): string {
+function baseAsPrefix(base: string): string {
 	return base === '/' ? '' : base;
 }
 
@@ -43,7 +44,7 @@ export function atBoundary(rest: string): boolean {
 
 /** True when `url` is `base` or sits beneath it on a segment boundary. */
 export function under(url: string, base: string): boolean {
-	const b = baseOf(base);
+	const b = baseAsPrefix(base);
 	return url.startsWith(b) && atBoundary(url.slice(b.length));
 }
 
@@ -56,7 +57,7 @@ export function under(url: string, base: string): boolean {
  */
 export function firstSegmentUnder(url: string, base: string): string | undefined {
 	if (!under(url, base)) return undefined;
-	const rest = url.slice(baseOf(base).length);
+	const rest = url.slice(baseAsPrefix(base).length);
 	if (!rest.startsWith('/')) return undefined;
 	return rest.slice(1).split(/[/#?]/)[0] || undefined;
 }

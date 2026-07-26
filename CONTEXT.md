@@ -56,7 +56,7 @@ _Avoid_: old version, previous version, snapshot
 The URL prefix owning one version: the docs base for the current version,
 `<docs base>/<id>` for an archive. A page belongs to the version with the
 longest base it sits under.
-_Avoid_: version prefix, version root
+_Avoid_: version prefix, basePath, version root
 
 **Active version**:
 The version owning the page currently being read. Falls back to the current
