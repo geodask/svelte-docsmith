@@ -52,7 +52,7 @@ const resolve = (pathname: string, over: Partial<Parameters<typeof resolveDocsPa
 		...over
 	});
 
-describe('pathname', () => {
+describe('resolveDocsPage: pathname', () => {
 	it('normalizes a trailing slash before matching content', () => {
 		const view = resolve('/docs/intro/');
 		expect(view.pathname).toBe('/docs/intro');
@@ -60,7 +60,7 @@ describe('pathname', () => {
 	});
 });
 
-describe('active version', () => {
+describe('resolveDocsPage: active version', () => {
 	it('resolves the version owning the page', () => {
 		expect(resolve('/docs/guide').activeVersionId).toBe('v2');
 		expect(resolve('/docs/v1/intro').activeVersionId).toBe('v1');
@@ -95,7 +95,7 @@ describe('active version', () => {
 	});
 });
 
-describe('entry', () => {
+describe('resolveDocsPage: entry', () => {
 	it('resolves from the scoped content, not the unscoped index', () => {
 		// Unreachable in production (archive URLs are prefixed, so paths are
 		// unique), but it pins which collection the lookup reads.
@@ -113,6 +113,16 @@ describe('entry', () => {
 		expect(view.toc).toEqual([{ id: 'why', title: 'Why', depth: 2 }]);
 	});
 
+	it('resolves from the scoped content on an archived path too', () => {
+		const shadowed: DocsContentItem[] = [
+			{ title: 'Ghost', path: '/docs/v1/intro', version: 'v2' },
+			...content
+		];
+		const view = resolve('/docs/v1/intro', { content: shadowed });
+		expect(view.entry?.title).toBe('Intro');
+		expect(view.entry?.version).toBe('v1');
+	});
+
 	it('is undefined for a page outside the content index', () => {
 		const view = resolve('/');
 		expect(view.entry).toBeUndefined();
@@ -122,7 +132,7 @@ describe('entry', () => {
 	});
 });
 
-describe('toc', () => {
+describe('resolveDocsPage: toc', () => {
 	it('comes from the resolved entry', () => {
 		expect(resolve('/docs/v1/intro').toc).toEqual([{ id: 'old', title: 'Old', depth: 2 }]);
 	});
@@ -132,7 +142,7 @@ describe('toc', () => {
 	});
 });
 
-describe('editHref', () => {
+describe('resolveDocsPage: editHref', () => {
 	it('joins the edit base to the page source, collapsing a trailing slash', () => {
 		expect(resolve('/docs/intro').editHref).toBe(
 			'https://github.com/o/r/edit/main/src/routes/docs/intro/+page.md'
@@ -153,7 +163,7 @@ describe('editHref', () => {
 	});
 });
 
-describe('lastUpdated', () => {
+describe('resolveDocsPage: lastUpdated', () => {
 	it('parses the entry stamp to a Date', () => {
 		expect(resolve('/docs/intro').lastUpdated?.toISOString()).toBe('2026-07-01T10:00:00.000Z');
 	});
@@ -166,14 +176,14 @@ describe('lastUpdated', () => {
 	});
 });
 
-describe('readingMinutes', () => {
+describe('resolveDocsPage: readingMinutes', () => {
 	it('passes the entry estimate through unformatted', () => {
 		expect(resolve('/docs/intro').readingMinutes).toBe(4);
 		expect(resolve('/docs/guide').readingMinutes).toBeUndefined();
 	});
 });
 
-describe('prev and next', () => {
+describe('resolveDocsPage: prev and next', () => {
 	it('pages through the flattened sidebar order', () => {
 		const view = resolve('/docs/guide');
 		expect(view.prev).toEqual({ title: 'Intro', url: '/docs/intro' });
@@ -199,7 +209,7 @@ describe('prev and next', () => {
 	});
 });
 
-describe('title', () => {
+describe('resolveDocsPage: title', () => {
 	it('is the page title from the nav', () => {
 		expect(resolve('/docs/middleware').title).toBe('Middleware');
 	});
@@ -209,7 +219,7 @@ describe('title', () => {
 	});
 });
 
-describe('breadcrumbs', () => {
+describe('resolveDocsPage: breadcrumbs', () => {
 	it('trails the group path, then the page', () => {
 		expect(resolve('/docs/middleware').breadcrumbs).toEqual(['Guides', 'Advanced', 'Middleware']);
 	});
@@ -223,7 +233,7 @@ describe('breadcrumbs', () => {
 	});
 });
 
-describe('nav', () => {
+describe('resolveDocsPage: nav', () => {
 	it('is built from the scoped content, so an archive shows only its own pages', () => {
 		expect(resolve('/docs/v1/intro').nav).toEqual([
 			{ title: 'Start', items: [{ title: 'Intro', url: '/docs/v1/intro' }] }
