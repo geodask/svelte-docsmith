@@ -30,7 +30,8 @@
 		"dist",
 		"bin",
 		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*"
+		"!dist/**/*.spec.*",
+		"!dist/**/_fixtures/**"
 	],
 	"sideEffects": false,
 	"svelte": "./dist/index.js",
