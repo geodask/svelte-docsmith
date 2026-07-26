@@ -1,9 +1,9 @@
-import type { DocsmithConfig } from 'svelte-docsmith';
+import { defineConfig } from 'svelte-docsmith';
 import { version } from 'svelte-docsmith/package.json';
 
 // One config for the whole site: the docs shell, the landing page, and the
 // themes page all pass this, so the header/footer stay identical everywhere.
-export const siteConfig: DocsmithConfig = {
+export const siteConfig = defineConfig({
 	title: 'Svelte DocSmith',
 	description:
 		'A documentation framework for Svelte. Interactive examples in one real, stateful app, markdown as routes, and a sidebar that builds itself.',
@@ -58,4 +58,4 @@ export const siteConfig: DocsmithConfig = {
 			}
 		]
 	}
-};
+});
