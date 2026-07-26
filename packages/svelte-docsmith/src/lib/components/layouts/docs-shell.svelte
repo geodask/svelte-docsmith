@@ -2,12 +2,7 @@
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
 	import {
-		navFromContent,
-		flattenNav,
-		navTrail,
-		activeVersion,
-		currentVersion,
-		scopeContent,
+		resolveDocsPage,
 		type DocsContentItem,
 		type DocsmithConfig,
 		type SearchDoc,
@@ -15,7 +10,6 @@
 	} from '$lib/core/index.js';
 	import { createToc } from '$lib/toc/index.js';
 	import { createSearchState } from '$lib/search/context.svelte.js';
-	import { normalizePath } from '$lib/utils/normalize-path.js';
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
 	import ThemeProvider from '../chrome/theme-provider.svelte';
@@ -25,7 +19,7 @@
 	import DocsMobileHeader from './docs-mobile-header.svelte';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import PrevNextNav from './prev-next-nav.svelte';
-	import Breadcrumbs, { type Crumb } from './breadcrumbs.svelte';
+	import Breadcrumbs from './breadcrumbs.svelte';
 	import CopyPageMenu from './copy-page-menu.svelte';
 	import PageFeedback from './page-feedback.svelte';
 	import SeoHead from './seo-head.svelte';
@@ -115,70 +109,41 @@
 	// svelte-ignore state_referenced_locally
 	const searchState = search ? createSearchState() : undefined;
 
-	// Match content by a trailing-slash-normalized path, so `/docs/intro/` and
-	// `/docs/intro` resolve to the same page regardless of the app's trailingSlash.
-	const pathname = $derived(normalizePath(page.url.pathname));
-
-	// Versioning (a no-op when `versions` is empty): the version owning the current
-	// page — falling back to the current version off the docs tree, e.g. a `page`
-	// layout — plus the content scoped to it. Scoping the input to navFromContent
-	// flows through to prev/next, breadcrumbs, and the sidebar.
-	const activeVer = $derived(
-		activeVersion(versions, pathname) ?? (versions.length ? currentVersion(versions) : undefined)
+	// Every rule about the page being read is resolved in one pure module
+	// (`core/docs-page.ts`): the active version and the content scoped to it, the
+	// sidebar, the entry, prev/next, breadcrumbs, the server-rendered TOC. Reading
+	// them off one view keeps the parts from disagreeing about which page or
+	// version is active. What stays here is presentation: locale formatting, the
+	// "min read" copy, and the live TOC.
+	const view = $derived(
+		resolveDocsPage({
+			content,
+			versions,
+			pathname: page.url.pathname,
+			editUrl: config.editUrl,
+			siteTitle: config.title
+		})
 	);
-	const currentVer = $derived(currentVersion(versions));
-	// An archived version is frozen, so don't invite edits to it.
-	const isArchived = $derived(Boolean(activeVer && !activeVer.current));
-	const scopedContent = $derived(scopeContent(content, activeVer?.id));
-
-	const nav = $derived(navFromContent(scopedContent));
 
 	// Keep the search palette scoped to the version currently being read.
 	$effect(() => {
-		if (searchState) searchState.version = activeVer?.id;
+		if (searchState) searchState.version = view.activeVersionId;
 	});
 
-	// The content entry for the current route drives the SEO title/description,
-	// the "Edit this page" link, and the "Last updated" stamp.
-	const currentEntry = $derived(content.find((item) => item.path === pathname));
-
-	const editHref = $derived(
-		config.editUrl && currentEntry?.sourcePath && !isArchived
-			? config.editUrl.replace(/\/$/, '') + '/' + currentEntry.sourcePath
+	const lastUpdatedLabel = $derived.by(() =>
+		view.lastUpdated
+			? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: 'numeric' }).format(
+					view.lastUpdated
+				)
 			: undefined
 	);
-	const lastUpdatedLabel = $derived.by(() => {
-		const iso = currentEntry?.lastUpdated;
-		if (!iso) return undefined;
-		const d = new Date(iso);
-		return Number.isNaN(d.getTime())
-			? undefined
-			: new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: 'numeric' }).format(
-					d
-				);
-	});
-	const showFooterMeta = $derived(Boolean(editHref || lastUpdatedLabel));
+	const showFooterMeta = $derived(Boolean(view.editHref || lastUpdatedLabel));
 
 	const readingTimeLabel = $derived(
-		readingTime && currentEntry?.readingTime ? `${currentEntry.readingTime} min read` : undefined
+		readingTime && view.readingMinutes ? `${view.readingMinutes} min read` : undefined
 	);
 
-	// Ordered flat page list (leaves in sidebar reading order) drives prev/next.
-	const flatNav = $derived(flattenNav(nav));
-	const pageIndex = $derived(flatNav.findIndex((item) => item.url === pathname));
-	const prev = $derived(pageIndex > 0 ? flatNav[pageIndex - 1] : undefined);
-	const next = $derived(
-		pageIndex >= 0 && pageIndex < flatNav.length - 1 ? flatNav[pageIndex + 1] : undefined
-	);
-	const currentTitle = $derived(pageIndex >= 0 ? flatNav[pageIndex].title : config.title);
-
-	// Breadcrumb trail: the current page's sidebar group path, then the page
-	// itself (so a nested page reads e.g. Guides > Advanced > Middleware).
-	const breadcrumbs = $derived.by(() => {
-		const crumbs: Crumb[] = (navTrail(nav, pathname) ?? []).map((title) => ({ title }));
-		if (pageIndex >= 0) crumbs.push({ title: currentTitle });
-		return crumbs;
-	});
+	const breadcrumbs = $derived(view.breadcrumbs.map((title) => ({ title })));
 
 	// In-page TOC, scanned from the rendered content and re-scanned after every
 	// navigation (client-side included) so it never goes stale.
@@ -188,18 +153,17 @@
 		toc.refresh();
 	});
 
-	// Server-rendered TOC (headings extracted at build time into the content
-	// index) so the list is present on first paint. Once the client engine has
-	// scanned the DOM, its items take over (scroll-spy + edge-case accuracy).
-	const pageToc = $derived(content.find((item) => item.path === pathname)?.toc ?? []);
-	const tocItems = $derived(toc.items.length ? toc.items : pageToc);
+	// The build-time TOC from the content index is present on first paint; once
+	// the client engine has scanned the DOM, its items take over (scroll-spy +
+	// edge-case accuracy).
+	const tocItems = $derived(toc.items.length ? toc.items : view.toc);
 </script>
 
 <SeoHead
 	{config}
-	title={seo?.title ?? currentEntry?.title}
-	description={seo?.description ?? currentEntry?.description}
-	noindex={activeVer?.noindex}
+	title={seo?.title ?? view.entry?.title}
+	description={seo?.description ?? view.entry?.description}
+	noindex={view.activeVersion?.noindex}
 />
 
 <div class="relative isolate flex min-h-screen flex-col">
@@ -230,7 +194,15 @@
 
 	<!-- One header system everywhere: DocsHeader on desktop, DocsMobileHeader
 	     below lg. The `page` layout just omits the sidebar nav and in-page TOC. -->
-	<DocsHeader {config} {logo} {actions} {versions} active={activeVer} {content} {pathname} />
+	<DocsHeader
+		{config}
+		{logo}
+		{actions}
+		{versions}
+		active={view.activeVersion}
+		{content}
+		pathname={view.pathname}
+	/>
 
 	{#if layout === 'page'}
 		<DocsMobileHeader {config} {logo} {actions} />
@@ -241,20 +213,20 @@
 	{:else}
 		<DocsMobileHeader
 			{config}
-			{nav}
-			title={currentTitle}
+			nav={view.nav}
+			title={view.title}
 			{tocItems}
 			tocActiveId={toc.activeId}
 			{logo}
 			{actions}
 			{versions}
-			active={activeVer}
+			active={view.activeVersion}
 			{content}
-			{pathname}
+			pathname={view.pathname}
 		/>
 
 		<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
-			<DocsSidebar {nav} />
+			<DocsSidebar nav={view.nav} />
 
 			<main
 				bind:this={contentEl}
@@ -262,8 +234,13 @@
 				tabindex="-1"
 				class="min-w-0 flex-1 py-6 lg:py-0"
 			>
-				{#if activeVer && currentVer && !activeVer.current}
-					<VersionBanner active={activeVer} current={currentVer} {pathname} {content} />
+				{#if view.isArchived && view.activeVersion && view.currentVersion}
+					<VersionBanner
+						active={view.activeVersion}
+						current={view.currentVersion}
+						pathname={view.pathname}
+						{content}
+					/>
 				{/if}
 
 				<div class="flex items-start justify-between gap-4">
@@ -274,8 +251,8 @@
 								{readingTimeLabel}
 							</span>
 						{/if}
-						{#if copyPage && currentEntry}
-							<CopyPageMenu path={pathname} origin={config.url ?? ''} />
+						{#if copyPage && view.entry}
+							<CopyPageMenu path={view.pathname} origin={config.url ?? ''} />
 						{/if}
 					</div>
 				</div>
@@ -285,9 +262,9 @@
 					<div
 						class="text-muted-foreground border-border mt-10 flex flex-wrap items-center gap-3 border-t pt-6 text-sm"
 					>
-						{#if editHref}
+						{#if view.editHref}
 							<a
-								href={editHref}
+								href={view.editHref}
 								target="_blank"
 								rel="noopener noreferrer"
 								class="hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
@@ -302,18 +279,18 @@
 					</div>
 				{/if}
 
-				{#if feedback && currentEntry}
-					{#key pathname}
+				{#if feedback && view.entry}
+					{#key view.pathname}
 						<div class="mt-8">
 							<PageFeedback
-								path={pathname}
+								path={view.pathname}
 								onfeedback={typeof feedback === 'function' ? feedback : undefined}
 							/>
 						</div>
 					{/key}
 				{/if}
 
-				<PrevNextNav {prev} {next} bordered={!showFooterMeta} />
+				<PrevNextNav prev={view.prev} next={view.next} bordered={!showFooterMeta} />
 			</main>
 
 			<!-- Reserve the TOC column so its content filling in after hydration

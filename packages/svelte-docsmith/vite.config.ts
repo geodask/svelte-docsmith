@@ -16,6 +16,8 @@ export default defineConfig({
 			include: [
 				'src/lib/core/config.ts',
 				'src/lib/core/nav.ts',
+				'src/lib/core/version.ts',
+				'src/lib/core/docs-page.ts',
 				'src/lib/buildtime/vite/**/*.ts',
 				'src/lib/buildtime/archive.ts',
 				'src/lib/buildtime/preprocess.ts',
