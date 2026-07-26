@@ -13,7 +13,7 @@ import path from 'node:path';
 import { assertValidVersionId } from '../../core/version.js';
 import { freezeLastUpdated, isInheritedRouteFile, rewriteDocsLinks } from '../archive.js';
 import { ARCHIVE_MARKER, discoverArchives, markerContents } from '../archives.js';
-import { lastCommitDate } from '../git.js';
+import { commitDates } from '../git.js';
 import { docsBaseFrom } from '../paths.js';
 import { isPageFile } from '../vite/pages.js';
 import { CliError } from './error.js';
@@ -96,6 +96,10 @@ export function archiveVersion(
 		}
 	}
 
+	// Read the dates before copying, so the walk sees the docs root as it was
+	// rather than a tree half full of untracked copies.
+	const dates = commitDates(contentDir);
+
 	copyCurrent(contentDir, toDir);
 	fs.writeFileSync(path.join(toDir, ARCHIVE_MARKER), markerContents(id));
 
@@ -108,7 +112,7 @@ export function archiveVersion(
 			file,
 			freezeLastUpdated(
 				rewriteDocsLinks(text, { docsBase, versionId: id, archivedIds }),
-				lastCommitDate(source)
+				dates.get(source)
 			)
 		);
 	}
