@@ -28,8 +28,13 @@ describe('splitFrontmatter', () => {
 		});
 	});
 
-	it('does not end the block on a longer rule of dashes', () => {
-		expect(splitFrontmatter('---\ntitle: X\n----\nmore: y\n---\nbody').body).toBe('body');
+	// mdsvex strips through the first line starting with `---`, so reading the
+	// block any more strictly here would disagree with the rendered page.
+	it('ends the block on the first line starting with `---`, as mdsvex does', () => {
+		expect(splitFrontmatter('---\ntitle: X\n----\nmore: y\n---\nbody')).toEqual({
+			frontmatter: 'title: X',
+			body: '-\nmore: y\n---\nbody'
+		});
 	});
 
 	it('leaves a `---` thematic break in the body alone', () => {
