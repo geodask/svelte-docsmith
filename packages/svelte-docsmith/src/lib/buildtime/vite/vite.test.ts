@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { collectDocs, collectSearchDocs, collectLlmsDocs, docsmith } from './index.js';
-import type { DocsVersion } from '$lib/core/version.js';
+import type { DocsVersions } from '$lib/core/version.js';
 import type { Plugin } from 'vite';
 
 // Plugin hooks are typed as ObjectHook unions; in these plugins they are plain
@@ -134,23 +134,30 @@ describe('collectDocs', () => {
 		]);
 	});
 
-	it('tags each page with the version folder it lives under', () => {
+	it('tags archive folders by id, and everything else as the current version', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/v2/intro', 'title: Intro');
+		writePage('docs/intro', 'title: Intro');
+		writePage('docs/guides/deep/nested', 'title: Nested');
 		writePage('docs/v1/intro', 'title: Intro');
-		writePage('docs/next/intro', 'title: Intro');
 
-		const versions: DocsVersion[] = [
-			{ id: 'next', label: 'next', path: 'next', prerelease: true },
-			{ id: 'v2', label: 'v2', path: 'v2', latest: true },
-			{ id: 'v1', label: 'v1', path: 'v1' }
-		];
+		const versions: DocsVersions = {
+			current: { id: 'v2', label: 'v2' },
+			archived: [{ id: 'v1', label: 'v1' }]
+		};
 		const version = Object.fromEntries(
 			collectDocs(path.join(routesDir, 'docs'), routesDir, versions).map((d) => [d.path, d.version])
 		);
-		expect(version['/docs/v2/intro']).toBe('v2');
+		expect(version['/docs/intro']).toBe('v2');
+		// A section folder is not an archive, so its pages stay on the current version.
+		expect(version['/docs/guides/deep/nested']).toBe('v2');
 		expect(version['/docs/v1/intro']).toBe('v1');
-		expect(version['/docs/next/intro']).toBe('next');
+	});
+
+	it('prefers a frontmatter lastUpdated over the git date, so archives keep their real date', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', "title: Intro\nlastUpdated: '2026-03-04'");
+
+		expect(collectDocs(path.join(routesDir, 'docs'), routesDir)[0].lastUpdated).toBe('2026-03-04');
 	});
 
 	it('leaves the version undefined on an unversioned site', () => {
@@ -436,20 +443,23 @@ describe('docsmith() content plugin', () => {
 
 	it('emits a resolved versions manifest alongside docs when versions are declared', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/v2/intro', 'title: Intro\norder: 1');
+		writePage('docs/intro', 'title: Intro\norder: 1');
+		writePage('docs/v1/intro', 'title: Intro\norder: 1');
 
 		const plugin = docsmith({
 			content: path.join(routesDir, 'docs'),
 			routes: routesDir,
-			versions: [{ id: 'v2', label: 'v2', path: 'v2', latest: true }]
+			versions: { current: { id: 'v2', label: 'v2' }, archived: [{ id: 'v1', label: 'v1' }] }
 		}).find((p) => p.name === 'docsmith-content')! as Plugin;
 		const load = plugin.load as unknown as Load;
 		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:content') as string;
 
 		expect(out).toContain('export const versions =');
-		expect(out).toContain('"basePath": "/docs/v2"');
-		expect(out).toContain('"landing": "/docs/v2/intro"');
-		expect(out).toContain('"version": "v2"'); // page tagged in the docs array
+		// The current version keeps the unprefixed docs root; only archives are prefixed.
+		expect(out).toContain('"basePath": "/docs"');
+		expect(out).toContain('"landing": "/docs/intro"');
+		expect(out).toContain('"basePath": "/docs/v1"');
+		expect(out).toContain('"version": "v2"'); // unprefixed page tagged as current
 	});
 
 	it('emits an empty versions manifest for an unversioned site', () => {

@@ -1,6 +1,6 @@
 ---
 title: Versioning
-description: Publish docs for every release, with a version switcher and version-scoped navigation.
+description: Keep the docs for older releases live, with a version switcher and version-scoped navigation.
 section: Core Concepts
 order: 12
 ---
@@ -9,17 +9,38 @@ order: 12
 
 Ship a breaking major and two readers need different things: the one still on
 the old release needs its docs, and the one on the new release should not trip
-over stale pages. Versioning keeps every release live at its own URL, scopes the
-sidebar and search to the version being read, and steers visitors who land on an
-old page to the current one. It is opt-in. Declare no versions and your docs
-stay a single tree, exactly as before.
+over stale pages. Versioning keeps the old release live at its own URL, scopes
+the sidebar and search to the version being read, and steers visitors who land
+on an old page to the current one.
+
+It is opt-in, and it is designed so that turning it on changes nothing. Your
+current docs stay exactly where they are.
+
+## The model
+
+The **current version** is the docs for your latest release. It lives at your
+docs root and is served unprefixed, so `/docs/theming` is `/docs/theming`
+forever. It is also the only version you edit.
+
+An **archived version** is a frozen copy of the docs for a superseded release,
+served under its own prefix at `/docs/v1/theming`. You never edit an archive.
+You create one at the moment you ship a breaking release, and then carry on
+editing the docs root.
+
+That means adopting versioning never moves a URL, and shipping a new release
+never moves one either. Only the archive is new.
+
+```text
+src/routes/docs/
+  introduction/+page.md      →  /docs/introduction   (current)
+  theming/+page.md           →  /docs/theming        (current)
+  v1/introduction/+page.md   →  /docs/v1/introduction (archived)
+```
 
 ## Declare your versions
 
 Versions live in the `docsmith()` Vite plugin, because it scans them at build
-time to tag each page. Every version is a folder under your docs directory and
-is served with a matching URL prefix. One version is the `latest` release
-readers get by default; another can be an unreleased `next`.
+time to tag each page.
 
 ```ts
 // vite.config.ts
@@ -28,33 +49,27 @@ import { docsmith } from 'svelte-docsmith/vite';
 export default defineConfig({
 	plugins: [
 		docsmith({
-			versions: [
-				{ id: 'next', label: 'v3 (next)', path: 'next', prerelease: true },
-				{ id: 'v2', label: 'v2', path: 'v2', latest: true },
-				{ id: 'v1', label: 'v1', path: 'v1' }
-			]
+			versions: {
+				current: { id: 'v2', label: 'v2' },
+				archived: [{ id: 'v1', label: 'v1' }]
+			}
 		})
 		// tailwindcss(), sveltekit()
 	]
 });
 ```
 
-Each page then lives under its version's folder, and its URL carries the prefix:
+Each archived version's `id` is both its folder name under your docs directory
+and its URL prefix. The current version has no folder of its own: its pages are
+the ones that are not inside an archive.
 
-```text
-src/routes/docs/
-  next/ introduction/+page.md   →  /docs/next/introduction   (unreleased)
-  v2/   introduction/+page.md   →  /docs/v2/introduction     (latest)
-  v1/   introduction/+page.md   →  /docs/v1/introduction     (archived)
-```
-
-Each version's sidebar is derived from that version's own frontmatter, so
-different releases can have entirely different structures with no extra config.
+Declaring only `current` is perfectly valid, and is how you start. Nothing
+renders differently until the first archive exists.
 
 ## Wire it into the shell
 
 The plugin emits a `versions` manifest next to your content. Pass both to
-`DocsShell`, and redirect the bare `/docs` to the latest release.
+`DocsShell`.
 
 ```svelte
 <!-- src/routes/docs/+layout.svelte -->
@@ -76,63 +91,78 @@ The plugin emits a `versions` manifest next to your content. Pass both to
 </DocsShell>
 ```
 
-```ts
-// src/routes/docs/+page.ts — send the bare /docs to the latest release
-import { redirect } from '@sveltejs/kit';
-import { versions } from 'svelte-docsmith/content';
-import { latestLandingUrl } from 'svelte-docsmith';
-
-export const load = () => redirect(307, latestLandingUrl(versions) ?? '/');
-```
-
-That is the whole wiring. `DocsShell` reads the active version from the URL and
-scopes the sidebar, search, prev/next, and breadcrumbs to it.
-
-Point your entry links at `/docs`, not a specific page. Your header nav link and
-any landing-page call to action should target `/docs` so they follow the redirect
-to the latest version. A hardcoded `/docs/introduction` would 404 once that page
-moves under a version folder.
+That is the whole wiring. No redirect, no route changes. `DocsShell` reads the
+active version from the URL and scopes the sidebar, search, prev/next, and
+breadcrumbs to it.
 
 ## What readers get
 
-A **version switcher** in the header lists every version and keeps readers on
-the same page when they switch, falling back to that version's home when the
-page has no equivalent there. On any version that is not the latest, a **banner**
-says what they are looking at and links to the current equivalent: a warning on
-an archived version, an unreleased notice on `next`.
+Once at least one archive exists, a **version switcher** appears in the header.
+It keeps readers on the same page when they switch, falling back to that
+version's home when the page has no equivalent there.
+
+On an archived version, a **banner** tells readers what they are looking at and
+links to the current equivalent. Archived pages also drop their "Edit this page"
+link, since the archive is frozen.
 
 ## Search engines see one version
 
-Old and unreleased docs should not compete with the current release in search
-results, but old docs are real content people still look for. So archived
-versions stay indexable with a self-canonical, a `prerelease` version gets
-`noindex`, and `sitemap.xml` and `llms.txt` list the latest release only. Scope
-those endpoints with `latestOnly`:
+Old docs should not compete with the current release in search results, but they
+are real content people still look for. So archives stay indexable with a
+self-canonical, while `sitemap.xml` and `llms.txt` list the current version
+only. Scope those endpoints with `currentOnly`:
 
 ```ts
 // src/routes/sitemap.xml/+server.ts
 import { docs, versions } from 'svelte-docsmith/content';
-import { generateSitemap, latestOnly } from 'svelte-docsmith';
+import { generateSitemap, currentOnly } from 'svelte-docsmith';
 import { siteConfig } from '$lib/site-config';
 
 export function GET() {
 	const body = generateSitemap(siteConfig.url ?? '', [
 		{ path: '/' },
-		...latestOnly(docs, versions).map((d) => ({ path: d.path, lastmod: d.lastUpdated }))
+		...currentOnly(docs, versions).map((d) => ({ path: d.path, lastmod: d.lastUpdated }))
 	]);
 	return new Response(body, { headers: { 'content-type': 'application/xml' } });
 }
 ```
 
-## Cut a new version
+To keep a version out of search engines entirely, set `noindex: true` on it.
 
-You edit `next` continuously. When you release it, freeze a snapshot so the old
-docs stay put while `next` moves on to the following release:
+## Archive a release
+
+When you ship a breaking release, freeze the docs that described the old one:
 
 ```bash
-npx svelte-docsmith cut-version v3 --label v3
+npx svelte-docsmith archive-version v1 --label v1
 ```
 
-This copies `next/` into a frozen `v3/` folder and prints the `versions` entry to
-paste. Mark the new snapshot `latest`, drop `latest` from the version it
-replaces, and keep editing `next` for whatever comes next.
+This copies your current docs into `v1/`, and does two things a plain copy
+would get wrong. It rewrites in-content links so they stay inside the archive,
+because an absolute link like `](/docs/theming)` would otherwise keep pointing
+at your newest docs. And it writes each page's real last-updated date into its
+frontmatter, so the archive does not claim every page changed on the day you
+created it.
+
+Review the diff, then update your config to serve the archive and rename the
+current version:
+
+```ts
+versions: {
+	current: { id: 'v2', label: 'v2' },
+	archived: [{ id: 'v1', label: 'v1' }]
+}
+```
+
+## What archives cost
+
+Worth knowing before you keep many of them around:
+
+- Archived pages are compiled by your current setup, so a breaking change to a
+  docs component changes how every archive renders.
+- Each archive adds its pages to the content index and its text to the search
+  index, both of which grow linearly with the number of versions you keep.
+- Archive folders are real files in your repo, permanently.
+
+Keeping one or two archives is cheap. Keeping ten is a decision worth making
+deliberately.

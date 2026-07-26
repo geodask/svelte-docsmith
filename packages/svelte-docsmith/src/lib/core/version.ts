@@ -1,35 +1,46 @@
 /**
  * Versioned-docs domain logic. Pure and framework-agnostic: the vite plugin
  * resolves the author's versions against the docs URL base at build time and
- * emits the manifest; `DocsShell` and the switcher read it at runtime. All of it
- * is a no-op when a site declares no versions.
+ * emits the manifest; `DocsShell` and the switcher read it at runtime.
+ *
+ * The current version is served unprefixed at the docs root and is the only one
+ * anyone edits; superseded releases are frozen copies under their own prefix.
+ * See `docs/adr/0001-unprefixed-current-docs.md`. All of it is a no-op when a
+ * site declares no versions.
  */
 import type { DocsContentItem } from './content.js';
 import { navFromContent, flattenNav } from './nav.js';
 import { normalizePath } from '../utils/normalize-path.js';
 
-/** A documentation version, declared in the `docsmith()` vite plugin. */
+/** One documentation version, declared in the `docsmith()` vite plugin. */
 export type DocsVersion = {
-	/** Stable id, used in the content index and as the switcher key. */
+	/** Stable id. Also the URL/directory segment for an archived version. */
 	id: string;
-	/** Label shown in the switcher and banner, e.g. `'v2 (latest)'`. */
+	/** Label shown in the switcher and banner, e.g. `'v2'`. */
 	label: string;
-	/** URL/directory segment under the docs root, e.g. `'v2'` → `/docs/v2`. */
-	path: string;
-	/** The default readers get; the bare docs root redirects here. Exactly one. */
-	latest?: boolean;
-	/** An unreleased "next": kept out of search engines and shown with a preview banner. */
-	prerelease?: boolean;
-	/** Force search-engine `noindex`. Defaults to `true` for a prerelease, else `false`. */
+	/** Keep this version out of search engines. Defaults to `false`. */
 	noindex?: boolean;
+};
+
+/**
+ * A site's versions. `current` is the docs for the latest release: it lives at
+ * the docs root, is served unprefixed, and is the folder you edit. `archived`
+ * holds frozen copies of superseded releases, each in `<docs root>/<id>/`, in
+ * the order they should appear in the switcher (newest first).
+ */
+export type DocsVersions = {
+	current: DocsVersion;
+	archived?: DocsVersion[];
 };
 
 /** A {@link DocsVersion} with the URL fields the runtime needs, computed at build time. */
 export type ResolvedVersion = DocsVersion & {
-	/** Absolute URL base, e.g. `/docs/v2`. */
+	/** Absolute URL base: the docs root for `current`, `/docs/<id>` for an archive. */
 	basePath: string;
-	/** The version's first page in sidebar order, for the redirect + switcher fallback. */
+	/** The version's first page in sidebar order, for the switcher's fallback. */
 	landing: string;
+	/** Whether this is the current version (as opposed to an archived one). */
+	current: boolean;
 	/** Whether search engines should skip this version. */
 	noindex: boolean;
 };
@@ -41,28 +52,45 @@ function underBase(pathname: string, base: string): boolean {
 
 /**
  * Resolve author versions against the docs URL base (e.g. `/docs`) and the
- * collected content: compute each version's `basePath`, its `landing` (first
- * page in sidebar reading order), and its effective `noindex`. Emitted as the
- * `versions` manifest in `svelte-docsmith/content`.
+ * collected content: compute each version's `basePath` and its `landing` (first
+ * page in sidebar reading order). Emitted as the `versions` manifest in
+ * `svelte-docsmith/content`, current first, then archives in declared order.
+ *
+ * Returns an empty manifest for an unversioned site, which makes every
+ * downstream scoping, switcher and banner step a no-op.
  */
 export function resolveVersions(
-	versions: DocsVersion[],
+	versions: DocsVersions | undefined,
 	docsBase: string,
 	content: DocsContentItem[]
 ): ResolvedVersion[] {
+	if (!versions) return [];
 	const base = normalizePath(docsBase);
-	return versions.map((v) => {
-		const basePath = normalizePath(base + '/' + v.path.replace(/^\/+|\/+$/g, ''));
-		const items = content.filter((item) => item.version === v.id);
-		const landing = flattenNav(navFromContent(items))[0]?.url ?? basePath;
-		return { ...v, basePath, landing, noindex: v.noindex ?? Boolean(v.prerelease) };
-	});
+
+	const resolve = (version: DocsVersion, basePath: string, current: boolean): ResolvedVersion => {
+		const items = content.filter((item) => item.version === version.id);
+		return {
+			...version,
+			basePath,
+			landing: flattenNav(navFromContent(items))[0]?.url ?? basePath,
+			current,
+			noindex: version.noindex ?? false
+		};
+	};
+
+	return [
+		resolve(versions.current, base, true),
+		...(versions.archived ?? []).map((version) =>
+			resolve(version, normalizePath(base + '/' + version.id), false)
+		)
+	];
 }
 
 /**
- * The resolved version owning `pathname`, by longest matching `basePath`
- * (so `/docs/v2/x` picks `v2`, not a shorter sibling). `undefined` when no
- * version matches (e.g. the bare docs root, or an unversioned site).
+ * The resolved version owning `pathname`, by longest matching `basePath`. An
+ * archive's base is longer than the current version's, so `/docs/v1/x` picks
+ * `v1` while `/docs/x` falls to the current version. `undefined` off the docs
+ * tree entirely, or on an unversioned site.
  */
 export function activeVersion(
 	versions: ResolvedVersion[],
@@ -78,27 +106,22 @@ export function activeVersion(
 	return best;
 }
 
-/** The version flagged `latest` (the default readers get). */
-export function latestVersion(versions: ResolvedVersion[]): ResolvedVersion | undefined {
-	return versions.find((v) => v.latest);
-}
-
-/** The latest released version's landing URL — the target for the bare `/docs` redirect. */
-export function latestLandingUrl(versions: ResolvedVersion[]): string | undefined {
-	return latestVersion(versions)?.landing;
+/** The current version: the docs for the latest release. */
+export function currentVersion(versions: ResolvedVersion[]): ResolvedVersion | undefined {
+	return versions.find((v) => v.current);
 }
 
 /**
- * Keep only the latest released version's pages — for `sitemap.xml` and
- * `llms.txt`, so search engines and LLMs index one canonical set. A no-op when
- * the site declares no versions. Works over any record carrying `version`.
+ * Keep only the current version's pages, for `sitemap.xml` and `llms.txt`, so
+ * search engines and LLMs index one canonical set. A no-op when the site
+ * declares no versions. Works over any record carrying `version`.
  */
-export function latestOnly<T extends { version?: string }>(
+export function currentOnly<T extends { version?: string }>(
 	items: T[],
 	versions: ResolvedVersion[]
 ): T[] {
-	const latest = latestVersion(versions);
-	return latest ? items.filter((item) => item.version === latest.id) : items;
+	const current = currentVersion(versions);
+	return current ? items.filter((item) => item.version === current.id) : items;
 }
 
 /**

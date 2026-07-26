@@ -6,7 +6,7 @@
 		flattenNav,
 		navTrail,
 		activeVersion,
-		latestVersion,
+		currentVersion,
 		scopeContent,
 		type DocsContentItem,
 		type DocsmithConfig,
@@ -55,8 +55,9 @@
 		/**
 		 * The resolved version manifest from `svelte-docsmith/content` (its
 		 * `versions` export). Provide it to enable versioned docs — the sidebar,
-		 * search, prev/next, and breadcrumbs scope to the active version, and a
-		 * header switcher + old-version banner appear. Omit for a single tree.
+		 * search, prev/next, and breadcrumbs scope to the version being read, and
+		 * once an archived version exists a header switcher and an old-version
+		 * banner appear. Omit for a single tree.
 		 */
 		versions?: ResolvedVersion[];
 		children: Snippet;
@@ -70,8 +71,9 @@
 		 * Enable the ⌘K search palette by lazily providing the generated index,
 		 * e.g. `search={() => import('svelte-docsmith/search').then((m) => m.docs)}`.
 		 * Omit to hide search. The index is fetched only when search first opens.
+		 * Receives the active version id on a versioned site.
 		 */
-		search?: () => Promise<SearchDoc[]>;
+		search?: (versionId?: string) => Promise<SearchDoc[]>;
 		/** Custom logo mark for the header and mobile menu. */
 		logo?: Snippet;
 		/** Extra header controls (desktop and mobile), before the theme toggle. */
@@ -118,13 +120,15 @@
 	const pathname = $derived(normalizePath(page.url.pathname));
 
 	// Versioning (a no-op when `versions` is empty): the version owning the current
-	// page — falling back to the latest on an unmatched docs URL — the latest for
-	// the banner, and the content scoped to the active version. Scoping the input
-	// to navFromContent flows through to prev/next, breadcrumbs, and the sidebar.
+	// page — falling back to the current version off the docs tree, e.g. a `page`
+	// layout — plus the content scoped to it. Scoping the input to navFromContent
+	// flows through to prev/next, breadcrumbs, and the sidebar.
 	const activeVer = $derived(
-		activeVersion(versions, pathname) ?? (versions.length ? latestVersion(versions) : undefined)
+		activeVersion(versions, pathname) ?? (versions.length ? currentVersion(versions) : undefined)
 	);
-	const latestVer = $derived(latestVersion(versions));
+	const currentVer = $derived(currentVersion(versions));
+	// An archived version is frozen, so don't invite edits to it.
+	const isArchived = $derived(Boolean(activeVer && !activeVer.current));
 	const scopedContent = $derived(scopeContent(content, activeVer?.id));
 
 	const nav = $derived(navFromContent(scopedContent));
@@ -139,7 +143,7 @@
 	const currentEntry = $derived(content.find((item) => item.path === pathname));
 
 	const editHref = $derived(
-		config.editUrl && currentEntry?.sourcePath
+		config.editUrl && currentEntry?.sourcePath && !isArchived
 			? config.editUrl.replace(/\/$/, '') + '/' + currentEntry.sourcePath
 			: undefined
 	);
@@ -258,8 +262,8 @@
 				tabindex="-1"
 				class="min-w-0 flex-1 py-6 lg:py-0"
 			>
-				{#if activeVer && latestVer && activeVer.id !== latestVer.id}
-					<VersionBanner active={activeVer} latest={latestVer} {pathname} {content} />
+				{#if activeVer && currentVer && !activeVer.current}
+					<VersionBanner active={activeVer} current={currentVer} {pathname} {content} />
 				{/if}
 
 				<div class="flex items-start justify-between gap-4">

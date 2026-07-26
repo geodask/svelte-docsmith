@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { DocsContentItem, LlmsDoc, SearchDoc } from '$lib/core/content.js';
-import type { DocsVersion } from '$lib/core/version.js';
+import type { DocsVersions } from '$lib/core/version.js';
 import { listPageFiles } from './pages.js';
 import { parseFrontmatter } from './frontmatter.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
@@ -54,7 +54,7 @@ function sectionKey(value: unknown): string | undefined {
 function* eachTitledPage(
 	contentDir: string,
 	routesDir: string,
-	versions: DocsVersion[]
+	versions: DocsVersions | undefined
 ): Generator<PageEntry> {
 	for (const file of listPageFiles(contentDir)) {
 		const source = fs.readFileSync(file, 'utf-8');
@@ -63,11 +63,20 @@ function* eachTitledPage(
 
 		const dir = path.dirname(file);
 		const url = '/' + path.relative(routesDir, dir).split(path.sep).join('/');
-		// A page's version is the first directory segment under the content dir
-		// that matches a declared version's `path`. No versions ⇒ always undefined.
+		yield { source, front, url, title: front.title, file, version: versionOf(dir) };
+	}
+
+	/**
+	 * A page belongs to an archived version when its first directory segment under
+	 * the content dir is that archive's id; everything else is the current
+	 * version, which lives unprefixed at the docs root. No versions ⇒ undefined,
+	 * which keeps an unversioned site's index byte-for-byte what it was.
+	 */
+	function versionOf(dir: string): string | undefined {
+		if (!versions) return undefined;
 		const firstSegment = path.relative(contentDir, dir).split(path.sep)[0];
-		const version = versions.find((v) => v.path === firstSegment)?.id;
-		yield { source, front, url, title: front.title, file, version };
+		const archived = versions.archived?.find((v) => v.id === firstSegment);
+		return archived ? archived.id : versions.current.id;
 	}
 }
 
@@ -80,7 +89,7 @@ function* eachTitledPage(
 export function collectDocs(
 	contentDir: string,
 	routesDir: string,
-	versions: DocsVersion[] = []
+	versions?: DocsVersions
 ): DocsContentItem[] {
 	if (!fs.existsSync(contentDir)) {
 		console.warn(
@@ -104,7 +113,10 @@ export function collectDocs(
 			section: readSection(front.section),
 			order: typeof front.order === 'number' ? front.order : undefined,
 			sourcePath: path.relative(process.cwd(), file).split(path.sep).join('/'),
-			lastUpdated: lastCommitDate(file),
+			// Frontmatter wins over git so an archived page keeps the date it last
+			// really changed: archiving copies every page in one commit, which would
+			// otherwise stamp the whole archive with the day it was created.
+			lastUpdated: typeof front.lastUpdated === 'string' ? front.lastUpdated : lastCommitDate(file),
 			readingTime: readingMinutes(extractSearchText(source)),
 			toc: extractToc(source),
 			version
@@ -132,7 +144,7 @@ export function collectDocs(
 export function collectSearchDocs(
 	contentDir: string,
 	routesDir: string,
-	versions: DocsVersion[] = []
+	versions?: DocsVersions
 ): SearchDoc[] {
 	if (!fs.existsSync(contentDir)) return [];
 
@@ -166,7 +178,7 @@ export function collectSearchDocs(
 export function collectLlmsDocs(
 	contentDir: string,
 	routesDir: string,
-	versions: DocsVersion[] = []
+	versions?: DocsVersions
 ): LlmsDoc[] {
 	if (!fs.existsSync(contentDir)) return [];
 
