@@ -211,6 +211,27 @@
 }
 
 /*
+ * Reduced motion. When a reader asks the OS to minimise motion, neutralise the
+ * framework's movement in one place: the overlay slide/scale (dialog, sheet,
+ * popover, dropdown) and accordion height animations come from tw-animate-css,
+ * which ships no guard of its own, and those overlays portal to <body> — outside
+ * any shell wrapper — so the rule has to be global to reach them. Durations
+ * collapse to ~0 rather than `none` so the animation/transition *end* events
+ * bits-ui relies on to mount and unmount still fire. Opacity-only fades are the
+ * accessible alternative to motion and are intentionally left to play.
+ */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+/*
  * Shiki dual-theme output: light colors are inline, dark colors ship as
  * --shiki-dark/--shiki-dark-bg variables. Flip to them under `.dark`.
  * Code fences strip Shiki's <pre> (their bg-muted wrapper shows through);
