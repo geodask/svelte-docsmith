@@ -3,10 +3,10 @@
  * being read, derived in one place from the content index, the version manifest
  * and the URL.
  *
- * Pure and framework-agnostic. The shell used to compose these rules across ~19
- * derivations in its markup file, where the only test surface was a rendered
- * tree; here each rule is a field with a test. The view returns data, never
- * formatted strings, so locale formatting and copy stay in the component.
+ * Pure and framework-agnostic, so each rule is a field with a test rather than
+ * a derivation whose only test surface is a rendered tree. The view returns
+ * data, never formatted strings: locale formatting and copy stay in the
+ * component that renders them.
  */
 import type { DocsContentItem } from './content.js';
 import { navFromContent, flattenNav, navTrail, type NavGroup, type NavItem } from './nav.js';

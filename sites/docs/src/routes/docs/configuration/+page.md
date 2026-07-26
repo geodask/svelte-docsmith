@@ -180,9 +180,15 @@ contents.
 	<Prop name="children" type="Snippet" required>
 		The rendered page.
 	</Prop>
-	<Prop name="search" type="() => Promise<SearchDoc[]>">
+	<Prop name="versions" type="ResolvedVersion[]" default="[]">
+		The generated version manifest. Pass it to scope the sidebar, search,
+		prev/next, and breadcrumbs to the version being read. See
+		<a href="/docs/versioning">Versioning</a>.
+	</Prop>
+	<Prop name="search" type="(versionId?: string) => Promise<SearchDoc[]>">
 		Enable the ⌘K search palette by lazily providing the generated index, e.g.
 		<code>{'() => import(\'svelte-docsmith/search\').then((m) => m.docs)'}</code>.
+		Receives the active version id on a versioned site.
 		See <a href="/docs/search">Search</a>.
 	</Prop>
 	<Prop name="seo" type={'{ title?: string; description?: string }'}>
@@ -267,7 +273,12 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 	<Prop name="homeLabel" type="string" default="'Back to home'">
 		Label of the primary action.
 	</Prop>
-	<Prop name="search" type="() => Promise<SearchDoc[]>">
+	<Prop name="versions" type="ResolvedVersion[]" default="[]">
+		The version manifest, same as <code>DocsShell</code>. Pass it so an error
+		under an archived prefix keeps that version's search scope and
+		<code>noindex</code>.
+	</Prop>
+	<Prop name="search" type="(versionId?: string) => Promise<SearchDoc[]>">
 		Enable the ⌘K palette on the error page (same loader as <code>DocsShell</code>).
 	</Prop>
 </PropsTable>
@@ -279,6 +290,8 @@ theme). Drop it into a SvelteKit `+error.svelte`:
   `section`, `order`, `description`, `toc`.
 - **`SearchDoc`** / **`SearchResult`** / **`SearchEngine`**: the search index
   entry and the shape returned by [`createSearchEngine`](/docs/search).
+- **`ResolvedVersion`**: one entry of the generated version manifest. See
+  [Versioning](/docs/versioning).
 - **`CalloutVariant`** / **`BadgeVariant`**: the intent unions for `Callout` and `Badge`.
 
 The vendored shadcn primitives and internal helpers (the TOC engine, the
