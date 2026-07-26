@@ -29,25 +29,39 @@ import path from 'node:path';
  * all-or-nothing: a truncated read would date some pages and not others, which
  * looks like real data and is not.
  *
- * A directory outside a repository is a choice, so it passes quietly; a git that
- * ran and failed is not, and calls `onFail` so the caller can say so. Reporting
- * is the caller's to do, which is why this takes a callback rather than writing
- * to the console itself.
+ * Only a truncated read calls `onFail`, because it is the one failure that would
+ * otherwise date some pages and not others. A directory outside a repository, a
+ * missing directory, or a machine without git all yield no dates, which every
+ * caller already handles and which the plugin already reports where it matters.
+ * Reporting is the caller's to do, which is why this takes a callback rather
+ * than writing to the console itself.
  */
-export function commitDates(dir: string, onFail?: (reason: string) => void): Map<string, string> {
+export function commitDates(
+	dir: string,
+	onFail?: (reason: string) => void,
+	/**
+	 * Cap on the walk's output. The default is far above any real docs root; it is
+	 * a parameter so the truncation path can be exercised without a repository
+	 * large enough to produce 256 MB of history.
+	 */
+	maxBuffer = 256 * 1024 * 1024
+): Map<string, string> {
 	const dates = new Map<string, string>();
 	const res = spawnSync(
 		'git',
 		['log', '--format=%cs', '--name-only', '--relative', '--no-renames', '--', '.'],
-		// A page list can outgrow the 1 MB default, and overflow truncates rather
-		// than throws, so the cap is raised and the result checked below.
-		{ cwd: dir, encoding: 'utf-8', maxBuffer: 256 * 1024 * 1024 }
+		// The 1 MB default would truncate rather than throw on a large history,
+		// which is why the cap is raised and the result checked below.
+		{ cwd: dir, encoding: 'utf-8', maxBuffer }
 	);
-	// `error` means git ran and something went wrong with the read itself, most
-	// likely the output exceeding maxBuffer. A non-zero status is the ordinary
-	// "not a repository", which every caller already handles as no dates.
-	if (res.error) onFail?.(res.error.message);
-	if (res.error || res.status !== 0 || typeof res.stdout !== 'string') return dates;
+	// `ENOBUFS` is the output outgrowing maxBuffer, which truncates rather than
+	// throws and is the only failure that could leave a half-filled map. `ENOENT`
+	// (no such directory, or no git installed) and a non-zero status ("not a
+	// repository") both mean no dates at all, which is a state callers expect.
+	if ((res.error as NodeJS.ErrnoException | undefined)?.code === 'ENOBUFS') {
+		onFail?.(res.error!.message);
+	}
+	if (res.error || res.status !== 0) return dates;
 
 	let date: string | undefined;
 	for (const line of res.stdout.split('\n')) {

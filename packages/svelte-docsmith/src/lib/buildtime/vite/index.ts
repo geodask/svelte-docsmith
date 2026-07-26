@@ -120,7 +120,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	// cannot have changed without a commit. The trade is that committing during
 	// `dev` leaves the dates as they were until the server restarts.
 	let dates: Map<string, string> | undefined;
-	const pageDates = () =>
+	const trackedDates = () =>
 		(dates ??= commitDates(contentDir, (reason) => {
 			console.warn(
 				`[svelte-docsmith] could not read commit dates under ${contentDir}\n` +
@@ -158,7 +158,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 				const { pages, exists } = readSourcePages(contentDir);
 				watch(pages);
 				// Only this index has a date field, so only this one pays for git.
-				const docs = contentIndex(withCommitDates(pages, pageDates()), indexOptions);
+				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
 				warnAboutDocsRoot(contentDir, exists, docs.length);
 				const resolved = resolveVersions(versions, docsBase, docs);
 				return (
