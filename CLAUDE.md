@@ -82,3 +82,17 @@ Content is authored as `+page.md` files under `src/routes/docs/`, preprocessed b
 - ESLint config (`eslint.config.js`, flat config) applies `js.configs.recommended`, `typescript-eslint` recommended, and `eslint-plugin-svelte` recommended, with prettier conflict rules disabled.
 - Releases are managed with Changesets (`.changeset/`), publishing `svelte-docsmith` and `create-svelte-docsmith`. Add a changeset for any consumer-facing change to either package; on push to `master`, `release.yml` opens a "Version Packages" PR (via `pnpm ci:version`) and, once that PR merges, runs the verify gate then `pnpm ci:publish` (build + `changeset publish`). The docs display the current library version automatically via `import { version } from 'svelte-docsmith/package.json'` in `sites/docs/src/lib/site-config.ts`.
 - The CLI template's `svelte-docsmith` pin is kept in range automatically: `ci:version` wraps `changeset version` with `scripts/sync-template-pin.mjs`, which adds a `create-svelte-docsmith` patch changeset and re-pins the template whenever a library release escapes the pin's caret range. CI runs the script's `check` mode as a safety net, so never bump the template pin by hand without a matching CLI changeset.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues on `geodask/svelte-docsmith`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Mapped to this repo's existing labels — `needs triage` and `needs info` use spaces, not hyphens. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` plus `docs/adr/` at the repo root. See `docs/agents/domain.md`.
