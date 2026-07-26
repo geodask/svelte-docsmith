@@ -17,7 +17,7 @@ import {
 	scopeContent,
 	type ResolvedVersion
 } from './version.js';
-import { normalizePath } from '../utils/normalize-path.js';
+import { join, normalizePath } from '../utils/url.js';
 
 /** The page's build-time headings, as extracted into the content index. */
 type PageToc = NonNullable<DocsContentItem['toc']>;
@@ -125,9 +125,7 @@ export function resolveDocsPage(input: {
 		nav,
 		entry,
 		editHref:
-			editUrl && entry?.sourcePath && !isArchived
-				? editUrl.replace(/\/$/, '') + '/' + entry.sourcePath
-				: undefined,
+			editUrl && entry?.sourcePath && !isArchived ? join(editUrl, entry.sourcePath) : undefined,
 		lastUpdated: parseDate(entry?.lastUpdated),
 		readingMinutes: entry?.readingTime,
 		prev: pageIndex > 0 ? flatNav[pageIndex - 1] : undefined,

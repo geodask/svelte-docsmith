@@ -51,6 +51,11 @@ describe('generateFeed', () => {
 		expect(xml).toContain('href="https://docs.example.com/releases.xml"');
 	});
 
+	it('accepts a changelog path without a leading slash', () => {
+		const xml = generateFeed([release()], { ...site, path: 'releases' });
+		expect(xml).toContain('href="https://docs.example.com/releases.xml"');
+	});
+
 	it('stays valid when no release carries a date', () => {
 		const xml = generateFeed([release({ date: undefined })], site);
 		expect(xml).toMatch(/<updated>\d{4}-\d{2}-\d{2}T/);

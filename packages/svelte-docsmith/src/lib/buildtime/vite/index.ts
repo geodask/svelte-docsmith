@@ -110,7 +110,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	const changelogFile =
 		options.changelog === false ? undefined : path.resolve(options.changelog ?? 'CHANGELOG.md');
 	const changelogRoute = options.changelogPath ?? '/changelog';
-	const changelogOverrides = path.join(routesDir, changelogRoute.replace(/^\//, ''));
+	const changelogOverrides = path.join(routesDir, changelogRoute);
 	const indexOptions = { contentDir, routesDir, versions };
 
 	return {

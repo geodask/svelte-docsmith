@@ -10,7 +10,7 @@
  */
 import type { DocsContentItem } from './content.js';
 import { navFromContent, flattenNav } from './nav.js';
-import { normalizePath } from '../utils/normalize-path.js';
+import { join, normalizePath, under } from '../utils/url.js';
 
 /** One documentation version, declared in the `docsmith()` vite plugin. */
 export type DocsVersion = {
@@ -44,11 +44,6 @@ export type ResolvedVersion = DocsVersion & {
 	/** Whether search engines should skip this version. */
 	noindex: boolean;
 };
-
-/** True when `pathname` is `base` or sits beneath it on a segment boundary. */
-function underBase(pathname: string, base: string): boolean {
-	return pathname === base || pathname.startsWith(base + '/');
-}
 
 /**
  * Legal version id. Must start alphanumeric: an archived id is both a directory
@@ -211,9 +206,7 @@ export function resolveVersions(
 
 	return [
 		resolve(versions.current, base, true),
-		...(versions.archived ?? []).map((version) =>
-			resolve(version, normalizePath(base + '/' + version.id), false)
-		)
+		...(versions.archived ?? []).map((version) => resolve(version, join(base, version.id), false))
 	];
 }
 
@@ -230,7 +223,7 @@ export function activeVersion(
 	const path = normalizePath(pathname);
 	let best: ResolvedVersion | undefined;
 	for (const v of versions) {
-		if (underBase(path, v.basePath) && (!best || v.basePath.length > best.basePath.length)) {
+		if (under(path, v.basePath) && (!best || v.basePath.length > best.basePath.length)) {
 			best = v;
 		}
 	}
@@ -280,8 +273,8 @@ export function mapPathToVersion(
 	targetPaths: Iterable<string>
 ): string {
 	const path = normalizePath(pathname);
-	const rel = underBase(path, from.basePath) ? path.slice(from.basePath.length) : '';
-	const candidate = normalizePath(to.basePath + rel);
+	const rel = under(path, from.basePath) ? path.slice(from.basePath.length) : '';
+	const candidate = join(to.basePath, rel);
 	const set = targetPaths instanceof Set ? targetPaths : new Set(targetPaths);
 	return set.has(candidate) ? candidate : to.landing;
 }

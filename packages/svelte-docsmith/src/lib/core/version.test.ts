@@ -142,6 +142,32 @@ describe('mapPathToVersion', () => {
 	});
 });
 
+// A site can put its docs at the routes root, which makes the current version's
+// base `/`. Everything is then under it, so the switcher has to keep mapping
+// pages instead of dumping every reader on the landing page.
+describe('a docs base of "/"', () => {
+	const rooted = resolveVersions(versions, '/', [
+		{ title: 'Intro', path: '/intro', version: 'v2', order: 1 },
+		{ title: 'Intro', path: '/v1/intro', version: 'v1', order: 1 }
+	]);
+	const at = (id: string) => rooted.find((v) => v.id === id) as ResolvedVersion;
+
+	it('bases the current version at the root and archives below it', () => {
+		expect(at('v2').basePath).toBe('/');
+		expect(at('v1').basePath).toBe('/v1');
+	});
+
+	it('finds the current version for a page at the root', () => {
+		expect(activeVersion(rooted, '/intro')?.id).toBe('v2');
+		expect(activeVersion(rooted, '/v1/intro')?.id).toBe('v1');
+	});
+
+	it('maps a rooted page into an archive rather than falling back', () => {
+		expect(mapPathToVersion('/intro', at('v2'), at('v1'), ['/v1/intro'])).toBe('/v1/intro');
+		expect(mapPathToVersion('/v1/intro', at('v1'), at('v2'), ['/intro'])).toBe('/intro');
+	});
+});
+
 // --- validation and config/disk reconciliation ---------------------------
 
 const MARKER = '.docsmith-archive';

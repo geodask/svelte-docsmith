@@ -1,10 +1,14 @@
 import type { LlmsDoc } from '$lib/core/content.js';
+import { join } from '../utils/url.js';
 
 /** Site-level info for the LLM files: title, optional description, and origin. */
 export type LlmsSite = {
 	title: string;
 	description?: string;
-	/** Absolute origin, e.g. `https://my-docs.dev`, used to make links absolute. */
+	/**
+	 * Absolute origin, e.g. `https://my-docs.dev`, used to make links absolute.
+	 * Without it the links stay site-relative.
+	 */
 	origin?: string;
 };
 
@@ -49,7 +53,7 @@ function bySection(docs: LlmsDoc[]): Array<[string, LlmsDoc[]]> {
  * ```
  */
 export function generateLlmsTxt(site: LlmsSite, docs: LlmsDoc[]): string {
-	const base = (site.origin ?? '').replace(/\/$/, '');
+	const origin = site.origin ?? '';
 	const out: string[] = [`# ${site.title}`];
 	if (site.description) out.push('', `> ${site.description}`);
 
@@ -57,7 +61,7 @@ export function generateLlmsTxt(site: LlmsSite, docs: LlmsDoc[]): string {
 		out.push('', `## ${section}`, '');
 		for (const doc of items) {
 			const suffix = doc.description ? `: ${doc.description}` : '';
-			out.push(`- [${doc.title}](${base}${doc.path})${suffix}`);
+			out.push(`- [${doc.title}](${join(origin, doc.path)})${suffix}`);
 		}
 	}
 	return out.join('\n') + '\n';
