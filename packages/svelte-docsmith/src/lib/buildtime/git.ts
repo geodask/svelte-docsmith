@@ -63,16 +63,6 @@ export function commitDates(dir: string, onFail?: (reason: string) => void): Map
 	return dates;
 }
 
-/** Commit day (`YYYY-MM-DD`) a file last changed, or undefined outside a repo. */
-export function lastCommitDate(file: string): string | undefined {
-	const res = spawnSync('git', ['log', '-1', '--format=%cs', '--', file], {
-		cwd: path.dirname(file),
-		encoding: 'utf-8'
-	});
-	const date = res.status === 0 ? res.stdout.trim() : '';
-	return date || undefined;
-}
-
 /**
  * Release dates keyed by version, read from the commit that introduced each
  * `## <version>` heading in a changelog. Changesets does not write dates, and a
