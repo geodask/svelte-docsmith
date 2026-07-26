@@ -58,7 +58,11 @@ const fail = (message) => {
 };
 
 if (!id) fail('missing <id>. e.g. `svelte-docsmith archive-version v1`');
-if (!/^[A-Za-z0-9._-]+$/.test(id)) fail(`invalid id: ${id}. It is used as a URL segment.`);
+// Must start alphanumeric: the id is both a directory name and a URL segment, so
+// `.`, `..` and dotfiles would escape the docs root or make a hidden, dead route.
+if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(id)) {
+	fail(`invalid id: ${id}. Start with a letter or digit; it is used as a URL segment.`);
+}
 
 const contentDir = path.resolve(opts.content);
 const routesDir = path.resolve(opts.routes);
