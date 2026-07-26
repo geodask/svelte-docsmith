@@ -11,7 +11,7 @@ Ship a breaking major and two readers need different things: the one still on
 the old release needs its docs, and the one on the new release should not trip
 over stale pages. Versioning keeps the old release live at its own URL, scopes
 the sidebar and search to the version being read, and steers visitors who land
-on an old page to the current one.
+on an archived page to the current one.
 
 It is opt-in, and it is designed so that turning it on changes nothing. Your
 current docs stay exactly where they are.
@@ -107,8 +107,8 @@ link, since the archive is frozen.
 
 ## Search engines see one version
 
-Old docs should not compete with the current release in search results, but they
-are real content people still look for. So archives stay indexable with a
+Archived docs should not compete with the current release in search results, but
+they are real content people still look for. So archives stay indexable with a
 self-canonical, while `sitemap.xml` and `llms.txt` list the current version
 only. Scope those endpoints with `currentOnly`:
 

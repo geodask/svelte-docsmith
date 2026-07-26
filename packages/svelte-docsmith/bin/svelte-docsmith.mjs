@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 // The svelte-docsmith maintenance CLI. Currently one command: `archive-version`,
 // which freezes today's docs into an archived version folder so they stay live
-// after a breaking release. Plain Node, no dependencies.
+// after a breaking release.
 //
 // The current version is served unprefixed from the docs root and is the folder
 // you keep editing; archives are copies under their own prefix. See
-// docs/adr/0001-unprefixed-current-docs.md.
+// docs/adr/0001-unprefixed-current-docs.md. The text transforms live in
+// `src/lib/buildtime/archive.ts` so they are typechecked and unit-tested; this
+// file is the filesystem wrapper around them.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import {
+	rewriteDocsLinks,
+	freezeLastUpdated,
+	isInheritedRouteFile
+} from '../dist/buildtime/archive.js';
 
 const HELP = `svelte-docsmith — docs maintenance CLI
 
@@ -65,7 +72,7 @@ if (fs.existsSync(toDir)) fail(`target already exists: ${rel(toDir)}`);
 const docsBase = '/' + path.relative(routesDir, contentDir).split(path.sep).join('/');
 
 /** Directories directly under the docs root that are already archives. */
-const existingArchives = new Set(
+const archivedIds = new Set(
 	fs
 		.readdirSync(contentDir, { withFileTypes: true })
 		.filter((e) => e.isDirectory() && fs.existsSync(path.join(contentDir, e.name, MARKER)))
@@ -74,15 +81,7 @@ const existingArchives = new Set(
 
 const isPage = (name) => name.endsWith('+page.md') || name.endsWith('+page.svx');
 
-/**
- * Route files at the docs root that the archive already inherits, because it is
- * nested inside that root. Copying the root layout would wrap the archive in a
- * second `DocsShell`. Layouts deeper in the tree are copied, since the archive's
- * own copies of those pages need them.
- */
-const isInheritedRouteFile = (name) => /^\+(layout|error)\./.test(name);
-
-/** Copy the docs root into the archive, skipping directories that are archives. */
+/** Copy the docs root into the archive, skipping what the archive shouldn't hold. */
 function copyCurrent(from, to) {
 	fs.mkdirSync(to, { recursive: true });
 	for (const entry of fs.readdirSync(from, { withFileTypes: true })) {
@@ -92,9 +91,11 @@ function copyCurrent(from, to) {
 			// Never descend into the archive being written (it lives inside the docs
 			// root) or into an archive written by an earlier run.
 			if (src === toDir) continue;
-			if (from === contentDir && existingArchives.has(entry.name)) continue;
+			if (from === contentDir && archivedIds.has(entry.name)) continue;
 			copyCurrent(src, dest);
 		} else {
+			// The root layout and error page already apply to the archive, which is
+			// nested inside them; copying them would nest a second DocsShell.
 			if (from === contentDir && isInheritedRouteFile(entry.name)) continue;
 			fs.copyFileSync(src, dest);
 		}
@@ -108,34 +109,6 @@ function* eachCopiedFile(dir = toDir) {
 		if (entry.isDirectory()) yield* eachCopiedFile(file);
 		else yield { file, source: path.join(contentDir, path.relative(toDir, file)) };
 	}
-}
-
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/**
- * Point a copied page's docs links at this archive. Absolute links like
- * `](/docs/theming)` resolve to the *current* docs forever, so a verbatim copy
- * would silently walk readers out of the archive and into newer content. Links
- * that already target another archive are left alone.
- */
-function rewriteLinks(text) {
-	const pattern = new RegExp(`(\\]\\(|href=")(${escapeRe(docsBase)})([^)"\\s]*)`, 'g');
-	return text.replace(pattern, (match, prefix, base, restRaw) => {
-		const restPath = restRaw ?? '';
-		// Guard the segment boundary: `/docsmith` must not become `/docs/v1mith`.
-		if (restPath && !/^[/#?]/.test(restPath)) return match;
-		const firstSegment = restPath.startsWith('/') ? restPath.slice(1).split(/[/#?]/)[0] : '';
-		if (firstSegment && existingArchives.has(firstSegment)) return match;
-		return `${prefix}${base}/${id}${restPath}`;
-	});
-}
-
-/** Apply `transform` to the prose of a markdown source, leaving fenced code untouched. */
-function outsideCodeFences(text, transform) {
-	return text
-		.split(/(^```[\s\S]*?^```)/m)
-		.map((chunk) => (chunk.startsWith('```') ? chunk : transform(chunk)))
-		.join('');
 }
 
 /** The date a page last really changed, so the archive doesn't claim today. */
@@ -152,20 +125,6 @@ function lastCommitDate(file) {
 	}
 }
 
-/**
- * Write the page's real last-updated date into its frontmatter. The collector
- * prefers frontmatter over git, so the archive keeps the date it was accurate
- * on instead of the day it was created.
- */
-function freezeDate(text, date) {
-	if (!date || !text.startsWith('---')) return text;
-	const end = text.indexOf('\n---', 3);
-	if (end === -1) return text;
-	const front = text.slice(0, end);
-	if (/^lastUpdated:/m.test(front)) return text;
-	return `${front}\nlastUpdated: '${date}'${text.slice(end)}`;
-}
-
 copyCurrent(contentDir, toDir);
 fs.writeFileSync(
 	path.join(toDir, MARKER),
@@ -177,10 +136,14 @@ let pages = 0;
 for (const { file, source } of eachCopiedFile()) {
 	if (!isPage(path.basename(file))) continue;
 	pages++;
-	let text = fs.readFileSync(file, 'utf-8');
-	text = outsideCodeFences(text, rewriteLinks);
-	text = freezeDate(text, lastCommitDate(source));
-	fs.writeFileSync(file, text);
+	const text = fs.readFileSync(file, 'utf-8');
+	fs.writeFileSync(
+		file,
+		freezeLastUpdated(
+			rewriteDocsLinks(text, { docsBase, versionId: id, archivedIds }),
+			lastCommitDate(source)
+		)
+	);
 }
 
 const label = opts.label ?? id;
@@ -190,7 +153,5 @@ console.log('its real last-updated date. Review the diff, then update');
 console.log('docsmith({ versions }) so the archive is served:\n');
 console.log('  versions: {');
 console.log("    current: { id: '<new release>', label: '<new release>' },");
-console.log(
-	`    archived: [{ id: '${id}', label: '${label}' }${existingArchives.size ? ', …' : ''}]`
-);
+console.log(`    archived: [{ id: '${id}', label: '${label}' }${archivedIds.size ? ', …' : ''}]`);
 console.log('  }\n');

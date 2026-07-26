@@ -9,9 +9,9 @@
 	} from '$lib/core/index.js';
 
 	// Rendered by DocsShell only on an archived version, to warn a reader who
-	// landed on old docs (usually from a search engine) and give them a one-click
-	// path to the current equivalent. A real <a> (not client nav) so it works
-	// without JS and stays crawlable.
+	// landed there (usually from a search engine) and give them a one-click path
+	// to the current equivalent. A real <a> (not client nav) so it works without
+	// JS and stays crawlable.
 	const {
 		active,
 		current,

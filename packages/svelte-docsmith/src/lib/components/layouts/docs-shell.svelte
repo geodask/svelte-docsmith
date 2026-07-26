@@ -56,7 +56,7 @@
 		 * The resolved version manifest from `svelte-docsmith/content` (its
 		 * `versions` export). Provide it to enable versioned docs — the sidebar,
 		 * search, prev/next, and breadcrumbs scope to the version being read, and
-		 * once an archived version exists a header switcher and an old-version
+		 * once an archived version exists a header switcher and an archived-version
 		 * banner appear. Omit for a single tree.
 		 */
 		versions?: ResolvedVersion[];
