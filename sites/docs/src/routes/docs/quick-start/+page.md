@@ -65,12 +65,12 @@ from the generated content index, so there is no nav array to maintain:
 ```svelte title="src/routes/docs/+layout.svelte"
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
-	import { DocsShell, type DocsmithConfig } from 'svelte-docsmith';
+	import { DocsShell, defineConfig } from 'svelte-docsmith';
 
-	const config: DocsmithConfig = {
+	const config = defineConfig({
 		title: 'My Library',
 		github: 'https://github.com/you/my-library'
-	};
+	});
 	const { children } = $props();
 </script>
 
