@@ -121,6 +121,7 @@
 						size="icon"
 						variant="ghost"
 						target="_blank"
+						rel="noopener noreferrer"
 						href={config.github}
 						class="text-muted-foreground hover:text-foreground size-8"
 					>
