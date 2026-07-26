@@ -1,6 +1,12 @@
 import GithubSlugger from 'github-slugger';
+import { proseLines, splitFrontmatter } from '../markdown-source.js';
 
 export type TocEntry = { id: string; title: string; depth: 2 | 3 };
+
+/** Drop a page's `<script>`/`<style>` blocks: component setup, not content. */
+function withoutSetupBlocks(body: string): string {
+	return body.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+}
 
 /** Strip inline markdown so a heading's TOC label is plain text. */
 export function stripInlineMarkdown(text: string): string {
@@ -21,23 +27,10 @@ export function stripInlineMarkdown(text: string): string {
  * samples are intentionally dropped to keep the index small and prose-focused.
  */
 export function extractSearchText(source: string): string {
-	let body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
-	// Component/setup blocks aren't prose; drop them whole before line scanning.
-	body = body.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
-
+	const body = withoutSetupBlocks(splitFrontmatter(source).body);
 	const out: string[] = [];
-	let fence: string | null = null;
 
-	for (const line of body.split('\n')) {
-		const f = /^\s*(`{3,}|~{3,})/.exec(line);
-		if (f) {
-			const ch = f[1][0];
-			if (fence === null) fence = ch;
-			else if (ch === fence) fence = null;
-			continue;
-		}
-		if (fence !== null) continue;
-
+	for (const line of proseLines(body)) {
 		// Skip table delimiter rows (`| --- | :--: |`) — pure structure, no words.
 		if (/^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(line)) continue;
 
@@ -71,21 +64,10 @@ export function readingMinutes(text: string): number {
  * heading ids exactly, not just for common cases.
  */
 export function extractToc(source: string): TocEntry[] {
-	const body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
 	const slugger = new GithubSlugger();
 	const toc: TocEntry[] = [];
-	let fence: string | null = null;
 
-	for (const line of body.split('\n')) {
-		const f = /^\s*(`{3,}|~{3,})/.exec(line);
-		if (f) {
-			const ch = f[1][0];
-			if (fence === null) fence = ch;
-			else if (ch === fence) fence = null;
-			continue;
-		}
-		if (fence !== null) continue;
-
+	for (const line of proseLines(splitFrontmatter(source).body)) {
 		const m = /^(#{2,3})\s+(.+?)\s*#*\s*$/.exec(line);
 		if (!m) continue;
 		const title = stripInlineMarkdown(m[2]);
@@ -102,10 +84,6 @@ export function extractToc(source: string): TocEntry[] {
  * with the frontmatter title prepended as an `h1` (pages start their body at h2).
  */
 export function extractLlmsContent(source: string, title: string): string {
-	const body = source
-		.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '')
-		.replace(/<script[\s\S]*?<\/script>/gi, '')
-		.replace(/<style[\s\S]*?<\/style>/gi, '')
-		.trim();
+	const body = withoutSetupBlocks(splitFrontmatter(source).body).trim();
 	return `# ${title}\n\n${body}`;
 }

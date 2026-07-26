@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	rewriteDocsLinks,
-	outsideCodeFences,
-	freezeLastUpdated,
-	isInheritedRouteFile
-} from './archive.js';
+import { rewriteDocsLinks, freezeLastUpdated, isInheritedRouteFile } from './archive.js';
 
 const rewrite = (text: string, archivedIds: string[] = ['v1']) =>
 	rewriteDocsLinks(text, { docsBase: '/docs', versionId: 'v2', archivedIds });
@@ -65,18 +60,8 @@ describe('rewriteDocsLinks', () => {
 	});
 });
 
-describe('outsideCodeFences', () => {
-	it('does not close a fence on a longer marker carrying an info string', () => {
-		const source = '````\n```svelte\ntext\n```\n````\ntext';
-		const seen: string[] = [];
-		outsideCodeFences(source, (chunk) => {
-			seen.push(chunk);
-			return chunk;
-		});
-		// Only the trailing line is prose; everything else sits inside the outer fence.
-		expect(seen).toEqual(['text']);
-	});
-});
+// The fence scanner these link rewrites run through is covered in
+// `markdown-source.test.ts`, which owns the rule.
 
 describe('freezeLastUpdated', () => {
 	it('inserts the date into existing frontmatter', () => {

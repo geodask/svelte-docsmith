@@ -8,44 +8,14 @@
  * CLI is a thin wrapper over them. See `docs/adr/0002-archives-are-rewritten-source-copies.md`.
  */
 
+import { outsideCodeFences, withFrontmatter } from './markdown-source.js';
+
 /** Route files at the docs root that an archive nested inside it already inherits. */
 export function isInheritedRouteFile(name: string): boolean {
 	return /^\+(layout|error)\./.test(name);
 }
 
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/**
- * Apply `transform` to a markdown source's prose, leaving fenced code untouched.
- *
- * Tracks fences line by line rather than pairing them with one regex, so an
- * indented fence (inside a list item or a component) and a `~~~` fence are both
- * protected. A fence closes on the same character, at least as long, with no
- * info string, per CommonMark.
- */
-export function outsideCodeFences(text: string, transform: (chunk: string) => string): string {
-	let open: string | undefined;
-	return text
-		.split('\n')
-		.map((line) => {
-			const match = /^\s*(`{3,}|~{3,})/.exec(line);
-			if (open) {
-				const closes =
-					match &&
-					match[1][0] === open[0] &&
-					match[1].length >= open.length &&
-					!line.slice(match[0].length).trim();
-				if (closes) open = undefined;
-				return line;
-			}
-			if (match) {
-				open = match[1];
-				return line;
-			}
-			return transform(line);
-		})
-		.join('\n');
-}
 
 /**
  * Point a page's docs links at the archive it is being copied into. An absolute
@@ -86,10 +56,8 @@ export function rewriteDocsLinks(
  * existing `lastUpdated` and any page without frontmatter alone.
  */
 export function freezeLastUpdated(text: string, date: string | undefined): string {
-	if (!date || !text.startsWith('---')) return text;
-	const end = text.indexOf('\n---', 3);
-	if (end === -1) return text;
-	const front = text.slice(0, end);
-	if (/^lastUpdated:/m.test(front)) return text;
-	return `${front}\nlastUpdated: '${date}'${text.slice(end)}`;
+	if (!date) return text;
+	return withFrontmatter(text, (front) =>
+		/^lastUpdated:/m.test(front) ? front : `${front}\nlastUpdated: '${date}'`
+	);
 }
