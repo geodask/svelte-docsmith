@@ -47,6 +47,13 @@ Copying the current version into a new archived version, done once, at the
 moment a breaking release ships.
 _Avoid_: cutting a version, snapshotting
 
+**Archive marker**:
+The file that makes a directory an archived version rather than an ordinary
+section of the current docs. Archiving writes it; the build requires it. Without
+it the two are indistinguishable, since both are just a directory under the docs
+root.
+_Avoid_: archive flag, version marker, sentinel
+
 **Version manifest**:
 The resolved list of versions the build emits into the content index, giving
 each version its URL base and its landing page.

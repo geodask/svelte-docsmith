@@ -5,6 +5,10 @@ section: Core Concepts
 order: 12
 ---
 
+<script>
+	import { Callout } from 'svelte-docsmith';
+</script>
+
 ## Why version your docs
 
 Ship a breaking major and two readers need different things: the one still on
@@ -65,6 +69,46 @@ the ones that are not inside an archive.
 
 Declaring only `current` is perfectly valid, and is how you start. Nothing
 renders differently until the first archive exists.
+
+### What makes a valid id
+
+An id has to start with a letter or a digit, and can then hold letters, digits,
+`.`, `-` and `_`. So `v1`, `v1.0`, `2.x` and `next` are all fine, while
+`../evil`, `.hidden` and `api/v1` are rejected at build time.
+
+The rule applies to `current` as well as to archives, even though the current
+version's id never appears in a URL. Archiving turns today's current id into an
+archive folder, so an id that was legal only as `current` would fail one release
+later.
+
+## When the config and your folders disagree
+
+Versions are declared by hand, so your config and your docs folder are two
+separate claims about which versions exist. The build checks that they agree and
+fails if they do not, because neither mismatch shows up in the output: an
+archive the config does not know about gets merged into your current docs, and a
+section folder wrongly declared as a version disappears from your current
+sidebar.
+
+Telling the two apart takes a marker. `archive-version` writes a
+`.docsmith-archive` file into every archive it creates, and the build reads it.
+A folder under your docs root is an archive when it has that file and is
+declared in `versions`. Any other combination is an error:
+
+| On disk        | In `versions` | Result                           |
+| -------------- | ------------- | -------------------------------- |
+| Has the marker | Declared      | Served as an archived version    |
+| Has the marker | Not declared  | Build fails: undeclared archive  |
+| No marker      | Declared      | Build fails: not an archive      |
+| No marker      | Not declared  | An ordinary section of your docs |
+
+<Callout variant="note" title="Copying an archive by hand">
+
+If you create an archive folder yourself rather than with `archive-version`, add
+an empty `.docsmith-archive` file inside it. Without one the build treats it as
+part of your current docs and refuses to accept it as a version.
+
+</Callout>
 
 ## Wire it into the shell
 
@@ -141,12 +185,12 @@ When you ship a breaking release, freeze the docs that described the old one:
 npx svelte-docsmith archive-version v1 --label v1
 ```
 
-This copies your current docs into `v1/`, and does two things a plain copy
+This copies your current docs into `v1/`, and does three things a plain copy
 would get wrong. It rewrites in-content links so they stay inside the archive,
 because an absolute link like `](/docs/theming)` would otherwise keep pointing
-at your newest docs. And it writes each page's real last-updated date into its
+at your newest docs. It writes each page's real last-updated date into its
 frontmatter, so the archive does not claim every page changed on the day you
-created it.
+created it. And it marks the folder as an archive.
 
 Review the diff, then update your config to serve the archive and rename the
 current version:
@@ -157,6 +201,10 @@ versions: {
 	archived: [{ id: 'v1', label: 'v1' }]
 }
 ```
+
+Until you paste that in, the build fails and reports the new archive as
+undeclared. That is deliberate: it is the reminder, and it arrives while you are
+still looking at the terminal. The command prints the block to paste.
 
 ## What archives cost
 

@@ -131,11 +131,18 @@
 	// intermediate layers.
 	setDocsPage(() => view);
 
+	// `timeZone: 'UTC'` is not cosmetic. `lastUpdated` is a calendar day, which
+	// parses to UTC midnight, so formatting in the ambient zone shifts it a day
+	// west of UTC — and shifts it on the client but not on the server, so the
+	// rendered date changes under hydration.
 	const lastUpdatedLabel = $derived.by(() =>
 		view.lastUpdated
-			? new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: 'numeric' }).format(
-					view.lastUpdated
-				)
+			? new Intl.DateTimeFormat('en', {
+					year: 'numeric',
+					month: 'short',
+					day: 'numeric',
+					timeZone: 'UTC'
+				}).format(view.lastUpdated)
 			: undefined
 	);
 	const showFooterMeta = $derived(Boolean(view.editHref || lastUpdatedLabel));

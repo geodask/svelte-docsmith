@@ -1,9 +1,21 @@
+/**
+ * The git queries the build makes: when a page last changed, and when each
+ * release landed. Used by both the vite plugin and the `archive-version`
+ * command, which is why it sits here rather than under `vite/`.
+ *
+ * Every date here is `%cs`, the commit's calendar day (`YYYY-MM-DD`), never a
+ * timestamp. Dates from this module are rendered as a day and nothing more, and
+ * a date-only string parses to UTC midnight, so pinning the formatter to UTC
+ * renders the committer's own day identically for every reader and identically
+ * on the server and the client. A full timestamp buys precision no consumer
+ * uses and reintroduces the day-boundary drift.
+ */
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
-/** Last git commit date (strict ISO) for a file, or undefined outside a repo. */
+/** Commit day (`YYYY-MM-DD`) a file last changed, or undefined outside a repo. */
 export function lastCommitDate(file: string): string | undefined {
-	const res = spawnSync('git', ['log', '-1', '--format=%cI', '--', file], {
+	const res = spawnSync('git', ['log', '-1', '--format=%cs', '--', file], {
 		cwd: path.dirname(file),
 		encoding: 'utf-8'
 	});
@@ -23,7 +35,7 @@ export function changelogDates(file: string): Map<string, string> {
 	// record the first commit in which each version heading appears.
 	const log = spawnSync(
 		'git',
-		['log', '--format=%H %cI', '--reverse', '--follow', '--', path.basename(file)],
+		['log', '--format=%H %cs', '--reverse', '--follow', '--', path.basename(file)],
 		{ cwd: path.dirname(file), encoding: 'utf-8' }
 	);
 	if (log.status !== 0) return dates;

@@ -3,10 +3,13 @@ import type { DocsContentItem } from './content.js';
 import {
 	resolveVersions,
 	activeVersion,
+	assertValidVersionId,
+	checkVersions,
 	currentVersion,
 	currentOnly,
 	scopeContent,
 	mapPathToVersion,
+	type ArchivesOnDisk,
 	type DocsVersions,
 	type ResolvedVersion
 } from './version.js';
@@ -136,5 +139,115 @@ describe('mapPathToVersion', () => {
 		expect(mapPathToVersion('/docs/guide', byId('v2'), byId('v1'), ['/docs/v1/intro'])).toBe(
 			'/docs/v1/intro'
 		);
+	});
+});
+
+// --- validation and config/disk reconciliation ---------------------------
+
+const MARKER = '.docsmith-archive';
+
+/** A docs root holding exactly the given directories, all of them marked. */
+const disk = (marked: string[], extra: string[] = []): ArchivesOnDisk => ({
+	marked,
+	directories: [...marked, ...extra]
+});
+
+describe('assertValidVersionId', () => {
+	it('accepts ids that are safe as a directory and a URL segment', () => {
+		for (const id of ['v1', 'v1.0', '2.x', 'next', 'V1', 'my-docs', 'a_b']) {
+			expect(() => assertValidVersionId(id)).not.toThrow();
+		}
+	});
+
+	it('rejects ids that would escape the docs root or hide the route', () => {
+		for (const id of ['../evil', '.hidden', '.', '..', 'api/v1', '-v1', 'v 1', '[slug]', '']) {
+			expect(() => assertValidVersionId(id)).toThrow(/invalid version id/);
+		}
+	});
+
+	it('rejects a non-string, for configs built dynamically', () => {
+		expect(() => assertValidVersionId(undefined)).toThrow(/invalid version id/);
+		expect(() => assertValidVersionId(2)).toThrow(/invalid version id/);
+	});
+});
+
+describe('checkVersions', () => {
+	it('does nothing for an unversioned site', () => {
+		expect(() => checkVersions(undefined, disk([]), MARKER)).not.toThrow();
+	});
+
+	it('accepts a config that matches the docs root', () => {
+		expect(() => checkVersions(versions, disk(['v1']), MARKER)).not.toThrow();
+	});
+
+	it('accepts a current version with no archives at all', () => {
+		const only = { current: { id: 'v2', label: 'v2' } };
+		expect(() => checkVersions(only, disk([], ['guides']), MARKER)).not.toThrow();
+	});
+
+	// The id is a URL segment and a directory name, so this is the traversal guard.
+	it('rejects an archived id that is not segment-safe', () => {
+		const bad = { current: { id: 'v2', label: 'v2' }, archived: [{ id: '../evil', label: 'x' }] };
+		expect(() => checkVersions(bad, disk([]), MARKER)).toThrow(/invalid version id/);
+	});
+
+	// current.id is never a segment itself, but archiving retires it into one.
+	it('rejects a current id that is not segment-safe', () => {
+		const bad = { current: { id: '../evil', label: 'x' } };
+		expect(() => checkVersions(bad, disk([]), MARKER)).toThrow(/invalid version id/);
+	});
+
+	it('rejects an archived id that collides with the current one', () => {
+		const dup = { current: { id: 'v1', label: 'v1' }, archived: [{ id: 'v1', label: 'old' }] };
+		expect(() => checkVersions(dup, disk(['v1']), MARKER)).toThrow(/duplicate version id/);
+	});
+
+	it('rejects two archives sharing an id', () => {
+		const dup = {
+			current: { id: 'v3', label: 'v3' },
+			archived: [
+				{ id: 'v1', label: 'v1' },
+				{ id: 'v1', label: 'also v1' }
+			]
+		};
+		expect(() => checkVersions(dup, disk(['v1']), MARKER)).toThrow(/duplicate version id/);
+	});
+
+	// Without this the archive is merged into the current version and its pages
+	// are served at current-version URLs. See docs/adr/0003.
+	it('rejects an archive on disk that the config does not declare', () => {
+		const only = { current: { id: 'v2', label: 'v2' } };
+		expect(() => checkVersions(only, disk(['v1']), MARKER)).toThrow(/not declared/);
+	});
+
+	it('prints the config to paste for an undeclared archive', () => {
+		const only = { current: { id: 'v2', label: 'v2' } };
+		expect(() => checkVersions(only, disk(['v1']), MARKER)).toThrow(
+			/archived: \[\{ id: 'v1', label: 'v1' \}\]/
+		);
+	});
+
+	it('keeps already-declared archives in the config it prints', () => {
+		expect(() => checkVersions(versions, disk(['v1', 'v0']), MARKER)).toThrow(
+			/archived: \[\{ id: 'v0', label: 'v0' \}, \{ id: 'v1', label: 'v1' \}\]/
+		);
+	});
+
+	it('rejects a declared archive with no directory at all', () => {
+		expect(() => checkVersions(versions, disk([]), MARKER)).toThrow(/No directory for `v1`/);
+	});
+
+	// The mirror of the undeclared case: a section folder declared as a version
+	// silently drops its pages out of the current sidebar and search.
+	it('rejects a declared archive whose directory carries no marker', () => {
+		expect(() => checkVersions(versions, disk([], ['v1']), MARKER)).toThrow(
+			/carries no `\.docsmith-archive`/
+		);
+	});
+
+	it('leaves unmarked directories alone when nothing declares them', () => {
+		expect(() =>
+			checkVersions(versions, disk(['v1'], ['guides', 'concepts']), MARKER)
+		).not.toThrow();
 	});
 });

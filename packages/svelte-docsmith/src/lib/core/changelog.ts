@@ -21,7 +21,10 @@ export type ChangelogGroup = {
 export type ChangelogRelease = {
 	/** Version string as it appears in the changelog, e.g. `0.8.0`. */
 	version: string;
-	/** Release date (ISO) from the git history, when it can be determined. */
+	/**
+	 * Release day (`YYYY-MM-DD`) from the git history, when it can be determined.
+	 * Rendered as a UTC calendar day, so it reads the same for every reader.
+	 */
 	date?: string;
 	groups: ChangelogGroup[];
 	/**

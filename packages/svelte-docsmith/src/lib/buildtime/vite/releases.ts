@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { marked } from 'marked';
 import { parseChangelog } from '../changelog.js';
-import { changelogDates } from './git.js';
+import { changelogDates } from '../git.js';
 import type { ChangelogRelease } from '../../core/changelog.js';
 
 /**

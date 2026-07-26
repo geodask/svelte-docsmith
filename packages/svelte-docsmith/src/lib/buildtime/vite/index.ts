@@ -20,7 +20,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import { DEFAULT_THEMES, lazyHighlighter } from '../highlight.js';
-import { resolveVersions, type DocsVersions } from '../../core/version.js';
+import { checkVersions, resolveVersions, type DocsVersions } from '../../core/version.js';
+import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
+import { docsBaseFrom } from '../paths.js';
 import { isPageFile, listPageFiles } from './pages.js';
 import { collectDocs, collectLlmsDocs, collectSearchDocs } from './collect.js';
 import { collectReleases } from './releases.js';
@@ -87,9 +89,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	const contentDir = path.resolve(options.content ?? 'src/routes/docs');
 	const routesDir = path.resolve(options.routes ?? 'src/routes');
 	const versions = options.versions;
-	// The docs URL base, e.g. `/docs`, derived from the content dir's location
-	// under the routes dir — the same mapping `collect.ts` uses for page URLs.
-	const docsBase = '/' + path.relative(routesDir, contentDir).split(path.sep).join('/');
+	const docsBase = docsBaseFrom(routesDir, contentDir);
 	const changelogFile =
 		options.changelog === false ? undefined : path.resolve(options.changelog ?? 'CHANGELOG.md');
 	const changelogRoute = options.changelogPath ?? '/changelog';
@@ -113,6 +113,11 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			// handled by the watcher in configureServer.
 			if (id === VIRTUAL_CONTENT_ID) {
 				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
+				// Before anything is collected: a config that disagrees with the docs
+				// root produces an index that is wrong rather than empty, so it has to
+				// fail here rather than render. Re-runs on invalidation, so archiving
+				// during `dev` reports immediately.
+				checkVersions(versions, discoverArchives(contentDir), ARCHIVE_MARKER);
 				const docs = collectDocs(contentDir, routesDir, versions);
 				const resolved = resolveVersions(versions, docsBase, docs);
 				return (

@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { collectDocs, collectSearchDocs, collectLlmsDocs, docsmith } from './index.js';
+import { ARCHIVE_MARKER, markerContents } from '../archives.js';
 import type { DocsVersions } from '$lib/core/version.js';
 import type { Plugin } from 'vite';
 
@@ -64,6 +65,15 @@ function writePage(relDir: string, frontmatter: string, body = '# body') {
 	const dir = path.join(routesDir, relDir);
 	fs.mkdirSync(dir, { recursive: true });
 	fs.writeFileSync(path.join(dir, '+page.md'), `---\n${frontmatter}\n---\n\n${body}\n`);
+}
+
+/**
+ * Mark a directory under the docs root as an archived version. The build
+ * requires this of every declared archive, so a fixture that declares one has to
+ * write it. See docs/adr/0003-the-archive-marker-defines-an-archive.md.
+ */
+function markArchive(id: string) {
+	fs.writeFileSync(path.join(routesDir, 'docs', id, ARCHIVE_MARKER), markerContents(id));
 }
 
 afterEach(() => {
@@ -445,6 +455,7 @@ describe('docsmith() content plugin', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: Intro\norder: 1');
 		writePage('docs/v1/intro', 'title: Intro\norder: 1');
+		markArchive('v1');
 
 		const plugin = docsmith({
 			content: path.join(routesDir, 'docs'),
