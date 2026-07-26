@@ -1,5 +1,15 @@
 # create-svelte-docsmith
 
+## 0.3.1
+
+### Patch Changes
+
+- 8cfcab7: - `ErrorPage` takes a `versions` prop and forwards it to the shell, so an error under an archived prefix keeps that version's search scope, switcher, and `noindex` instead of falling back to the current version.
+  - `ErrorPage`'s `search` prop now receives the active version id, matching `DocsShell`.
+  - The scaffolded `+error.svelte` passes `versions` (a no-op until you declare versions).
+- Pin the starter template to `svelte-docsmith@^0.10.0` so freshly scaffolded projects install the current release.
+- ff7f94e: - Scaffolded `sitemap.xml` and `llms.txt` endpoints now scope to the current docs version (a no-op until you declare versions).
+
 ## 0.3.0
 
 ### Minor Changes
