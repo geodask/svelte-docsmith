@@ -17,8 +17,11 @@
 		 * Lazily provide the generated search records. Wired by the consumer so the
 		 * index is code-split and only fetched when the palette first opens, e.g.
 		 * `() => import('svelte-docsmith/search').then((m) => m.docs)`.
+		 *
+		 * Receives the active version id on a versioned site, so a loader may
+		 * return just that version's records; results are scoped either way.
 		 */
-		load: () => Promise<SearchDoc[]>;
+		load: (versionId?: string) => Promise<SearchDoc[]>;
 		placeholder?: string;
 	} = $props();
 
@@ -27,6 +30,10 @@
 	let query = $state('');
 	let engine = $state<SearchEngine | null>(null);
 	let status = $state<'idle' | 'loading' | 'error'>('idle');
+	// The version the cached engine was built for, so a loader that returns only
+	// one version's records is rebuilt when the reader switches versions. Stays
+	// constant (and the engine cached) on unversioned and single-version sites.
+	let engineVersion: string | undefined;
 
 	const trimmed = $derived(query.trim());
 	// Scope to the active version when the shell set one (versioned sites).
@@ -36,14 +43,16 @@
 
 	// Build the index the first time the palette opens; keep it for later opens.
 	async function ensureEngine() {
-		if (engine || status === 'loading') return;
+		const version = search?.version;
+		if ((engine && engineVersion === version) || status === 'loading') return;
 		status = 'loading';
 		try {
 			const [{ createSearchEngine }, docs] = await Promise.all([
 				import('$lib/search/create-search.js'),
-				load()
+				load(version)
 			]);
 			engine = createSearchEngine(docs);
+			engineVersion = version;
 			status = 'idle';
 		} catch (error) {
 			console.error('[svelte-docsmith] failed to load the search index', error);

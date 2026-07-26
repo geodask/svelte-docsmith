@@ -13,12 +13,12 @@ export type { DocsContentItem, SearchDoc, LlmsDoc } from './content.js';
 export {
 	resolveVersions,
 	activeVersion,
-	latestVersion,
-	latestLandingUrl,
-	latestOnly,
+	currentVersion,
+	currentOnly,
 	scopeContent,
 	mapPathToVersion,
 	type DocsVersion,
+	type DocsVersions,
 	type ResolvedVersion
 } from './version.js';
 export {

@@ -33,7 +33,7 @@
 		logo?: Snippet;
 		/** Extra header controls, rendered before the theme toggle. */
 		actions?: Snippet;
-		/** Declared versions; renders the switcher when non-empty. */
+		/** Declared versions; renders the switcher once there's more than one. */
 		versions?: ResolvedVersion[];
 		/** The active version, for the switcher's current selection. */
 		active?: ResolvedVersion;
@@ -109,7 +109,7 @@
 				</nav>
 			{/if}
 
-			{#if versions.length && active}
+			{#if versions.length > 1 && active}
 				<div class="px-1">
 					<VersionSwitcher {versions} {active} {content} {pathname} />
 				</div>

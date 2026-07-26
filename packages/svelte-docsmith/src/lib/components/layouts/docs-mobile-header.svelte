@@ -47,7 +47,7 @@
 		tocActiveId?: string | null;
 		logo?: Snippet;
 		actions?: Snippet;
-		/** Declared versions; renders the switcher in the drawer when non-empty. */
+		/** Declared versions; renders the switcher in the drawer once there's more than one. */
 		versions?: ResolvedVersion[];
 		/** The active version, for the switcher's current selection. */
 		active?: ResolvedVersion;
@@ -95,7 +95,7 @@
 						<span class="inline-block">{config.title}</span>
 					</a>
 				</div>
-				{#if versions.length && active}
+				{#if versions.length > 1 && active}
 					<div class="px-7 pb-3">
 						<VersionSwitcher {versions} {active} {content} {pathname} />
 					</div>

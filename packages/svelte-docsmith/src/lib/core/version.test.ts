@@ -3,24 +3,24 @@ import type { DocsContentItem } from './content.js';
 import {
 	resolveVersions,
 	activeVersion,
-	latestVersion,
-	latestLandingUrl,
-	latestOnly,
+	currentVersion,
+	currentOnly,
 	scopeContent,
 	mapPathToVersion,
-	type DocsVersion,
+	type DocsVersions,
 	type ResolvedVersion
 } from './version.js';
 
-const versions: DocsVersion[] = [
-	{ id: 'next', label: 'v3 (next)', path: 'next', prerelease: true },
-	{ id: 'v2', label: 'v2', path: 'v2', latest: true },
-	{ id: 'v1', label: 'v1', path: 'v1' }
-];
+const versions: DocsVersions = {
+	current: { id: 'v2', label: 'v2' },
+	archived: [{ id: 'v1', label: 'v1' }]
+};
 
+// The current version's pages keep their unprefixed URLs; only archives are
+// prefixed. See docs/adr/0001-unprefixed-current-docs.md.
 const content: DocsContentItem[] = [
-	{ title: 'Intro', path: '/docs/v2/intro', version: 'v2', order: 1 },
-	{ title: 'Guide', path: '/docs/v2/guide', version: 'v2', order: 2 },
+	{ title: 'Intro', path: '/docs/intro', version: 'v2', order: 1 },
+	{ title: 'Guide', path: '/docs/guide', version: 'v2', order: 2 },
 	{ title: 'Intro', path: '/docs/v1/intro', version: 'v1', order: 1 }
 ];
 
@@ -28,73 +28,90 @@ const resolved = resolveVersions(versions, '/docs', content);
 const byId = (id: string) => resolved.find((v) => v.id === id) as ResolvedVersion;
 
 describe('resolveVersions', () => {
-	it('computes basePath, landing (first page in nav order), and noindex', () => {
-		expect(byId('v2').basePath).toBe('/docs/v2');
-		expect(byId('v2').landing).toBe('/docs/v2/intro');
-		expect(byId('v2').noindex).toBe(false);
+	it('serves the current version unprefixed at the docs root', () => {
+		expect(byId('v2').basePath).toBe('/docs');
+		expect(byId('v2').current).toBe(true);
+		expect(byId('v2').landing).toBe('/docs/intro');
 	});
 
-	it('defaults a prerelease to noindex and falls back its landing to the base', () => {
-		expect(byId('next').noindex).toBe(true); // prerelease ⇒ noindex
-		expect(byId('next').landing).toBe('/docs/next'); // no pages yet ⇒ base
+	it('prefixes each archived version with its id', () => {
+		expect(byId('v1').basePath).toBe('/docs/v1');
+		expect(byId('v1').current).toBe(false);
+		expect(byId('v1').landing).toBe('/docs/v1/intro');
 	});
 
-	it('honours an explicit noindex override', () => {
-		const [only] = resolveVersions(
-			[{ id: 'v1', label: 'v1', path: 'v1', noindex: true }],
+	it('orders the manifest current-first, then archives as declared', () => {
+		expect(resolved.map((v) => v.id)).toEqual(['v2', 'v1']);
+	});
+
+	it('leaves versions indexable by default, and honours an explicit noindex', () => {
+		expect(byId('v1').noindex).toBe(false);
+		const [, archived] = resolveVersions(
+			{ current: { id: 'v2', label: 'v2' }, archived: [{ id: 'v1', label: 'v1', noindex: true }] },
 			'/docs',
 			[]
 		);
-		expect(only.noindex).toBe(true);
+		expect(archived.noindex).toBe(true);
+	});
+
+	it('falls a version with no pages back to its own base', () => {
+		const [only] = resolveVersions({ current: { id: 'v2', label: 'v2' } }, '/docs', []);
+		expect(only.landing).toBe('/docs');
+	});
+
+	it('emits an empty manifest for an unversioned site', () => {
+		expect(resolveVersions(undefined, '/docs', content)).toEqual([]);
 	});
 });
 
 describe('activeVersion', () => {
-	it('resolves the version owning a path', () => {
-		expect(activeVersion(resolved, '/docs/v2/guide')?.id).toBe('v2');
+	it('resolves an unprefixed page to the current version', () => {
+		expect(activeVersion(resolved, '/docs/guide')?.id).toBe('v2');
+		expect(activeVersion(resolved, '/docs')?.id).toBe('v2');
+	});
+
+	it('prefers the longer archive base over the current version', () => {
 		expect(activeVersion(resolved, '/docs/v1/intro')?.id).toBe('v1');
-		expect(activeVersion(resolved, '/docs/next/anything')?.id).toBe('next');
 	});
 
 	it('matches on a segment boundary, not a string prefix', () => {
 		const vs = resolveVersions(
-			[
-				{ id: 'v2', label: 'v2', path: 'v2', latest: true },
-				{ id: 'v20', label: 'v20', path: 'v20' }
-			],
+			{
+				current: { id: 'v3', label: 'v3' },
+				archived: [
+					{ id: 'v2', label: 'v2' },
+					{ id: 'v20', label: 'v20' }
+				]
+			},
 			'/docs',
 			[]
 		);
 		expect(activeVersion(vs, '/docs/v20/x')?.id).toBe('v20');
 	});
 
-	it('is undefined off the versioned tree', () => {
+	it('is undefined off the docs tree, and on an unversioned site', () => {
 		expect(activeVersion(resolved, '/blog/post')).toBeUndefined();
 		expect(activeVersion([], '/docs/intro')).toBeUndefined();
 	});
 });
 
-describe('latest helpers', () => {
-	it('finds the latest version and its landing', () => {
-		expect(latestVersion(resolved)?.id).toBe('v2');
-		expect(latestLandingUrl(resolved)).toBe('/docs/v2/intro');
+describe('currentVersion and currentOnly', () => {
+	it('finds the current version', () => {
+		expect(currentVersion(resolved)?.id).toBe('v2');
 	});
 
-	it('latestOnly keeps only latest pages, and is a no-op with no versions', () => {
-		expect(latestOnly(content, resolved).map((c) => c.path)).toEqual([
-			'/docs/v2/intro',
-			'/docs/v2/guide'
+	it('keeps only current pages, and is a no-op with no versions', () => {
+		expect(currentOnly(content, resolved).map((c) => c.path)).toEqual([
+			'/docs/intro',
+			'/docs/guide'
 		]);
-		expect(latestOnly(content, [])).toBe(content);
+		expect(currentOnly(content, [])).toBe(content);
 	});
 });
 
 describe('scopeContent', () => {
 	it('filters to one version', () => {
-		expect(scopeContent(content, 'v2').map((c) => c.path)).toEqual([
-			'/docs/v2/intro',
-			'/docs/v2/guide'
-		]);
+		expect(scopeContent(content, 'v1').map((c) => c.path)).toEqual(['/docs/v1/intro']);
 	});
 
 	it('passes content through unchanged for an unversioned site', () => {
@@ -103,16 +120,20 @@ describe('scopeContent', () => {
 });
 
 describe('mapPathToVersion', () => {
-	const targetPaths = ['/docs/v1/intro'];
-
-	it('keeps the same page when it exists in the target version', () => {
-		expect(mapPathToVersion('/docs/v2/intro', byId('v2'), byId('v1'), targetPaths)).toBe(
+	it('maps a current page into an archive', () => {
+		expect(mapPathToVersion('/docs/intro', byId('v2'), byId('v1'), ['/docs/v1/intro'])).toBe(
 			'/docs/v1/intro'
 		);
 	});
 
+	it('maps an archived page back to current', () => {
+		expect(mapPathToVersion('/docs/v1/intro', byId('v1'), byId('v2'), ['/docs/intro'])).toBe(
+			'/docs/intro'
+		);
+	});
+
 	it("falls back to the target's landing when the page is missing there", () => {
-		expect(mapPathToVersion('/docs/v2/guide', byId('v2'), byId('v1'), targetPaths)).toBe(
+		expect(mapPathToVersion('/docs/guide', byId('v2'), byId('v1'), ['/docs/v1/intro'])).toBe(
 			'/docs/v1/intro'
 		);
 	});

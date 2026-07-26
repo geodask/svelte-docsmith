@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import { DEFAULT_THEMES, lazyHighlighter } from '../highlight.js';
-import { resolveVersions, type DocsVersion } from '../../core/version.js';
+import { resolveVersions, type DocsVersions } from '../../core/version.js';
 import { isPageFile, listPageFiles } from './pages.js';
 import { collectDocs, collectLlmsDocs, collectSearchDocs } from './collect.js';
 import { collectReleases } from './releases.js';
@@ -51,12 +51,13 @@ export interface DocsmithViteOptions {
 	 */
 	changelogPath?: string;
 	/**
-	 * Declare documentation versions to enable versioned docs. Each version's
-	 * pages live under `<content>/<path>/` and are served prefixed
-	 * (`/docs/<path>/…`). Exactly one should be `latest`; the bare docs root
-	 * redirects there. Omit for a single, unversioned docs tree (the default).
+	 * Declare documentation versions to enable versioned docs. `current` is the
+	 * docs for the latest release: its pages sit directly under `<content>` and
+	 * keep their unprefixed URLs. Each archived version's pages live under
+	 * `<content>/<id>/` and are served at `/docs/<id>/…`. Omit for a single,
+	 * unversioned docs tree (the default).
 	 */
-	versions?: DocsVersion[];
+	versions?: DocsVersions;
 }
 
 /**
@@ -85,7 +86,7 @@ const VIRTUAL_CHANGELOG_ID = '\0svelte-docsmith:changelog';
 function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	const contentDir = path.resolve(options.content ?? 'src/routes/docs');
 	const routesDir = path.resolve(options.routes ?? 'src/routes');
-	const versions = options.versions ?? [];
+	const versions = options.versions;
 	// The docs URL base, e.g. `/docs`, derived from the content dir's location
 	// under the routes dir — the same mapping `collect.ts` uses for page URLs.
 	const docsBase = '/' + path.relative(routesDir, contentDir).split(path.sep).join('/');

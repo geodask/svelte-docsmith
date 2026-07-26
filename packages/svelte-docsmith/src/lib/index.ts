@@ -44,12 +44,12 @@ export {
 
 // Versioned docs. Declare `versions` in the `docsmith()` vite plugin; the
 // resolved manifest is exported from `svelte-docsmith/content` and passed to
-// `DocsShell`. `latestLandingUrl` targets the bare `/docs` redirect, and
-// `latestOnly` scopes sitemap.xml / llms.txt to the latest released version.
+// `DocsShell`. `currentOnly` scopes sitemap.xml / llms.txt to the current
+// version, so archived releases don't compete with it in search results.
 export {
-	latestLandingUrl,
-	latestOnly,
+	currentOnly,
 	type DocsVersion,
+	type DocsVersions,
 	type ResolvedVersion
 } from './core/index.js';
 
