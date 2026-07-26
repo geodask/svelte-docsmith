@@ -6,13 +6,16 @@
 	const {
 		config,
 		title,
-		description
+		description,
+		noindex = false
 	}: {
 		config: DocsmithConfig;
 		/** The page's own title (frontmatter or override); omit for the site root. */
 		title?: string;
 		/** The page's own description; falls back to `config.description`. */
 		description?: string;
+		/** Emit `robots: noindex` (unreleased or explicitly hidden doc versions). */
+		noindex?: boolean;
 	} = $props();
 
 	// "Page · Site", or just the site title when they would duplicate (the home page).
@@ -35,6 +38,10 @@
 
 <svelte:head>
 	<title>{fullTitle}</title>
+	{#if noindex}
+		<!-- Keep old/unreleased versions out of search results; still follow links. -->
+		<meta name="robots" content="noindex, follow" />
+	{/if}
 	{#if metaDescription}
 		<meta name="description" content={metaDescription} />
 	{/if}

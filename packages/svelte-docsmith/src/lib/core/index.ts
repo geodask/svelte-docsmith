@@ -11,6 +11,17 @@ export {
 } from './config.js';
 export type { DocsContentItem, SearchDoc, LlmsDoc } from './content.js';
 export {
+	resolveVersions,
+	activeVersion,
+	latestVersion,
+	latestLandingUrl,
+	latestOnly,
+	scopeContent,
+	mapPathToVersion,
+	type DocsVersion,
+	type ResolvedVersion
+} from './version.js';
+export {
 	navFromContent,
 	flattenNav,
 	navTrail,

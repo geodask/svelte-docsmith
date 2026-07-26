@@ -34,6 +34,11 @@ export type DocsContentItem = {
 	 * runtime TOC engine still owns scroll-spy and re-scans the DOM.
 	 */
 	toc?: { id: string; title: string; depth: 2 | 3 }[];
+	/**
+	 * The id of the version this page belongs to, when the site declares
+	 * versions (`docsmith({ versions })`). `undefined` on unversioned sites.
+	 */
+	version?: string;
 };
 
 /**
@@ -52,6 +57,8 @@ export type SearchDoc = {
 	headings: string[];
 	/** Plain-text body: prose and headings, code and markup removed. */
 	text: string;
+	/** The page's version id when the site declares versions; else `undefined`. */
+	version?: string;
 };
 
 /**
@@ -69,4 +76,6 @@ export type LlmsDoc = {
 	/** The page's markdown body (frontmatter and `<script>`/`<style>` removed,
 	 *  headings and code kept), with the title prepended as an `h1`. */
 	content: string;
+	/** The page's version id when the site declares versions; else `undefined`. */
+	version?: string;
 };

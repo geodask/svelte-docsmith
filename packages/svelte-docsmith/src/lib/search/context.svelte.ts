@@ -9,6 +9,8 @@ const KEY = Symbol('docsmith-search');
 
 export class SearchState {
 	open = $state(false);
+	/** Active version id on a versioned site; scopes results. `undefined` otherwise. */
+	version = $state<string | undefined>(undefined);
 }
 
 /** Create the search state and publish it on context. Call in `DocsShell`. */

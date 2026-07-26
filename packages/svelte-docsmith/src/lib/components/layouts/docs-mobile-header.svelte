@@ -1,10 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { DocsmithConfig, NavGroup } from '$lib/core/index.js';
+	import type {
+		DocsmithConfig,
+		NavGroup,
+		DocsContentItem,
+		ResolvedVersion
+	} from '$lib/core/index.js';
 	import type { TocItem } from '$lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
+	import VersionSwitcher from '../chrome/version-switcher.svelte';
 	import { Button } from '$lib/components/shadcn/button/index.js';
 	import * as Popover from '$lib/components/shadcn/popover/index.js';
 	import { ScrollArea } from '$lib/components/shadcn/scroll-area/index.js';
@@ -24,7 +30,11 @@
 		tocItems = [],
 		tocActiveId = null,
 		logo,
-		actions
+		actions,
+		versions = [],
+		active,
+		content = [],
+		pathname = ''
 	}: {
 		config: DocsmithConfig;
 		/** Sidebar groups; omit on non-doc pages (the landing/`page` layout). */
@@ -37,6 +47,14 @@
 		tocActiveId?: string | null;
 		logo?: Snippet;
 		actions?: Snippet;
+		/** Declared versions; renders the switcher in the drawer when non-empty. */
+		versions?: ResolvedVersion[];
+		/** The active version, for the switcher's current selection. */
+		active?: ResolvedVersion;
+		/** Content index, so the switcher can map the current page across versions. */
+		content?: DocsContentItem[];
+		/** Current normalized pathname, for the switcher's page mapping. */
+		pathname?: string;
 	} = $props();
 
 	const search = useSearch();
@@ -77,6 +95,11 @@
 						<span class="inline-block">{config.title}</span>
 					</a>
 				</div>
+				{#if versions.length && active}
+					<div class="px-7 pb-3">
+						<VersionSwitcher {versions} {active} {content} {pathname} />
+					</div>
+				{/if}
 				<ScrollArea class="my-4 h-[calc(100vh-8rem)] pb-10 pl-2">
 					{#if config.nav?.length}
 						<nav aria-label="Main" class="flex flex-col gap-0.5 px-5 pb-1">

@@ -42,6 +42,17 @@ export {
 	type LlmsDoc
 } from './core/index.js';
 
+// Versioned docs. Declare `versions` in the `docsmith()` vite plugin; the
+// resolved manifest is exported from `svelte-docsmith/content` and passed to
+// `DocsShell`. `latestLandingUrl` targets the bare `/docs` redirect, and
+// `latestOnly` scopes sitemap.xml / llms.txt to the latest released version.
+export {
+	latestLandingUrl,
+	latestOnly,
+	type DocsVersion,
+	type ResolvedVersion
+} from './core/index.js';
+
 // Search engine (framework-agnostic; for building a custom search UI over the
 // generated `svelte-docsmith/search` index)
 export {

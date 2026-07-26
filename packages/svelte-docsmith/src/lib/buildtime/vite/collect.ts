@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { DocsContentItem, LlmsDoc, SearchDoc } from '$lib/core/content.js';
+import type { DocsVersion } from '$lib/core/version.js';
 import { listPageFiles } from './pages.js';
 import { parseFrontmatter } from './frontmatter.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
@@ -12,6 +13,8 @@ type PageEntry = {
 	url: string;
 	title: string;
 	file: string;
+	/** Version id when the page sits under a declared version folder, else undefined. */
+	version: string | undefined;
 };
 
 /**
@@ -48,7 +51,11 @@ function sectionKey(value: unknown): string | undefined {
  * frontmatter, derived URL, and title so every index (nav, search, llms) can be
  * built from a single read of each file.
  */
-function* eachTitledPage(contentDir: string, routesDir: string): Generator<PageEntry> {
+function* eachTitledPage(
+	contentDir: string,
+	routesDir: string,
+	versions: DocsVersion[]
+): Generator<PageEntry> {
 	for (const file of listPageFiles(contentDir)) {
 		const source = fs.readFileSync(file, 'utf-8');
 		const front = parseFrontmatter(source, file);
@@ -56,7 +63,11 @@ function* eachTitledPage(contentDir: string, routesDir: string): Generator<PageE
 
 		const dir = path.dirname(file);
 		const url = '/' + path.relative(routesDir, dir).split(path.sep).join('/');
-		yield { source, front, url, title: front.title, file };
+		// A page's version is the first directory segment under the content dir
+		// that matches a declared version's `path`. No versions ⇒ always undefined.
+		const firstSegment = path.relative(contentDir, dir).split(path.sep)[0];
+		const version = versions.find((v) => v.path === firstSegment)?.id;
+		yield { source, front, url, title: front.title, file, version };
 	}
 }
 
@@ -66,7 +77,11 @@ function* eachTitledPage(contentDir: string, routesDir: string): Generator<PageE
  * an estimated reading time), deriving each page's URL from its directory
  * relative to `routesDir`. Pure and synchronous so it can be unit-tested.
  */
-export function collectDocs(contentDir: string, routesDir: string): DocsContentItem[] {
+export function collectDocs(
+	contentDir: string,
+	routesDir: string,
+	versions: DocsVersion[] = []
+): DocsContentItem[] {
 	if (!fs.existsSync(contentDir)) {
 		console.warn(
 			`[svelte-docsmith] content directory not found: ${contentDir}\n` +
@@ -77,7 +92,11 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 
 	const items: DocsContentItem[] = [];
 
-	for (const { source, front, url, title, file } of eachTitledPage(contentDir, routesDir)) {
+	for (const { source, front, url, title, file, version } of eachTitledPage(
+		contentDir,
+		routesDir,
+		versions
+	)) {
 		items.push({
 			title,
 			path: url,
@@ -87,7 +106,8 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
 			sourcePath: path.relative(process.cwd(), file).split(path.sep).join('/'),
 			lastUpdated: lastCommitDate(file),
 			readingTime: readingMinutes(extractSearchText(source)),
-			toc: extractToc(source)
+			toc: extractToc(source),
+			version
 		});
 	}
 
@@ -109,19 +129,28 @@ export function collectDocs(contentDir: string, routesDir: string): DocsContentI
  * bloating the eagerly-imported nav index. The missing-directory case is
  * already reported by {@link collectDocs}, so this stays quiet.
  */
-export function collectSearchDocs(contentDir: string, routesDir: string): SearchDoc[] {
+export function collectSearchDocs(
+	contentDir: string,
+	routesDir: string,
+	versions: DocsVersion[] = []
+): SearchDoc[] {
 	if (!fs.existsSync(contentDir)) return [];
 
 	const docs: SearchDoc[] = [];
 
-	for (const { source, front, url, title } of eachTitledPage(contentDir, routesDir)) {
+	for (const { source, front, url, title, version } of eachTitledPage(
+		contentDir,
+		routesDir,
+		versions
+	)) {
 		docs.push({
 			path: url,
 			title,
 			section: sectionLabel(front.section),
 			description: typeof front.description === 'string' ? front.description : undefined,
 			headings: extractToc(source).map((entry) => entry.title),
-			text: extractSearchText(source)
+			text: extractSearchText(source),
+			version
 		});
 	}
 
@@ -134,19 +163,28 @@ export function collectSearchDocs(contentDir: string, routesDir: string): Search
  * consumed server-side by `llms.txt` / `llms-full.txt` routes, so it never ships
  * to the client.
  */
-export function collectLlmsDocs(contentDir: string, routesDir: string): LlmsDoc[] {
+export function collectLlmsDocs(
+	contentDir: string,
+	routesDir: string,
+	versions: DocsVersion[] = []
+): LlmsDoc[] {
 	if (!fs.existsSync(contentDir)) return [];
 
 	const docs: LlmsDoc[] = [];
 
-	for (const { source, front, url, title } of eachTitledPage(contentDir, routesDir)) {
+	for (const { source, front, url, title, version } of eachTitledPage(
+		contentDir,
+		routesDir,
+		versions
+	)) {
 		docs.push({
 			path: url,
 			title,
 			section: sectionKey(front.section),
 			order: typeof front.order === 'number' ? front.order : undefined,
 			description: typeof front.description === 'string' ? front.description : undefined,
-			content: extractLlmsContent(source, title)
+			content: extractLlmsContent(source, title),
+			version
 		});
 	}
 

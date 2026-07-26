@@ -89,4 +89,33 @@ describe('createSearchEngine', () => {
 		const results = createSearchEngine(many).search('keyword', 3);
 		expect(results).toHaveLength(3);
 	});
+
+	it('scopes results to a version and still fills the limit past other versions', () => {
+		const versioned: SearchDoc[] = [
+			...Array.from({ length: 8 }, (_, i) => ({
+				path: `/docs/v2/p${i}`,
+				title: `p${i}`,
+				headings: [],
+				text: 'shared keyword body',
+				version: 'v2'
+			})),
+			...Array.from({ length: 4 }, (_, i) => ({
+				path: `/docs/v1/p${i}`,
+				title: `p${i}`,
+				headings: [],
+				text: 'shared keyword body',
+				version: 'v1'
+			}))
+		];
+		const engine = createSearchEngine(versioned);
+
+		const v1 = engine.search('keyword', 8, 'v1');
+		expect(v1.length).toBe(4);
+		expect(v1.every((r) => r.version === 'v1')).toBe(true);
+
+		// No version ⇒ results span every version.
+		expect(new Set(engine.search('keyword', 20).map((r) => r.version))).toEqual(
+			new Set(['v1', 'v2'])
+		);
+	});
 });
