@@ -1,5 +1,32 @@
 # svelte-docsmith
 
+## 0.10.0
+
+### Minor Changes
+
+- 1f1828c: Add opt-in versioned docs. The current version stays unprefixed at your docs root, so turning versioning on never moves a URL.
+
+  - Declare `versions: { current, archived }` in `docsmith()`. The sidebar, search, prev/next, and breadcrumbs scope to the version being read. No `versions` means today's single-tree behaviour, unchanged.
+  - Archived versions are served at `/docs/<id>/…`, get a banner linking to the current equivalent, and drop their "Edit this page" link.
+  - A header version switcher appears once an archive exists, and keeps you on the same page across versions.
+  - Archives stay indexable with a self-canonical; `sitemap.xml` and `llms.txt` scope to the current version via the new `currentOnly` helper.
+  - `svelte-docsmith archive-version <id>` freezes the current docs into an archive, rewriting in-content links to stay inside it and preserving each page's real last-updated date.
+  - `DocsShell`'s `search` prop now receives the active version id, so a loader can return one version's records.
+  - `lastUpdated` frontmatter, when present, takes precedence over the git commit date.
+
+### Patch Changes
+
+- 8cfcab7: - `ErrorPage` takes a `versions` prop and forwards it to the shell, so an error under an archived prefix keeps that version's search scope, switcher, and `noindex` instead of falling back to the current version.
+  - `ErrorPage`'s `search` prop now receives the active version id, matching `DocsShell`.
+  - The scaffolded `+error.svelte` passes `versions` (a no-op until you declare versions).
+- 6fe500b: - Fenced code is detected per CommonMark everywhere at build time: a fence now closes only on a marker of the same character, at least as long as the opener, carrying no info string. A page whose samples nest one fence inside another (` ```svelte ` inside ` ```` `) no longer leaks its code into the search index or phantom headings into the table of contents.
+  - The fence rule and the frontmatter delimiters live in one module the search index, table of contents, `llms.txt` content and the archive rewriter all cross, instead of a copy per pass.
+- 4dd3d8d: Accessibility polish across the docs chrome.
+
+  - Honour `prefers-reduced-motion`: overlay (dialog, sheet, popover, dropdown, accordion) and transition animations collapse to instant; opacity fades still play.
+  - The copy button announces "Copied to clipboard" to screen readers via a polite live region, instead of only swapping its icon.
+  - The header GitHub link sets `rel="noopener noreferrer"`.
+
 ## 0.9.0
 
 ### Minor Changes
