@@ -51,6 +51,137 @@ function underBase(pathname: string, base: string): boolean {
 }
 
 /**
+ * Legal version id. Must start alphanumeric: an archived id is both a directory
+ * name and a URL segment, so `.`, `..` and dotfiles would escape the docs root
+ * or make a hidden, dead route. The current version's id never becomes a
+ * segment, but archiving retires it into one, so the same rule applies to both
+ * rather than springing a trap one release later.
+ */
+const VALID_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+/**
+ * Throw unless `id` is a legal version id. Shared by the vite plugin, which
+ * checks the ids in `docsmith({ versions })`, and by `archive-version`, which
+ * checks the id it is about to turn into a directory. One rule, so an id the
+ * command accepts is one the build accepts.
+ */
+export function assertValidVersionId(id: unknown): asserts id is string {
+	if (typeof id !== 'string' || !VALID_ID.test(id)) {
+		throw new Error(
+			`invalid version id: ${JSON.stringify(id)}\n` +
+				`  Start with a letter or digit, then letters, digits, \`.\`, \`-\` or \`_\`.\n` +
+				`  An archived id is a directory name and a URL segment, and archiving turns\n` +
+				`  today's current id into one.`
+		);
+	}
+}
+
+/** What the docs root actually contains, for {@link checkVersions} to reconcile. */
+export type ArchivesOnDisk = {
+	/** Ids of directories carrying the archive marker. */
+	marked: string[];
+	/** Names of every directory directly under the docs root. */
+	directories: string[];
+};
+
+const list = (ids: Iterable<string>) => [...ids].map((id) => `\`${id}\``).join(', ');
+
+/** The `versions` block to paste, with `archived` reduced to the given ids. */
+function configBlock(versions: DocsVersions, archivedIds: string[]): string {
+	const entry = (v: DocsVersion) => `{ id: '${v.id}', label: '${v.label}' }`;
+	const known = new Map((versions.archived ?? []).map((v) => [v.id, v]));
+	const archived = archivedIds.map((id) => entry(known.get(id) ?? { id, label: id }));
+	return (
+		`  versions: {\n` +
+		`    current: ${entry(versions.current)},\n` +
+		`    archived: [${archived.join(', ')}]\n` +
+		`  }`
+	);
+}
+
+/**
+ * Check the declared versions against the docs root, and throw if they disagree.
+ * Called by the vite plugin before {@link resolveVersions}, and by
+ * `archive-version` before it writes.
+ *
+ * Versions are declared by hand in `docsmith()` while archives are directories
+ * on disk, so the config and the tree are two independent claims about which
+ * versions exist. Neither mismatch is visible in the output: an undeclared
+ * archive is merged into the current version and its pages take current-version
+ * URLs, and a section folder wrongly declared as an archive drops out of the
+ * current sidebar entirely. Both are silent corruption of the content index,
+ * which is why this throws rather than warns.
+ *
+ * The marker file is what tells the two apart. A page is assigned to a version
+ * by its first directory segment, so `docs/guides/…` and `docs/v1/…` are the
+ * same shape and no name-based rule can distinguish them. See
+ * `docs/adr/0003-the-archive-marker-defines-an-archive.md`.
+ *
+ * Pure: the caller does the filesystem work and passes the result in. A no-op
+ * for an unversioned site.
+ */
+export function checkVersions(
+	versions: DocsVersions | undefined,
+	disk: ArchivesOnDisk,
+	markerName: string
+): void {
+	if (!versions) return;
+
+	const declared = [versions.current, ...(versions.archived ?? [])];
+	for (const version of declared) {
+		try {
+			assertValidVersionId(version?.id);
+		} catch (error) {
+			throw new Error(`[svelte-docsmith] ${(error as Error).message}`);
+		}
+	}
+
+	const seen = new Set<string>();
+	for (const { id } of declared) {
+		if (seen.has(id)) {
+			throw new Error(
+				`[svelte-docsmith] duplicate version id: \`${id}\`\n` +
+					`  Every version needs its own id; it keys each page to its version.`
+			);
+		}
+		seen.add(id);
+	}
+
+	const archivedIds = (versions.archived ?? []).map((v) => v.id);
+	const declaredArchives = new Set(archivedIds);
+
+	const undeclared = disk.marked.filter((id) => !declaredArchives.has(id));
+	if (undeclared.length) {
+		throw new Error(
+			`[svelte-docsmith] archived on disk but not declared: ${list(undeclared)}\n` +
+				`  Their pages would be merged into the current version and served at\n` +
+				`  current-version URLs. Add them to docsmith({ versions }):\n\n` +
+				configBlock(versions, [...undeclared, ...archivedIds]) +
+				`\n`
+		);
+	}
+
+	const unmarked = archivedIds.filter((id) => !disk.marked.includes(id));
+	if (unmarked.length) {
+		const present = unmarked.filter((id) => disk.directories.includes(id));
+		const missing = unmarked.filter((id) => !disk.directories.includes(id));
+		throw new Error(
+			`[svelte-docsmith] declared but not archived on disk: ${list(unmarked)}\n` +
+				(missing.length
+					? `  No directory for ${list(missing)} under the docs root. Create the archive\n` +
+						`  with \`svelte-docsmith archive-version <id>\`, or drop it from \`versions\`.\n`
+					: '') +
+				(present.length
+					? `  ${list(present)} exists but carries no \`${markerName}\`, so it is an ordinary\n` +
+						`  section of the current docs. Declaring it as a version would scope its\n` +
+						`  pages out of the current sidebar and search. If it really is an archive\n` +
+						`  you copied by hand, mark it and the build will accept it.\n`
+					: '')
+		);
+	}
+}
+
+/**
  * Resolve author versions against the docs URL base (e.g. `/docs`) and the
  * collected content: compute each version's `basePath` and its `landing` (first
  * page in sidebar reading order). Emitted as the `versions` manifest in

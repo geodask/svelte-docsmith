@@ -4,7 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectReleases } from './releases.js';
-import { changelogDates } from './git.js';
+import { changelogDates } from '../git.js';
 
 let dir: string | undefined;
 
@@ -109,8 +109,8 @@ describe('changelogDates', () => {
 		git('commit', '-q', '-m', 'release 1.1.0');
 
 		const dates = changelogDates(file);
-		expect(dates.get('1.0.0')).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-		expect(dates.get('1.1.0')).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+		expect(dates.get('1.0.0')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+		expect(dates.get('1.1.0')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 		// 1.0.0's heading appeared first, so its date cannot be later than 1.1.0's.
 		expect(Date.parse(dates.get('1.0.0')!)).toBeLessThanOrEqual(Date.parse(dates.get('1.1.0')!));
 	});

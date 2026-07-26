@@ -3,12 +3,17 @@
 
 	const { release }: { release: ChangelogRelease } = $props();
 
+	// `timeZone: 'UTC'` is not cosmetic. `release.date` is a calendar day, which
+	// parses to UTC midnight, so formatting in the ambient zone shifts it a day
+	// west of UTC — and shifts it on the client but not on the server, so the
+	// rendered date changes under hydration.
 	const formatted = $derived(
 		release.date
 			? new Date(release.date).toLocaleDateString('en-US', {
 					year: 'numeric',
 					month: 'long',
-					day: 'numeric'
+					day: 'numeric',
+					timeZone: 'UTC'
 				})
 			: undefined
 	);

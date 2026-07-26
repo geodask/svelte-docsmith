@@ -157,7 +157,11 @@ export function resolveDocsPage(input: {
 	};
 }
 
-/** An ISO stamp as a Date, or `undefined` when absent or unparseable. */
+/**
+ * A `YYYY-MM-DD` day as a Date, or `undefined` when absent or unparseable. The
+ * result is UTC midnight, so it must be formatted in UTC to read back as the
+ * same day.
+ */
 function parseDate(iso: string | undefined): Date | undefined {
 	if (!iso) return undefined;
 	const date = new Date(iso);

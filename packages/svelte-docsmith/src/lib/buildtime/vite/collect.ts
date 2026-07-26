@@ -5,7 +5,7 @@ import type { DocsVersions } from '$lib/core/version.js';
 import { listPageFiles } from './pages.js';
 import { parseFrontmatter } from './frontmatter.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
-import { lastCommitDate } from './git.js';
+import { lastCommitDate } from '../git.js';
 
 type PageEntry = {
 	source: string;

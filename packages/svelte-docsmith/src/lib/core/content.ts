@@ -24,7 +24,12 @@ export type DocsContentItem = {
 	description?: string;
 	/** Source file path relative to the app cwd, for the "Edit this page" link. */
 	sourcePath?: string;
-	/** Last git commit date (ISO) for the page's source file. */
+	/**
+	 * The day (`YYYY-MM-DD`) the page's source file last changed, from git, or
+	 * from the page's own `lastUpdated` frontmatter when it has one. A calendar
+	 * day rather than a timestamp: it is rendered as a UTC day, so it reads the
+	 * same for every reader and matches on the server and the client.
+	 */
 	lastUpdated?: string;
 	/** Estimated reading time in whole minutes (at ~200 wpm), min 1. */
 	readingTime?: number;
