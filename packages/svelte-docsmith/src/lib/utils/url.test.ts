@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstSegmentUnder, join, normalizePath, under } from './url.js';
+import { atBoundary, firstSegmentUnder, join, normalizePath, under } from './url.js';
 
 describe('normalizePath', () => {
 	it('strips a trailing slash', () => {
@@ -46,6 +46,29 @@ describe('join', () => {
 
 	it('keeps a root path, so a sitemap can carry the home page', () => {
 		expect(join('https://x.dev', '/')).toBe('https://x.dev/');
+	});
+
+	// How a configured link is anchored at the site root before it is matched
+	// against the current path, so both spellings name the same page.
+	it('anchors a site-relative path at the root either way', () => {
+		expect(join('/', 'docs/intro')).toBe('/docs/intro');
+		expect(join('/', '/docs/intro')).toBe('/docs/intro');
+	});
+});
+
+// The archive link rewriter matches a base with a regex and checks the boundary
+// on the remainder it captured, so it needs this on its own.
+describe('atBoundary', () => {
+	it('accepts the end of a URL and each separator that starts something new', () => {
+		expect(atBoundary('')).toBe(true);
+		expect(atBoundary('/theming')).toBe(true);
+		expect(atBoundary('#anchor')).toBe(true);
+		expect(atBoundary('?q=x')).toBe(true);
+	});
+
+	it('rejects a remainder that continues the last segment', () => {
+		expect(atBoundary('mith')).toBe(false);
+		expect(atBoundary('mith/x')).toBe(false);
 	});
 });
 

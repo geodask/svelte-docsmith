@@ -11,7 +11,7 @@
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import type { Snippet } from 'svelte';
 	import { cn } from '$lib/utils/cn.js';
-	import { firstSegmentUnder, normalizePath, under } from '$lib/utils/url.js';
+	import { firstSegmentUnder, join, normalizePath, under } from '$lib/utils/url.js';
 	import { useDocsPage } from '../docs-page-context.js';
 
 	const {
@@ -42,7 +42,9 @@
 	 */
 	function isActive(link: DocsmithLink): boolean {
 		if (link.external) return false;
-		const href = normalizePath(link.href);
+		// `href` is only required to be a string, so anchor it at the site root:
+		// `docs/intro` has to light the same section as `/docs/intro`.
+		const href = normalizePath(join('/', link.href));
 		if (href === current) return true;
 		// No first segment means the link is the root, or is not a site path at
 		// all (an absolute URL left unflagged), and owns no section either way.
