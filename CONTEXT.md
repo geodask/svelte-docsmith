@@ -14,6 +14,12 @@ The directory of doc pages that maps onto the site's documentation URL base,
 `src/routes/docs` onto `/docs` by default.
 _Avoid_: docs folder, content folder
 
+**Source page**:
+One doc page as authored, before any index has derived anything from it. Every
+index is a projection of the same source pages, which is what keeps them
+agreeing on which pages exist and where they live.
+_Avoid_: page entry, doc file
+
 **Content index**:
 The generated record of every doc page's frontmatter, URL, headings and reading
 time. Imported eagerly, because navigation is built from it.
@@ -23,6 +29,11 @@ _Avoid_: nav index, docs index
 The generated record of every doc page's body text. Loaded lazily, the first
 time a reader opens search.
 _Avoid_: search docs
+
+**LLM index**:
+The generated record of every doc page's full markdown. Read on the server to
+write `llms.txt` and `llms-full.txt`, so it never reaches a reader's browser.
+_Avoid_: llms docs, ai index
 
 ### Versioning
 

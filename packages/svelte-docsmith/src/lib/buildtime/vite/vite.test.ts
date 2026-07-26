@@ -2,9 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { collectDocs, collectSearchDocs, collectLlmsDocs, docsmith } from './index.js';
+import { docsmith, type DocsmithViteOptions } from './index.js';
 import { ARCHIVE_MARKER, markerContents } from '../archives.js';
-import type { DocsVersions } from '$lib/core/version.js';
 import type { Plugin } from 'vite';
 
 // Plugin hooks are typed as ObjectHook unions; in these plugins they are plain
@@ -15,7 +14,8 @@ type Load = (this: unknown, id: string) => Promise<string | undefined> | string 
 const SOURCE_PREFIX = '\0docsmith-source:';
 const SOURCE_EXT = '.docsmith-src';
 
-const pluginNamed = (name: string): Plugin => docsmith().find((p) => p.name === name) as Plugin;
+const pluginNamed = (name: string, options: DocsmithViteOptions = {}): Plugin =>
+	docsmith(options).find((p) => p.name === name) as Plugin;
 
 // --- ?source transform ---------------------------------------------------
 
@@ -58,6 +58,11 @@ describe('docsmith() ?source transform', () => {
 });
 
 // --- content index -------------------------------------------------------
+//
+// These drive the plugin against a real docs root on disk. That is the point:
+// the index builders are unit-tested against in-memory pages in
+// `collect.test.ts`, so this file is the only thing proving the plugin actually
+// reads the filesystem it is pointed at.
 
 let routesDir: string;
 
@@ -76,324 +81,19 @@ function markArchive(id: string) {
 	fs.writeFileSync(path.join(routesDir, 'docs', id, ARCHIVE_MARKER), markerContents(id));
 }
 
+/** Load one virtual module from a content plugin pointed at the fixture root. */
+function loadVirtual(id: string, options: Omit<DocsmithViteOptions, 'content' | 'routes'> = {}) {
+	const plugin = pluginNamed('docsmith-content', {
+		content: path.join(routesDir, 'docs'),
+		routes: routesDir,
+		...options
+	});
+	const load = plugin.load as unknown as Load;
+	return load.call({ addWatchFile: vi.fn() }, id) as string;
+}
+
 afterEach(() => {
 	if (routesDir) fs.rmSync(routesDir, { recursive: true, force: true });
-});
-
-describe('collectDocs', () => {
-	beforeAll(() => {});
-
-	it('returns an empty array and warns when the content dir does not exist', () => {
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-		expect(collectDocs('/no/such/dir', '/no/such')).toEqual([]);
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('content directory not found'));
-		warn.mockRestore();
-	});
-
-	it('warns when the content dir exists but has no titled pages', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		fs.mkdirSync(path.join(routesDir, 'docs'), { recursive: true });
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		expect(collectDocs(path.join(routesDir, 'docs'), routesDir)).toEqual([]);
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('no doc pages found'));
-		warn.mockRestore();
-	});
-
-	it('throws with the filename on invalid YAML frontmatter', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const dir = path.join(routesDir, 'docs', 'broken');
-		fs.mkdirSync(dir, { recursive: true });
-		fs.writeFileSync(path.join(dir, '+page.md'), '---\ntitle: "unterminated\n---\n\n# body\n');
-
-		expect(() => collectDocs(path.join(routesDir, 'docs'), routesDir)).toThrow(
-			/invalid YAML frontmatter in .*broken.*\+page\.md/s
-		);
-	});
-
-	it('reads frontmatter and derives the URL from the directory', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/introduction', 'title: Introduction\nsection: Guides\norder: 1');
-		writePage('docs', 'title: Overview\norder: 0');
-
-		const docs = collectDocs(path.join(routesDir, 'docs'), routesDir);
-
-		expect(docs).toEqual([
-			{
-				title: 'Overview',
-				path: '/docs',
-				description: undefined,
-				section: undefined,
-				order: 0,
-				sourcePath: expect.any(String),
-				lastUpdated: undefined,
-				readingTime: 1,
-				toc: []
-			},
-			{
-				title: 'Introduction',
-				path: '/docs/introduction',
-				description: undefined,
-				section: 'Guides',
-				order: 1,
-				sourcePath: expect.any(String),
-				lastUpdated: undefined,
-				readingTime: 1,
-				toc: []
-			}
-		]);
-	});
-
-	it('tags archive folders by id, and everything else as the current version', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro');
-		writePage('docs/guides/deep/nested', 'title: Nested');
-		writePage('docs/v1/intro', 'title: Intro');
-
-		const versions: DocsVersions = {
-			current: { id: 'v2', label: 'v2' },
-			archived: [{ id: 'v1', label: 'v1' }]
-		};
-		const version = Object.fromEntries(
-			collectDocs(path.join(routesDir, 'docs'), routesDir, versions).map((d) => [d.path, d.version])
-		);
-		expect(version['/docs/intro']).toBe('v2');
-		// A section folder is not an archive, so its pages stay on the current version.
-		expect(version['/docs/guides/deep/nested']).toBe('v2');
-		expect(version['/docs/v1/intro']).toBe('v1');
-	});
-
-	it('prefers a frontmatter lastUpdated over the git date, so archives keep their real date', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', "title: Intro\nlastUpdated: '2026-03-04'");
-
-		expect(collectDocs(path.join(routesDir, 'docs'), routesDir)[0].lastUpdated).toBe('2026-03-04');
-	});
-
-	it('leaves the version undefined on an unversioned site', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro');
-		expect(collectDocs(path.join(routesDir, 'docs'), routesDir)[0].version).toBeUndefined();
-	});
-
-	it('estimates reading time from the body word count (~200 wpm, min 1)', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/short', 'title: Short', 'Just a few words here.');
-		writePage('docs/long', 'title: Long', `## Heading\n\n${'word '.repeat(600)}`);
-
-		const byPath = Object.fromEntries(
-			collectDocs(path.join(routesDir, 'docs'), routesDir).map((d) => [d.path, d])
-		);
-		// A handful of words still rounds up to 1 minute.
-		expect(byPath['/docs/short'].readingTime).toBe(1);
-		// ~601 words / 200 wpm rounds to 3.
-		expect(byPath['/docs/long'].readingTime).toBe(3);
-	});
-
-	it('extracts an h2/h3 TOC from the body, skipping code fences', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/guide',
-			'title: Guide',
-			[
-				'## Getting started',
-				'',
-				'```md',
-				'## not a heading',
-				'```',
-				'',
-				'### A `code` sub-step'
-			].join('\n')
-		);
-
-		const [doc] = collectDocs(path.join(routesDir, 'docs'), routesDir);
-		expect(doc.toc).toEqual([
-			{ id: 'getting-started', title: 'Getting started', depth: 2 },
-			{ id: 'a-code-sub-step', title: 'A code sub-step', depth: 3 }
-		]);
-	});
-
-	it('slugs headings exactly like rehype-slug (github-slugger), incl. dupes', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/slugs',
-			'title: Slugs',
-			['## Anchors & copy buttons', '', '## Usage', '', '## Usage'].join('\n')
-		);
-
-		const [doc] = collectDocs(path.join(routesDir, 'docs'), routesDir);
-		expect((doc.toc ?? []).map((t) => t.id)).toEqual([
-			// github-slugger drops `&` but keeps the surrounding spaces → double hyphen,
-			// where the old hand-rolled slugify collapsed it to a single hyphen.
-			'anchors--copy-buttons',
-			'usage',
-			'usage-1'
-		]);
-	});
-
-	it('handles quoted values and colons inside frontmatter', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/x', 'title: "A: the beginning"\ndescription: "Uses http://x"');
-
-		const [doc] = collectDocs(path.join(routesDir, 'docs'), routesDir);
-		expect(doc.title).toBe('A: the beginning');
-		expect(doc.description).toBe('Uses http://x');
-	});
-
-	it('skips pages without a title', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/titled', 'title: Kept');
-		writePage('docs/untitled', 'description: no title here');
-
-		expect(collectDocs(path.join(routesDir, 'docs'), routesDir).map((d) => d.title)).toEqual([
-			'Kept'
-		]);
-	});
-
-	it('ignores non-page files', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/real', 'title: Real');
-		fs.writeFileSync(path.join(routesDir, 'docs', 'notes.md'), '# not a route');
-
-		expect(collectDocs(path.join(routesDir, 'docs'), routesDir)).toHaveLength(1);
-	});
-});
-
-describe('collectSearchDocs', () => {
-	it('returns an empty array when the content dir does not exist', () => {
-		expect(collectSearchDocs('/no/such/dir', '/no/such')).toEqual([]);
-	});
-
-	it('reduces a page to plain-text body, headings, and metadata', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/guide',
-			'title: Guide\ndescription: How to use it\nsection: Guides',
-			[
-				'<script>',
-				"\timport { Callout } from 'svelte-docsmith';",
-				'</script>',
-				'',
-				'## Getting started',
-				'',
-				'Install the **package** and import `Callout` from [the library](/docs).',
-				'',
-				'```bash',
-				'npm i secretcode',
-				'```',
-				'',
-				'<Callout variant="tip">',
-				'',
-				'This is a helpful tip.',
-				'',
-				'</Callout>'
-			].join('\n')
-		);
-
-		const [doc] = collectSearchDocs(path.join(routesDir, 'docs'), routesDir);
-
-		expect(doc.path).toBe('/docs/guide');
-		expect(doc.title).toBe('Guide');
-		expect(doc.description).toBe('How to use it');
-		expect(doc.section).toBe('Guides');
-		expect(doc.headings).toEqual(['Getting started']);
-
-		// Prose is kept as plain text, with markdown punctuation resolved.
-		expect(doc.text).toContain('Getting started');
-		expect(doc.text).toContain('Install the package and import Callout from the library');
-		expect(doc.text).toContain('This is a helpful tip.');
-		// Code fences, <script> blocks, and tag syntax are dropped.
-		expect(doc.text).not.toContain('secretcode');
-		expect(doc.text).not.toContain('import {');
-		expect(doc.text).not.toContain('variant');
-		expect(doc.text).not.toMatch(/[*`[\]]/);
-	});
-
-	it('strips markdown table structure from the body text', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/table',
-			'title: Reference',
-			['| Name | Type |', '| ---- | ---- |', '| variant | string |', '| title | string |'].join(
-				'\n'
-			)
-		);
-
-		const [doc] = collectSearchDocs(path.join(routesDir, 'docs'), routesDir);
-		expect(doc.text).not.toContain('|');
-		expect(doc.text).not.toContain('----');
-		// Cell words survive as plain prose.
-		expect(doc.text).toContain('Name Type');
-		expect(doc.text).toContain('variant string');
-	});
-
-	it('skips pages without a title and sorts by path', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/b', 'title: Bravo', 'Second.');
-		writePage('docs/a', 'title: Alpha', 'First.');
-		writePage('docs/untitled', 'description: no title', 'Ignored.');
-
-		expect(collectSearchDocs(path.join(routesDir, 'docs'), routesDir).map((d) => d.path)).toEqual([
-			'/docs/a',
-			'/docs/b'
-		]);
-	});
-});
-
-describe('collectLlmsDocs', () => {
-	it('returns an empty array when the content dir does not exist', () => {
-		expect(collectLlmsDocs('/no/such/dir', '/no/such')).toEqual([]);
-	});
-
-	it('keeps the markdown body with headings and code, dropping frontmatter and script/style', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/guide',
-			'title: Guide\ndescription: How to use it\nsection: Guides',
-			[
-				'<script>',
-				"\timport { Callout } from 'svelte-docsmith';",
-				'</script>',
-				'<style>.x { color: red; }</style>',
-				'',
-				'## Getting started',
-				'',
-				'Install the **package**.',
-				'',
-				'```bash',
-				'npm i thing',
-				'```'
-			].join('\n')
-		);
-
-		const [doc] = collectLlmsDocs(path.join(routesDir, 'docs'), routesDir);
-
-		expect(doc.path).toBe('/docs/guide');
-		expect(doc.title).toBe('Guide');
-		expect(doc.description).toBe('How to use it');
-		expect(doc.section).toBe('Guides');
-		// Title prepended as an h1; markdown headings and code fences preserved.
-		expect(doc.content.startsWith('# Guide\n\n')).toBe(true);
-		expect(doc.content).toContain('## Getting started');
-		expect(doc.content).toContain('Install the **package**.');
-		expect(doc.content).toContain('```bash\nnpm i thing\n```');
-		// Frontmatter, script, and style blocks are removed.
-		expect(doc.content).not.toContain('---');
-		expect(doc.content).not.toContain('import {');
-		expect(doc.content).not.toContain('color: red');
-	});
-
-	it('skips pages without a title and sorts by path', () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/b', 'title: Bravo', 'Second.');
-		writePage('docs/a', 'title: Alpha', 'First.');
-		writePage('docs/untitled', 'description: no title', 'Ignored.');
-
-		expect(collectLlmsDocs(path.join(routesDir, 'docs'), routesDir).map((d) => d.path)).toEqual([
-			'/docs/a',
-			'/docs/b'
-		]);
-	});
 });
 
 describe('docsmith() content plugin', () => {
@@ -406,49 +106,112 @@ describe('docsmith() content plugin', () => {
 		expect(resolveId.call({}, 'something-else')).toBeUndefined();
 	});
 
-	it('loads the llms virtual module as an exported docs array', () => {
+	it('loads the virtual module as an exported docs array', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro', 'Full body markdown.');
+		writePage('docs/intro', 'title: Intro\norder: 1');
 
-		const plugin = docsmith({ content: path.join(routesDir, 'docs'), routes: routesDir }).find(
-			(p) => p.name === 'docsmith-content'
-		)! as Plugin;
-		const load = plugin.load as unknown as Load;
-		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:llms') as string;
+		const out = loadVirtual('\0svelte-docsmith:content');
 
 		expect(out).toContain('export const docs =');
-		expect(out).toContain('Full body markdown.');
-		expect(out).toContain('"path":"/docs/intro"');
+		expect(out).toContain('"title": "Intro"');
+		expect(out).toContain('"path": "/docs/intro"');
 	});
 
 	it('loads the search virtual module as an exported docs array', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: Intro', 'Searchable body text.');
 
-		const plugin = docsmith({ content: path.join(routesDir, 'docs'), routes: routesDir }).find(
-			(p) => p.name === 'docsmith-content'
-		)! as Plugin;
-		const load = plugin.load as unknown as Load;
-		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:search') as string;
+		const out = loadVirtual('\0svelte-docsmith:search');
 
 		expect(out).toContain('export const docs =');
 		expect(out).toContain('Searchable body text.');
 		expect(out).toContain('"path":"/docs/intro"');
 	});
 
-	it('loads the virtual module as an exported docs array', () => {
+	it('loads the llms virtual module as an exported docs array', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro\norder: 1');
+		writePage('docs/intro', 'title: Intro', 'Full body markdown.');
 
-		const plugin = docsmith({ content: path.join(routesDir, 'docs'), routes: routesDir }).find(
-			(p) => p.name === 'docsmith-content'
-		)! as Plugin;
-		const load = plugin.load as unknown as Load;
-		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:content') as string;
+		const out = loadVirtual('\0svelte-docsmith:llms');
 
 		expect(out).toContain('export const docs =');
-		expect(out).toContain('"title": "Intro"');
-		expect(out).toContain('"path": "/docs/intro"');
+		expect(out).toContain('Full body markdown.');
+		expect(out).toContain('"path":"/docs/intro"');
+	});
+
+	it('dates the content index from git, and leaves the other two indexes dateless', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', "title: Intro\nlastUpdated: '2026-03-04'");
+
+		expect(loadVirtual('\0svelte-docsmith:content')).toContain('"lastUpdated": "2026-03-04"');
+		expect(loadVirtual('\0svelte-docsmith:search')).not.toContain('lastUpdated');
+		expect(loadVirtual('\0svelte-docsmith:llms')).not.toContain('lastUpdated');
+	});
+
+	it('watches every page it read, so editing one re-runs the load', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro');
+		writePage('docs/untitled', 'description: not in the nav');
+
+		const ctx = { addWatchFile: vi.fn() };
+		const plugin = pluginNamed('docsmith-content', {
+			content: path.join(routesDir, 'docs'),
+			routes: routesDir
+		});
+		(plugin.load as unknown as Load).call(ctx, '\0svelte-docsmith:content');
+
+		// Including the untitled page: adding a title to it has to rebuild the nav.
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(
+			path.join(routesDir, 'docs', 'intro', '+page.md')
+		);
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(
+			path.join(routesDir, 'docs', 'untitled', '+page.md')
+		);
+	});
+
+	it('throws with the filename on invalid YAML frontmatter', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const dir = path.join(routesDir, 'docs', 'broken');
+		fs.mkdirSync(dir, { recursive: true });
+		fs.writeFileSync(path.join(dir, '+page.md'), '---\ntitle: "unterminated\n---\n\n# body\n');
+
+		expect(() => loadVirtual('\0svelte-docsmith:content')).toThrow(
+			/invalid YAML frontmatter in .*broken.*\+page\.md/s
+		);
+	});
+
+	it('warns when the content dir does not exist', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const out = loadVirtual('\0svelte-docsmith:content');
+
+		expect(out).toContain('export const docs = [];');
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('content directory not found'));
+		warn.mockRestore();
+	});
+
+	it('leaves the search and llms modules empty and quiet on a missing content dir', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		// Only the content index reports it; two more copies of the same warning
+		// would say nothing new.
+		expect(loadVirtual('\0svelte-docsmith:search')).toBe('export const docs = [];\n');
+		expect(loadVirtual('\0svelte-docsmith:llms')).toBe('export const docs = [];\n');
+		expect(warn).not.toHaveBeenCalled();
+		warn.mockRestore();
+	});
+
+	it('warns when the content dir exists but has no titled pages', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		fs.mkdirSync(path.join(routesDir, 'docs'), { recursive: true });
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		loadVirtual('\0svelte-docsmith:content');
+
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('no doc pages found'));
+		warn.mockRestore();
 	});
 
 	it('emits a resolved versions manifest alongside docs when versions are declared', () => {
@@ -457,13 +220,9 @@ describe('docsmith() content plugin', () => {
 		writePage('docs/v1/intro', 'title: Intro\norder: 1');
 		markArchive('v1');
 
-		const plugin = docsmith({
-			content: path.join(routesDir, 'docs'),
-			routes: routesDir,
+		const out = loadVirtual('\0svelte-docsmith:content', {
 			versions: { current: { id: 'v2', label: 'v2' }, archived: [{ id: 'v1', label: 'v1' }] }
-		}).find((p) => p.name === 'docsmith-content')! as Plugin;
-		const load = plugin.load as unknown as Load;
-		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:content') as string;
+		});
 
 		expect(out).toContain('export const versions =');
 		// The current version keeps the unprefixed docs root; only archives are prefixed.
@@ -477,13 +236,7 @@ describe('docsmith() content plugin', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: Intro');
 
-		const plugin = docsmith({ content: path.join(routesDir, 'docs'), routes: routesDir }).find(
-			(p) => p.name === 'docsmith-content'
-		)! as Plugin;
-		const load = plugin.load as unknown as Load;
-		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:content') as string;
-
-		expect(out).toContain('export const versions = [];');
+		expect(loadVirtual('\0svelte-docsmith:content')).toContain('export const versions = [];');
 	});
 
 	it('invalidates and full-reloads only when a page file changes', () => {

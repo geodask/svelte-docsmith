@@ -13,8 +13,9 @@
  *  3. The **`?source` transform** powering `LiveExample`: importing
  *     `Component.svelte?source` yields that file's Shiki-highlighted source.
  *
- * The per-index scanning lives in `./collect.js`; this file owns the two Vite
- * plugins and re-exports the collectors for consumers and tests.
+ * Reading the docs root lives in `./pages.js` and building each index from what
+ * it read lives in `./collect.js`; this file owns the two Vite plugins, and is
+ * the only layer that reports to the console.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -23,12 +24,9 @@ import { DEFAULT_THEMES, lazyHighlighter } from '../highlight.js';
 import { checkVersions, resolveVersions, type DocsVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
-import { isPageFile, listPageFiles } from './pages.js';
-import { collectDocs, collectLlmsDocs, collectSearchDocs } from './collect.js';
+import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
+import { contentIndex, llmsIndex, searchIndex } from './collect.js';
 import { collectReleases } from './releases.js';
-
-export { collectDocs, collectLlmsDocs, collectSearchDocs } from './collect.js';
-export { collectReleases } from './releases.js';
 
 export interface DocsmithViteOptions {
 	/** Directory scanned for doc pages. Default: `'src/routes/docs'`. */
@@ -85,6 +83,25 @@ const VIRTUAL_LLMS_ID = '\0svelte-docsmith:llms';
 const CHANGELOG_SPECIFIER = 'svelte-docsmith/changelog';
 const VIRTUAL_CHANGELOG_ID = '\0svelte-docsmith:changelog';
 
+/**
+ * Tell the author when their docs root produced nothing, and why. An empty
+ * sidebar is otherwise silent: the build succeeds and the site renders, so
+ * without this the first sign of a misconfigured `content` is a missing nav.
+ */
+function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number) {
+	if (!exists) {
+		console.warn(
+			`[svelte-docsmith] content directory not found: ${contentDir}\n` +
+				`  The sidebar will be empty. Create your doc pages there, or point docsmith() at the right place with \`content\`.`
+		);
+	} else if (indexed === 0) {
+		console.warn(
+			`[svelte-docsmith] no doc pages found under ${contentDir}\n` +
+				`  Add \`+page.md\` files with at least a \`title:\` in their frontmatter to populate the sidebar.`
+		);
+	}
+}
+
 function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	const contentDir = path.resolve(options.content ?? 'src/routes/docs');
 	const routesDir = path.resolve(options.routes ?? 'src/routes');
@@ -94,6 +111,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 		options.changelog === false ? undefined : path.resolve(options.changelog ?? 'CHANGELOG.md');
 	const changelogRoute = options.changelogPath ?? '/changelog';
 	const changelogOverrides = path.join(routesDir, changelogRoute.replace(/^\//, ''));
+	const indexOptions = { contentDir, routesDir, versions };
 
 	return {
 		name: 'docsmith-content',
@@ -111,14 +129,21 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			// body re-runs this load. A directory here is treated as an
 			// unresolvable import by vite:import-analysis; new/removed pages are
 			// handled by the watcher in configureServer.
+			const watch = (pages: SourcePage[]) => {
+				for (const page of pages) this.addWatchFile(page.file);
+			};
+
 			if (id === VIRTUAL_CONTENT_ID) {
-				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
-				// Before anything is collected: a config that disagrees with the docs
-				// root produces an index that is wrong rather than empty, so it has to
-				// fail here rather than render. Re-runs on invalidation, so archiving
-				// during `dev` reports immediately.
+				// Before anything is read: a config that disagrees with the docs root
+				// produces an index that is wrong rather than empty, so it has to fail
+				// here rather than render. Re-runs on invalidation, so archiving during
+				// `dev` reports immediately.
 				checkVersions(versions, discoverArchives(contentDir), ARCHIVE_MARKER);
-				const docs = collectDocs(contentDir, routesDir, versions);
+				const { pages, exists } = readSourcePages(contentDir);
+				watch(pages);
+				// Only this index has a date field, so only this one pays for git.
+				const docs = contentIndex(withCommitDates(pages), indexOptions);
+				warnAboutDocsRoot(contentDir, exists, docs.length);
 				const resolved = resolveVersions(versions, docsBase, docs);
 				return (
 					`export const docs = ${JSON.stringify(docs, null, 2)};\n` +
@@ -126,14 +151,14 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 				);
 			}
 			if (id === VIRTUAL_SEARCH_ID) {
-				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
-				const docs = collectSearchDocs(contentDir, routesDir, versions);
-				return `export const docs = ${JSON.stringify(docs)};\n`;
+				const { pages } = readSourcePages(contentDir);
+				watch(pages);
+				return `export const docs = ${JSON.stringify(searchIndex(pages, indexOptions))};\n`;
 			}
 			if (id === VIRTUAL_LLMS_ID) {
-				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
-				const docs = collectLlmsDocs(contentDir, routesDir, versions);
-				return `export const docs = ${JSON.stringify(docs)};\n`;
+				const { pages } = readSourcePages(contentDir);
+				watch(pages);
+				return `export const docs = ${JSON.stringify(llmsIndex(pages, indexOptions))};\n`;
 			}
 			if (id === VIRTUAL_CHANGELOG_ID) {
 				if (!changelogFile) return `export const releases = [];\n`;
