@@ -28,6 +28,16 @@ describe('generateSitemap', () => {
 		expect(xml).not.toContain('https://x.dev//');
 	});
 
+	it('accepts a path without a leading slash', () => {
+		const xml = generateSitemap('https://x.dev', [{ path: 'docs/intro' }]);
+		expect(xml).toContain('<loc>https://x.dev/docs/intro</loc>');
+	});
+
+	it('keeps the home page as a bare origin with a slash', () => {
+		const xml = generateSitemap('https://x.dev', [{ path: '/' }]);
+		expect(xml).toContain('<loc>https://x.dev/</loc>');
+	});
+
 	it('escapes every XML-special character in the loc', () => {
 		const xml = generateSitemap('https://x.dev', [{ path: `/a&b<c>d'e"f` }]);
 		expect(xml).toContain('/a&amp;b&lt;c&gt;d&apos;e&quot;f');

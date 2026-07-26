@@ -11,7 +11,7 @@
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import type { Snippet } from 'svelte';
 	import { cn } from '$lib/utils/cn.js';
-	import { normalizePath } from '$lib/utils/normalize-path.js';
+	import { firstSegmentUnder, normalizePath, under } from '$lib/utils/url.js';
 	import { useDocsPage } from '../docs-page-context.js';
 
 	const {
@@ -44,9 +44,11 @@
 		if (link.external) return false;
 		const href = normalizePath(link.href);
 		if (href === current) return true;
-		if (href === '/') return false;
-		const section = '/' + href.split('/').filter(Boolean)[0];
-		return current === section || current.startsWith(section + '/');
+		// No first segment means the link is the root, or is not a site path at
+		// all (an absolute URL left unflagged), and owns no section either way.
+		const segment = firstSegmentUnder(href, '/');
+		if (!segment) return false;
+		return under(current, '/' + segment);
 	}
 
 	let isScrolled = $state(false);

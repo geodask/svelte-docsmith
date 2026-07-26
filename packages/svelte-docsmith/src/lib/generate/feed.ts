@@ -1,4 +1,6 @@
 import type { ChangelogRelease } from '../core/changelog.js';
+import { join } from '../utils/url.js';
+import { escapeXml } from './xml.js';
 
 /** Site details the feed needs beyond the releases themselves. */
 export type FeedSite = {
@@ -8,25 +10,12 @@ export type FeedSite = {
 	title: string;
 	/** One-line feed description. */
 	description?: string;
-	/** Path the changelog lives at. Default: `/changelog`. */
+	/**
+	 * Path the changelog lives at. Default: `/changelog`. Joined to the origin with
+	 * exactly one slash between, so the leading slash is optional.
+	 */
 	path?: string;
 };
-
-const escapeXml = (s: string) =>
-	s.replace(/[&<>'"]/g, (c) => {
-		switch (c) {
-			case '&':
-				return '&amp;';
-			case '<':
-				return '&lt;';
-			case '>':
-				return '&gt;';
-			case "'":
-				return '&apos;';
-			default:
-				return '&quot;';
-		}
-	});
 
 /** A release's entries flattened to plain text, grouped by kind. */
 function summarise(release: ChangelogRelease): string {
@@ -58,9 +47,9 @@ function summarise(release: ChangelogRelease): string {
  * update timestamp, which is exactly what a version and its release date give.
  */
 export function generateFeed(releases: ChangelogRelease[], site: FeedSite): string {
-	const origin = site.url.replace(/\/$/, '');
 	const path = site.path ?? '/changelog';
-	const feedUrl = `${origin}${path}.xml`;
+	const changelogUrl = join(site.url, path);
+	const feedUrl = `${changelogUrl}.xml`;
 	// A feed needs an updated timestamp; fall back to now when no release
 	// carries a date, so the document stays valid.
 	const updated = releases.find((r) => r.date)?.date ?? new Date().toISOString();
@@ -68,8 +57,8 @@ export function generateFeed(releases: ChangelogRelease[], site: FeedSite): stri
 	const entries = releases
 		.map((release) => {
 			const link = release.path
-				? `${origin}${release.path}`
-				: `${origin}${path}#${release.version}`;
+				? join(site.url, release.path)
+				: `${changelogUrl}#${release.version}`;
 			return [
 				'\t<entry>',
 				`\t\t<title>${escapeXml(release.version)}</title>`,
@@ -88,7 +77,7 @@ export function generateFeed(releases: ChangelogRelease[], site: FeedSite): stri
 		`\t<title>${escapeXml(site.title)}</title>`,
 		site.description ? `\t<subtitle>${escapeXml(site.description)}</subtitle>` : '',
 		`\t<id>${escapeXml(feedUrl)}</id>`,
-		`\t<link href="${escapeXml(origin + path)}" />`,
+		`\t<link href="${escapeXml(changelogUrl)}" />`,
 		`\t<link rel="self" href="${escapeXml(feedUrl)}" />`,
 		`\t<updated>${escapeXml(updated)}</updated>`,
 		entries,

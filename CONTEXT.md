@@ -10,9 +10,14 @@ resolved for rendering.
 ### Content pipeline
 
 **Docs root**:
-The directory of doc pages that maps onto the site's documentation URL base,
-`src/routes/docs` onto `/docs` by default.
+The directory of doc pages, `src/routes/docs` by default. Maps onto the docs
+base.
 _Avoid_: docs folder, content folder
+
+**Docs base**:
+The URL prefix the docs tree is served under, `/docs` by default. The URL-space
+counterpart of the docs root, which is a directory.
+_Avoid_: docs prefix, base path, content base
 
 **Source page**:
 One doc page as authored, before any index has derived anything from it. Every
@@ -47,6 +52,12 @@ A frozen copy of the docs for a superseded release, served under its own URL
 prefix and never edited afterwards.
 _Avoid_: old version, previous version, snapshot
 
+**Version base**:
+The URL prefix owning one version: the docs base for the current version,
+`<docs base>/<id>` for an archive. A page belongs to the version with the
+longest base it sits under.
+_Avoid_: version prefix, version root
+
 **Active version**:
 The version owning the page currently being read. Falls back to the current
 version when the reader is off the docs tree. Distinct from the current version,
@@ -67,7 +78,7 @@ _Avoid_: archive flag, version marker, sentinel
 
 **Version manifest**:
 The resolved list of versions the build emits into the content index, giving
-each version its URL base and its landing page.
+each version its version base and its landing page.
 _Avoid_: versions config
 
 ### Rendering

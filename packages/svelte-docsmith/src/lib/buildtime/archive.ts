@@ -8,6 +8,7 @@
  * CLI is a thin wrapper over them. See `docs/adr/0002-archives-are-rewritten-source-copies.md`.
  */
 
+import { atBoundary, firstSegmentUnder } from '../utils/url.js';
 import { outsideCodeFences, withFrontmatter } from './markdown-source.js';
 
 /** Route files at the docs root that an archive nested inside it already inherits. */
@@ -40,9 +41,10 @@ export function rewriteDocsLinks(
 
 	return outsideCodeFences(text, (chunk) =>
 		chunk.replace(pattern, (match, prefix: string, base: string, rest: string) => {
-			// Guard the segment boundary: `/docsmith` must not become `/docs/v1mith`.
-			if (rest && !/^[/#?]/.test(rest)) return match;
-			const firstSegment = rest.startsWith('/') ? rest.slice(1).split(/[/#?]/)[0] : '';
+			// The regex has already matched the base, so guard the boundary on what
+			// follows it: `/docsmith` must not become `/docs/v1mith`.
+			if (!atBoundary(rest)) return match;
+			const firstSegment = firstSegmentUnder(rest, '');
 			if (firstSegment && skip.has(firstSegment)) return match;
 			return `${prefix}${base}/${versionId}${rest}`;
 		})

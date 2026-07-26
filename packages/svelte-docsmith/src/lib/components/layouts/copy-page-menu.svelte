@@ -7,6 +7,7 @@
 	import Copy from '@lucide/svelte/icons/copy';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import { join } from '$lib/utils/url.js';
 
 	const {
 		path,
@@ -21,8 +22,9 @@
 	// Convention: each page's markdown lives at `<path>.md`, served by the
 	// consumer's catch-all endpoint over the `svelte-docsmith/llms` index.
 	const mdHref = $derived(`${path}.md`);
-	const base = $derived((origin || (browser ? location.origin : '')).replace(/\/$/, ''));
-	const absoluteMd = $derived(`${base}${mdHref}`);
+	// Before hydration with no configured origin there is nothing to prefix, and
+	// `join` leaves the link site-relative rather than mangling it.
+	const absoluteMd = $derived(join(origin || (browser ? location.origin : ''), mdHref));
 	const prompt = $derived(`Read ${absoluteMd} so I can ask questions about this page.`);
 	const chatgptHref = $derived(`https://chatgpt.com/?hints=search&q=${encodeURIComponent(prompt)}`);
 	const claudeHref = $derived(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`);

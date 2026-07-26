@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { normalizePath } from '$lib/utils/normalize-path.js';
+	import { join, normalizePath } from '$lib/utils/url.js';
 	import type { DocsmithConfig } from '$lib/core/index.js';
 
 	const {
@@ -25,14 +25,16 @@
 	const ogTitle = $derived(title ?? config.title);
 	const metaDescription = $derived(description ?? config.description);
 
-	const origin = $derived(config.url?.replace(/\/$/, ''));
-	// Absolute URLs need a configured origin; otherwise canonical/og:url are omitted.
-	const canonical = $derived(origin ? origin + normalizePath(page.url.pathname) : undefined);
+	// Absolute URLs need a configured origin; otherwise canonical/og:url are
+	// omitted rather than emitted relative, which `join` alone would do.
+	const canonical = $derived(
+		config.url ? join(config.url, normalizePath(page.url.pathname)) : undefined
+	);
 	const image = $derived.by(() => {
 		const src = config.ogImage;
 		if (!src) return undefined;
 		if (/^https?:\/\//.test(src)) return src;
-		return origin ? origin + '/' + src.replace(/^\//, '') : src;
+		return config.url ? join(config.url, src) : src;
 	});
 </script>
 

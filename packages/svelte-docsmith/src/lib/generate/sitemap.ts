@@ -1,26 +1,16 @@
+import { join } from '../utils/url.js';
+import { escapeXml } from './xml.js';
+
 /** One entry in a sitemap: a page path (joined to the origin) and optional last-modified date. */
 export type SitemapEntry = {
-	/** Absolute path, e.g. `/docs/intro`. Joined to the origin. */
+	/**
+	 * Page path, e.g. `/docs/intro`. Joined to the origin with exactly one slash
+	 * between, so the leading slash is optional.
+	 */
 	path: string;
 	/** Last-modified date; an ISO string or `YYYY-MM-DD`. Only the date is emitted. */
 	lastmod?: string;
 };
-
-const escapeXml = (s: string) =>
-	s.replace(/[&<>'"]/g, (c) => {
-		switch (c) {
-			case '&':
-				return '&amp;';
-			case '<':
-				return '&lt;';
-			case '>':
-				return '&gt;';
-			case "'":
-				return '&apos;';
-			default:
-				return '&quot;';
-		}
-	});
 
 /**
  * Build a sitemap.xml body from a list of pages. Framework-agnostic: wire it
@@ -42,10 +32,9 @@ const escapeXml = (s: string) =>
  * ```
  */
 export function generateSitemap(origin: string, entries: SitemapEntry[]): string {
-	const base = origin.replace(/\/$/, '');
 	const urls = entries
 		.map(({ path, lastmod }) => {
-			const loc = `\t\t<loc>${escapeXml(base + path)}</loc>`;
+			const loc = `\t\t<loc>${escapeXml(join(origin, path))}</loc>`;
 			const mod = lastmod ? `\n\t\t<lastmod>${lastmod.slice(0, 10)}</lastmod>` : '';
 			return `\t<url>\n${loc}${mod}\n\t</url>`;
 		})
