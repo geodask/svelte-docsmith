@@ -1,5 +1,12 @@
 # create-svelte-docsmith
 
+## 0.3.2
+
+### Patch Changes
+
+- 8443cba: - Scaffolded `site-config.ts` now calls `defineConfig()` instead of annotating with `DocsmithConfig`, so a bad config fails with a clear error instead of a blank header
+- Pin the starter template to `svelte-docsmith@^0.11.0` so freshly scaffolded projects install the current release.
+
 ## 0.3.1
 
 ### Patch Changes
