@@ -97,8 +97,13 @@ export function archiveVersion(
 	}
 
 	// Read the dates before copying, so the walk sees the docs root as it was
-	// rather than a tree half full of untracked copies.
-	const dates = commitDates(contentDir);
+	// rather than a tree half full of untracked copies. Say so if they could not
+	// be read: an archive is written once and never edited again, so a page that
+	// misses its date here keeps the wrong one for good.
+	const dates = commitDates(contentDir, (reason) => {
+		log(`\n! Could not read commit dates: ${reason}`);
+		log('  Archived pages will keep no last-updated date.\n');
+	});
 
 	copyCurrent(contentDir, toDir);
 	fs.writeFileSync(path.join(toDir, ARCHIVE_MARKER), markerContents(id));
@@ -118,9 +123,11 @@ export function archiveVersion(
 	}
 
 	log(`\n✓ Archived the current docs into ${rel(toDir)} (${pages} pages)\n`);
-	log('Links were rewritten to stay inside the archive, and each page kept');
-	log('its real last-updated date. Review the diff, then update');
-	log('docsmith({ versions }) so the archive is served:\n');
+	log('Links were rewritten to stay inside the archive.');
+	// Only claim the dates were kept when the walk actually produced some.
+	if (dates.size) log('Each page kept its real last-updated date.');
+	log('Review the diff, then update docsmith({ versions }) so the archive');
+	log('is served:\n');
 	log('  versions: {');
 	log("    current: { id: '<new release>', label: '<new release>' },");
 	log(`    archived: [{ id: '${id}', label: '${label}' }${archivedIds.size ? ', …' : ''}]`);
