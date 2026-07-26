@@ -14,7 +14,7 @@
 		title?: string;
 		/** The page's own description; falls back to `config.description`. */
 		description?: string;
-		/** Emit `robots: noindex` (unreleased or explicitly hidden doc versions). */
+		/** Emit `robots: noindex`, for a doc version explicitly marked hidden. */
 		noindex?: boolean;
 	} = $props();
 
@@ -39,7 +39,7 @@
 <svelte:head>
 	<title>{fullTitle}</title>
 	{#if noindex}
-		<!-- Keep old/unreleased versions out of search results; still follow links. -->
+		<!-- Keep this version out of search results; still follow its links. -->
 		<meta name="robots" content="noindex, follow" />
 	{/if}
 	{#if metaDescription}

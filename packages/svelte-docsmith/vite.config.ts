@@ -17,6 +17,7 @@ export default defineConfig({
 				'src/lib/core/config.ts',
 				'src/lib/core/nav.ts',
 				'src/lib/buildtime/vite/**/*.ts',
+				'src/lib/buildtime/archive.ts',
 				'src/lib/buildtime/preprocess.ts',
 				'src/lib/buildtime/highlight.ts',
 				'src/lib/utils/clipboard.svelte.ts',
