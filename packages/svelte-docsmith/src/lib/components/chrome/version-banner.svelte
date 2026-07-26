@@ -1,12 +1,7 @@
 <script lang="ts">
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import {
-		mapPathToVersion,
-		scopeContent,
-		type ResolvedVersion,
-		type DocsContentItem
-	} from '$lib/core/index.js';
+	import type { ResolvedVersion } from '$lib/core/index.js';
 
 	// Rendered by DocsShell only on an archived version, to warn a reader who
 	// landed there (usually from a search engine) and give them a one-click path
@@ -15,23 +10,13 @@
 	const {
 		active,
 		current,
-		pathname,
-		content
+		href
 	}: {
 		active: ResolvedVersion;
 		current: ResolvedVersion;
-		pathname: string;
-		content: DocsContentItem[];
+		/** This page under the current version, from the resolved page view. */
+		href: string;
 	} = $props();
-
-	const currentHref = $derived(
-		mapPathToVersion(
-			pathname,
-			active,
-			current,
-			scopeContent(content, current.id).map((c) => c.path)
-		)
-	);
 </script>
 
 <div class="docsmith-version-banner" role="note">
@@ -39,7 +24,7 @@
 	<p>
 		You're reading the <strong>{active.label}</strong> docs. The current version is
 		<strong>{current.label}</strong>.
-		<a href={currentHref}>View this page in {current.label} <ArrowRight size={14} /></a>
+		<a {href}>View this page in {current.label} <ArrowRight size={14} /></a>
 	</p>
 </div>
 

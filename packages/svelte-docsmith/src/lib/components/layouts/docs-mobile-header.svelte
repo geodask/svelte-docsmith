@@ -1,11 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type {
-		DocsmithConfig,
-		NavGroup,
-		DocsContentItem,
-		ResolvedVersion
-	} from '$lib/core/index.js';
+	import type { DocsmithConfig, NavGroup } from '$lib/core/index.js';
 	import type { TocItem } from '$lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
@@ -17,6 +12,7 @@
 	import { Separator } from '$lib/components/shadcn/separator/index.js';
 	import * as Sheet from '$lib/components/shadcn/sheet/index.js';
 	import { useSearch } from '$lib/search/context.svelte.js';
+	import { useDocsPage } from '../docs-page-context.svelte.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import Menu from '@lucide/svelte/icons/menu';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
@@ -30,11 +26,7 @@
 		tocItems = [],
 		tocActiveId = null,
 		logo,
-		actions,
-		versions = [],
-		active,
-		content = [],
-		pathname = ''
+		actions
 	}: {
 		config: DocsmithConfig;
 		/** Sidebar groups; omit on non-doc pages (the landing/`page` layout). */
@@ -47,17 +39,11 @@
 		tocActiveId?: string | null;
 		logo?: Snippet;
 		actions?: Snippet;
-		/** Declared versions; renders the switcher in the drawer once there's more than one. */
-		versions?: ResolvedVersion[];
-		/** The active version, for the switcher's current selection. */
-		active?: ResolvedVersion;
-		/** Content index, so the switcher can map the current page across versions. */
-		content?: DocsContentItem[];
-		/** Current normalized pathname, for the switcher's page mapping. */
-		pathname?: string;
 	} = $props();
 
 	const search = useSearch();
+	const docsPage = useDocsPage();
+	const view = $derived(docsPage());
 
 	let isMenuOpen = $state(false);
 	let isTocOpen = $state(false);
@@ -95,9 +81,9 @@
 						<span class="inline-block">{config.title}</span>
 					</a>
 				</div>
-				{#if versions.length > 1 && active}
+				{#if view.versionLinks.length > 1}
 					<div class="px-7 pb-3">
-						<VersionSwitcher {versions} {active} {content} {pathname} />
+						<VersionSwitcher links={view.versionLinks} />
 					</div>
 				{/if}
 				<ScrollArea class="my-4 h-[calc(100vh-8rem)] pb-10 pl-2">

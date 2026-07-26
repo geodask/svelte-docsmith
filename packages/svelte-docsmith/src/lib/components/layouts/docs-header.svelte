@@ -7,46 +7,33 @@
 	import { useSearch } from '$lib/search/context.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
-	import type {
-		DocsmithConfig,
-		DocsmithLink,
-		DocsContentItem,
-		ResolvedVersion
-	} from '$lib/core/index.js';
+	import type { DocsmithConfig, DocsmithLink } from '$lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import type { Snippet } from 'svelte';
-	import { page } from '$app/state';
 	import { cn } from '$lib/utils/cn.js';
 	import { normalizePath } from '$lib/utils/normalize-path.js';
+	import { useDocsPage } from '../docs-page-context.svelte.js';
 
 	const {
 		config,
 		logo,
-		actions,
-		versions = [],
-		active,
-		content = [],
-		pathname = ''
+		actions
 	}: {
 		config: DocsmithConfig;
 		/** Custom logo mark; defaults to a book icon in a primary-tinted chip. */
 		logo?: Snippet;
 		/** Extra header controls, rendered before the theme toggle. */
 		actions?: Snippet;
-		/** Declared versions; renders the switcher once there's more than one. */
-		versions?: ResolvedVersion[];
-		/** The active version, for the switcher's current selection. */
-		active?: ResolvedVersion;
-		/** Content index, so the switcher can map the current page across versions. */
-		content?: DocsContentItem[];
-		/** Current normalized pathname, for the switcher's page mapping. */
-		pathname?: string;
 	} = $props();
 
 	// Present only when the consumer passed a `search` loader to DocsShell.
 	const search = useSearch();
 
-	const current = $derived(normalizePath(page.url.pathname));
+	// Everything about the page being read comes off the shell's one resolved
+	// view, including the normalized path the nav highlights against.
+	const docsPage = useDocsPage();
+	const view = $derived(docsPage());
+	const current = $derived(view.pathname);
 
 	/**
 	 * A header link is usually the entry point to a whole section rather than a
@@ -109,9 +96,9 @@
 				</nav>
 			{/if}
 
-			{#if versions.length > 1 && active}
+			{#if view.versionLinks.length > 1}
 				<div class="px-1">
-					<VersionSwitcher {versions} {active} {content} {pathname} />
+					<VersionSwitcher links={view.versionLinks} />
 				</div>
 			{:else if config.version}
 				<div class="px-2">

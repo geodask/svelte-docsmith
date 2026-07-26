@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import * as Command from '$lib/components/shadcn/command/index.js';
 	import { useSearch } from '$lib/search/context.svelte.js';
+	import { useDocsPage } from '../docs-page-context.svelte.js';
 	import type { SearchDoc } from '$lib/core/index.js';
 	import type { SearchEngine } from '$lib/search/create-search.js';
 	import CornerDownLeft from '@lucide/svelte/icons/corner-down-left';
@@ -26,6 +27,10 @@
 	} = $props();
 
 	const search = useSearch();
+	// The version being read, straight off the shell's resolved page view, so
+	// results and the cached engine follow the reader across a version switch.
+	const docsPage = useDocsPage();
+	const activeVersion = $derived(docsPage().activeVersionId);
 
 	let query = $state('');
 	let engine = $state<SearchEngine | null>(null);
@@ -36,14 +41,12 @@
 	let engineVersion: string | undefined;
 
 	const trimmed = $derived(query.trim());
-	// Scope to the active version when the shell set one (versioned sites).
-	const results = $derived(
-		engine && trimmed ? engine.search(query, undefined, search?.version) : []
-	);
+	// Scope to the active version on a versioned site; `undefined` otherwise.
+	const results = $derived(engine && trimmed ? engine.search(query, undefined, activeVersion) : []);
 
 	// Build the index the first time the palette opens; keep it for later opens.
 	async function ensureEngine() {
-		const version = search?.version;
+		const version = activeVersion;
 		if ((engine && engineVersion === version) || status === 'loading') return;
 		status = 'loading';
 		try {
