@@ -1,6 +1,6 @@
 {
 	"name": "create-svelte-docsmith",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "Scaffold a documentation site powered by Svelte DocSmith.",
 	"type": "module",
 	"bin": {
