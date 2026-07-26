@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { collectDocs, collectSearchDocs, collectLlmsDocs, docsmith } from './index.js';
+import type { DocsVersion } from '$lib/core/version.js';
 import type { Plugin } from 'vite';
 
 // Plugin hooks are typed as ObjectHook unions; in these plugins they are plain
@@ -131,6 +132,31 @@ describe('collectDocs', () => {
 				toc: []
 			}
 		]);
+	});
+
+	it('tags each page with the version folder it lives under', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/v2/intro', 'title: Intro');
+		writePage('docs/v1/intro', 'title: Intro');
+		writePage('docs/next/intro', 'title: Intro');
+
+		const versions: DocsVersion[] = [
+			{ id: 'next', label: 'next', path: 'next', prerelease: true },
+			{ id: 'v2', label: 'v2', path: 'v2', latest: true },
+			{ id: 'v1', label: 'v1', path: 'v1' }
+		];
+		const version = Object.fromEntries(
+			collectDocs(path.join(routesDir, 'docs'), routesDir, versions).map((d) => [d.path, d.version])
+		);
+		expect(version['/docs/v2/intro']).toBe('v2');
+		expect(version['/docs/v1/intro']).toBe('v1');
+		expect(version['/docs/next/intro']).toBe('next');
+	});
+
+	it('leaves the version undefined on an unversioned site', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro');
+		expect(collectDocs(path.join(routesDir, 'docs'), routesDir)[0].version).toBeUndefined();
 	});
 
 	it('estimates reading time from the body word count (~200 wpm, min 1)', () => {
@@ -406,6 +432,37 @@ describe('docsmith() content plugin', () => {
 		expect(out).toContain('export const docs =');
 		expect(out).toContain('"title": "Intro"');
 		expect(out).toContain('"path": "/docs/intro"');
+	});
+
+	it('emits a resolved versions manifest alongside docs when versions are declared', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/v2/intro', 'title: Intro\norder: 1');
+
+		const plugin = docsmith({
+			content: path.join(routesDir, 'docs'),
+			routes: routesDir,
+			versions: [{ id: 'v2', label: 'v2', path: 'v2', latest: true }]
+		}).find((p) => p.name === 'docsmith-content')! as Plugin;
+		const load = plugin.load as unknown as Load;
+		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:content') as string;
+
+		expect(out).toContain('export const versions =');
+		expect(out).toContain('"basePath": "/docs/v2"');
+		expect(out).toContain('"landing": "/docs/v2/intro"');
+		expect(out).toContain('"version": "v2"'); // page tagged in the docs array
+	});
+
+	it('emits an empty versions manifest for an unversioned site', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro');
+
+		const plugin = docsmith({ content: path.join(routesDir, 'docs'), routes: routesDir }).find(
+			(p) => p.name === 'docsmith-content'
+		)! as Plugin;
+		const load = plugin.load as unknown as Load;
+		const out = load.call({ addWatchFile: vi.fn() }, '\0svelte-docsmith:content') as string;
+
+		expect(out).toContain('export const versions = [];');
 	});
 
 	it('invalidates and full-reloads only when a page file changes', () => {

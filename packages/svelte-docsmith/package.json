@@ -23,8 +23,12 @@
 		"url": "https://github.com/geodask"
 	},
 	"main": "dist/index.js",
+	"bin": {
+		"svelte-docsmith": "./bin/svelte-docsmith.mjs"
+	},
 	"files": [
 		"dist",
+		"bin",
 		"!dist/**/*.test.*",
 		"!dist/**/*.spec.*"
 	],

@@ -20,6 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import { DEFAULT_THEMES, lazyHighlighter } from '../highlight.js';
+import { resolveVersions, type DocsVersion } from '../../core/version.js';
 import { isPageFile, listPageFiles } from './pages.js';
 import { collectDocs, collectLlmsDocs, collectSearchDocs } from './collect.js';
 import { collectReleases } from './releases.js';
@@ -49,6 +50,13 @@ export interface DocsmithViteOptions {
 	 * hand-written per-release pages. Default: `'/changelog'`.
 	 */
 	changelogPath?: string;
+	/**
+	 * Declare documentation versions to enable versioned docs. Each version's
+	 * pages live under `<content>/<path>/` and are served prefixed
+	 * (`/docs/<path>/…`). Exactly one should be `latest`; the bare docs root
+	 * redirects there. Omit for a single, unversioned docs tree (the default).
+	 */
+	versions?: DocsVersion[];
 }
 
 /**
@@ -77,6 +85,10 @@ const VIRTUAL_CHANGELOG_ID = '\0svelte-docsmith:changelog';
 function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	const contentDir = path.resolve(options.content ?? 'src/routes/docs');
 	const routesDir = path.resolve(options.routes ?? 'src/routes');
+	const versions = options.versions ?? [];
+	// The docs URL base, e.g. `/docs`, derived from the content dir's location
+	// under the routes dir — the same mapping `collect.ts` uses for page URLs.
+	const docsBase = '/' + path.relative(routesDir, contentDir).split(path.sep).join('/');
 	const changelogFile =
 		options.changelog === false ? undefined : path.resolve(options.changelog ?? 'CHANGELOG.md');
 	const changelogRoute = options.changelogPath ?? '/changelog';
@@ -100,17 +112,21 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			// handled by the watcher in configureServer.
 			if (id === VIRTUAL_CONTENT_ID) {
 				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
-				const docs = collectDocs(contentDir, routesDir);
-				return `export const docs = ${JSON.stringify(docs, null, 2)};\n`;
+				const docs = collectDocs(contentDir, routesDir, versions);
+				const resolved = resolveVersions(versions, docsBase, docs);
+				return (
+					`export const docs = ${JSON.stringify(docs, null, 2)};\n` +
+					`export const versions = ${JSON.stringify(resolved, null, 2)};\n`
+				);
 			}
 			if (id === VIRTUAL_SEARCH_ID) {
 				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
-				const docs = collectSearchDocs(contentDir, routesDir);
+				const docs = collectSearchDocs(contentDir, routesDir, versions);
 				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
 			if (id === VIRTUAL_LLMS_ID) {
 				for (const file of listPageFiles(contentDir)) this.addWatchFile(file);
-				const docs = collectLlmsDocs(contentDir, routesDir);
+				const docs = collectLlmsDocs(contentDir, routesDir, versions);
 				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
 			if (id === VIRTUAL_CHANGELOG_ID) {

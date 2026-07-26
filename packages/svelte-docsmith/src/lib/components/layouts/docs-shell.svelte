@@ -5,9 +5,13 @@
 		navFromContent,
 		flattenNav,
 		navTrail,
+		activeVersion,
+		latestVersion,
+		scopeContent,
 		type DocsContentItem,
 		type DocsmithConfig,
-		type SearchDoc
+		type SearchDoc,
+		type ResolvedVersion
 	} from '$lib/core/index.js';
 	import { createToc } from '$lib/toc/index.js';
 	import { createSearchState } from '$lib/search/context.svelte.js';
@@ -25,6 +29,7 @@
 	import CopyPageMenu from './copy-page-menu.svelte';
 	import PageFeedback from './page-feedback.svelte';
 	import SeoHead from './seo-head.svelte';
+	import VersionBanner from '../chrome/version-banner.svelte';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
 	import type { Snippet } from 'svelte';
@@ -32,6 +37,7 @@
 	const {
 		config,
 		content = [],
+		versions = [],
 		children,
 		logo,
 		actions,
@@ -46,6 +52,13 @@
 	}: {
 		config: DocsmithConfig;
 		content?: DocsContentItem[];
+		/**
+		 * The resolved version manifest from `svelte-docsmith/content` (its
+		 * `versions` export). Provide it to enable versioned docs — the sidebar,
+		 * search, prev/next, and breadcrumbs scope to the active version, and a
+		 * header switcher + old-version banner appear. Omit for a single tree.
+		 */
+		versions?: ResolvedVersion[];
 		children: Snippet;
 		/**
 		 * Override the head tags for this page. Doc pages get their `<title>` and
@@ -98,13 +111,28 @@
 	// `search` loader is static for the shell's lifetime, so reading it once at
 	// init is intentional.
 	// svelte-ignore state_referenced_locally
-	if (search) createSearchState();
-
-	const nav = $derived(navFromContent(content));
+	const searchState = search ? createSearchState() : undefined;
 
 	// Match content by a trailing-slash-normalized path, so `/docs/intro/` and
 	// `/docs/intro` resolve to the same page regardless of the app's trailingSlash.
 	const pathname = $derived(normalizePath(page.url.pathname));
+
+	// Versioning (a no-op when `versions` is empty): the version owning the current
+	// page — falling back to the latest on an unmatched docs URL — the latest for
+	// the banner, and the content scoped to the active version. Scoping the input
+	// to navFromContent flows through to prev/next, breadcrumbs, and the sidebar.
+	const activeVer = $derived(
+		activeVersion(versions, pathname) ?? (versions.length ? latestVersion(versions) : undefined)
+	);
+	const latestVer = $derived(latestVersion(versions));
+	const scopedContent = $derived(scopeContent(content, activeVer?.id));
+
+	const nav = $derived(navFromContent(scopedContent));
+
+	// Keep the search palette scoped to the version currently being read.
+	$effect(() => {
+		if (searchState) searchState.version = activeVer?.id;
+	});
 
 	// The content entry for the current route drives the SEO title/description,
 	// the "Edit this page" link, and the "Last updated" stamp.
@@ -167,6 +195,7 @@
 	{config}
 	title={seo?.title ?? currentEntry?.title}
 	description={seo?.description ?? currentEntry?.description}
+	noindex={activeVer?.noindex}
 />
 
 <div class="relative isolate flex min-h-screen flex-col">
@@ -197,7 +226,7 @@
 
 	<!-- One header system everywhere: DocsHeader on desktop, DocsMobileHeader
 	     below lg. The `page` layout just omits the sidebar nav and in-page TOC. -->
-	<DocsHeader {config} {logo} {actions} />
+	<DocsHeader {config} {logo} {actions} {versions} active={activeVer} {content} {pathname} />
 
 	{#if layout === 'page'}
 		<DocsMobileHeader {config} {logo} {actions} />
@@ -214,6 +243,10 @@
 			tocActiveId={toc.activeId}
 			{logo}
 			{actions}
+			{versions}
+			active={activeVer}
+			{content}
+			{pathname}
 		/>
 
 		<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
@@ -225,6 +258,10 @@
 				tabindex="-1"
 				class="min-w-0 flex-1 py-6 lg:py-0"
 			>
+				{#if activeVer && latestVer && activeVer.id !== latestVer.id}
+					<VersionBanner active={activeVer} latest={latestVer} {pathname} {content} />
+				{/if}
+
 				<div class="flex items-start justify-between gap-4">
 					<Breadcrumbs items={breadcrumbs} />
 					<div class="flex shrink-0 items-center gap-3">

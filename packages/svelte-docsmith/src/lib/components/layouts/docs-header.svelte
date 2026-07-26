@@ -6,7 +6,13 @@
 	import SearchTrigger from '../chrome/search-trigger.svelte';
 	import { useSearch } from '$lib/search/context.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
-	import type { DocsmithConfig, DocsmithLink } from '$lib/core/index.js';
+	import VersionSwitcher from '../chrome/version-switcher.svelte';
+	import type {
+		DocsmithConfig,
+		DocsmithLink,
+		DocsContentItem,
+		ResolvedVersion
+	} from '$lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
@@ -16,13 +22,25 @@
 	const {
 		config,
 		logo,
-		actions
+		actions,
+		versions = [],
+		active,
+		content = [],
+		pathname = ''
 	}: {
 		config: DocsmithConfig;
 		/** Custom logo mark; defaults to a book icon in a primary-tinted chip. */
 		logo?: Snippet;
 		/** Extra header controls, rendered before the theme toggle. */
 		actions?: Snippet;
+		/** Declared versions; renders the switcher when non-empty. */
+		versions?: ResolvedVersion[];
+		/** The active version, for the switcher's current selection. */
+		active?: ResolvedVersion;
+		/** Content index, so the switcher can map the current page across versions. */
+		content?: DocsContentItem[];
+		/** Current normalized pathname, for the switcher's page mapping. */
+		pathname?: string;
 	} = $props();
 
 	// Present only when the consumer passed a `search` loader to DocsShell.
@@ -91,7 +109,11 @@
 				</nav>
 			{/if}
 
-			{#if config.version}
+			{#if versions.length && active}
+				<div class="px-1">
+					<VersionSwitcher {versions} {active} {content} {pathname} />
+				</div>
+			{:else if config.version}
 				<div class="px-2">
 					<Badge
 						variant="outline"

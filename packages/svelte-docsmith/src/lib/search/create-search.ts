@@ -15,11 +15,17 @@ export type SearchResult = {
 	title: string;
 	section?: string;
 	snippet: string;
+	/** The page's version id, so a versioned site can scope results. */
+	version?: string;
 };
 
 export type SearchEngine = {
-	/** Ranked results for `query`, at most `limit` (default 8). */
-	search(query: string, limit?: number): SearchResult[];
+	/**
+	 * Ranked results for `query`, at most `limit` (default 8). Pass `version` to
+	 * return only that version's pages (over-fetches internally so the limit is
+	 * still met after filtering).
+	 */
+	search(query: string, limit?: number, version?: string): SearchResult[];
 };
 
 type IndexedDoc = {
@@ -57,23 +63,29 @@ export function createSearchEngine(docs: SearchDoc[]): SearchEngine {
 	});
 
 	return {
-		search(query, limit = 8) {
+		search(query, limit = 8, version) {
 			const trimmed = query.trim();
 			if (!trimmed) return [];
 
+			// When scoping to a version, over-fetch so the limit still holds after
+			// filtering out the other versions' hits.
+			const fetch = version ? limit * 5 : limit;
 			// `merge: true` returns unified, unique ids ranked across fields.
-			const hits = index.search(trimmed, { limit, merge: true }) as Array<{ id: number }>;
+			const hits = index.search(trimmed, { limit: fetch, merge: true }) as Array<{ id: number }>;
 			const results: SearchResult[] = [];
 
 			for (const { id } of hits) {
 				const doc = docs[id];
 				if (!doc) continue;
+				if (version && doc.version !== version) continue;
 				results.push({
 					path: doc.path,
 					title: doc.title,
 					section: doc.section,
-					snippet: buildSnippet(doc.text || doc.description || '', trimmed)
+					snippet: buildSnippet(doc.text || doc.description || '', trimmed),
+					version: doc.version
 				});
+				if (results.length >= limit) break;
 			}
 
 			return results;

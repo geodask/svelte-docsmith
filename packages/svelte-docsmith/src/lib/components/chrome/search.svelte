@@ -29,7 +29,10 @@
 	let status = $state<'idle' | 'loading' | 'error'>('idle');
 
 	const trimmed = $derived(query.trim());
-	const results = $derived(engine && trimmed ? engine.search(query) : []);
+	// Scope to the active version when the shell set one (versioned sites).
+	const results = $derived(
+		engine && trimmed ? engine.search(query, undefined, search?.version) : []
+	);
 
 	// Build the index the first time the palette opens; keep it for later opens.
 	async function ensureEngine() {
