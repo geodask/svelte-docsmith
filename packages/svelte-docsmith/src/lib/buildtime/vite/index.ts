@@ -27,6 +27,7 @@ import { docsBaseFrom } from '../paths.js';
 import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
 import { contentIndex, llmsIndex, searchIndex } from './collect.js';
 import { collectReleases } from './releases.js';
+import { commitDates } from '../git.js';
 
 export interface DocsmithViteOptions {
 	/** Directory scanned for doc pages. Default: `'src/routes/docs'`. */
@@ -113,6 +114,21 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	const changelogOverrides = path.join(routesDir, changelogRoute);
 	const indexOptions = { contentDir, routesDir, versions };
 
+	// One history walk, reused for the life of the plugin. A build loads this
+	// module once, so it is always fresh there; `dev` reloads it on every page
+	// save, and re-walking each time would cost git a process for dates that
+	// cannot have changed without a commit. The trade is that committing during
+	// `dev` leaves the dates as they were until the server restarts.
+	let dates: Map<string, string> | undefined;
+	const pageDates = () =>
+		(dates ??= commitDates(contentDir, (reason) => {
+			console.warn(
+				`[svelte-docsmith] could not read commit dates under ${contentDir}\n` +
+					`  ${reason}\n` +
+					`  Pages will render without a last-updated date, and sitemap entries without \`lastmod\`.`
+			);
+		}));
+
 	return {
 		name: 'docsmith-content',
 		enforce: 'pre',
@@ -142,7 +158,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 				const { pages, exists } = readSourcePages(contentDir);
 				watch(pages);
 				// Only this index has a date field, so only this one pays for git.
-				const docs = contentIndex(withCommitDates(pages), indexOptions);
+				const docs = contentIndex(withCommitDates(pages, pageDates()), indexOptions);
 				warnAboutDocsRoot(contentDir, exists, docs.length);
 				const resolved = resolveVersions(versions, docsBase, docs);
 				return (

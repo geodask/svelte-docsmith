@@ -7,7 +7,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseFrontmatter } from './frontmatter.js';
-import { lastCommitDate } from '../git.js';
 
 const PAGE_NAMES = ['+page.md', '+page.svx'];
 
@@ -66,18 +65,18 @@ export function titleOf(page: SourcePage): string | undefined {
 }
 
 /**
- * Date each page from the commit that last touched it, skipping the lookup for
- * pages that carry their own `lastUpdated`. Archiving copies every page in one
- * commit, so an archive's pages are written with the date they last really
- * changed and must keep it.
+ * Date each page from `dates`, keyed by absolute path, unless it carries its own
+ * frontmatter `lastUpdated`. Archiving copies every page in one commit, so an
+ * archive's pages are written with the date they last really changed and must
+ * keep it.
  *
- * Deliberately a second pass rather than part of {@link readSourcePages}: it
- * spawns a git process per page, and only the content index has a date field.
- * Folding it into the read would make the search and llms indexes pay for a
- * value neither of them has anywhere to put. For the same reason it skips
- * untitled pages, which no index carries.
+ * Pure: the caller walks git once with {@link commitDates} and hands the result
+ * in. Asking per page cost a process each and was the build's largest single
+ * expense, and doing the walk here would put it behind a function the search and
+ * llms indexes also call, making them pay for a date neither has anywhere to put.
+ * For the same reason this skips untitled pages, which no index carries.
  */
-export function withCommitDates(pages: SourcePage[]): SourcePage[] {
+export function withCommitDates(pages: SourcePage[], dates: Map<string, string>): SourcePage[] {
 	return pages.map((page) => {
 		if (titleOf(page) === undefined) return page;
 		return {
@@ -85,7 +84,7 @@ export function withCommitDates(pages: SourcePage[]): SourcePage[] {
 			lastUpdated:
 				typeof page.frontmatter.lastUpdated === 'string'
 					? page.frontmatter.lastUpdated
-					: lastCommitDate(page.file)
+					: dates.get(page.file)
 		};
 	});
 }
