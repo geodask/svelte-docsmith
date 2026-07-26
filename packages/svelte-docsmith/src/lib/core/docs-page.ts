@@ -10,11 +10,27 @@
  */
 import type { DocsContentItem } from './content.js';
 import { navFromContent, flattenNav, navTrail, type NavGroup, type NavItem } from './nav.js';
-import { activeVersion, currentVersion, scopeContent, type ResolvedVersion } from './version.js';
+import {
+	activeVersion,
+	currentVersion,
+	mapPathToVersion,
+	scopeContent,
+	type ResolvedVersion
+} from './version.js';
 import { normalizePath } from '../utils/normalize-path.js';
 
 /** The page's build-time headings, as extracted into the content index. */
 type PageToc = NonNullable<DocsContentItem['toc']>;
+
+/** One declared version, and where switching to it should take the reader. */
+export type VersionLink = {
+	id: string;
+	label: string;
+	/** This page under that version, or its landing when the page isn't there. */
+	href: string;
+	/** Whether this is the version being read. */
+	active: boolean;
+};
 
 /** Everything `DocsShell` renders about the current page. */
 export type DocsPageView = {
@@ -56,6 +72,12 @@ export type DocsPageView = {
 	breadcrumbs: string[];
 	/** The page's server-rendered TOC, from {@link entry}. */
 	toc: PageToc;
+	/**
+	 * Every declared version with the URL that keeps the reader on this page, in
+	 * switcher order. Empty on an unversioned site, so the switcher and the
+	 * archived-version banner both render off this one list.
+	 */
+	versionLinks: VersionLink[];
 };
 
 /**
@@ -112,7 +134,26 @@ export function resolveDocsPage(input: {
 		next: pageIndex >= 0 && pageIndex < flatNav.length - 1 ? flatNav[pageIndex + 1] : undefined,
 		title,
 		breadcrumbs,
-		toc: entry?.toc ?? []
+		toc: entry?.toc ?? [],
+		versionLinks: active
+			? versions.map((version) => ({
+					id: version.id,
+					label: version.label,
+					// Switching to the version already being read is a no-op, so its
+					// link is this page. Mapping it like the others would send a reader
+					// who is off the docs tree to the docs landing instead.
+					href:
+						version.id === active.id
+							? pathname
+							: mapPathToVersion(
+									pathname,
+									active,
+									version,
+									scopeContent(content, version.id).map((item) => item.path)
+								),
+					active: version.id === active.id
+				}))
+			: []
 	};
 }
 

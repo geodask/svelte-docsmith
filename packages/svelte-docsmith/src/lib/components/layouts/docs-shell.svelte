@@ -10,6 +10,7 @@
 	} from '$lib/core/index.js';
 	import { createToc } from '$lib/toc/index.js';
 	import { createSearchState } from '$lib/search/context.svelte.js';
+	import { setDocsPage } from '../docs-page-context.svelte.js';
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
 	import ThemeProvider from '../chrome/theme-provider.svelte';
@@ -107,7 +108,7 @@
 	// `search` loader is static for the shell's lifetime, so reading it once at
 	// init is intentional.
 	// svelte-ignore state_referenced_locally
-	const searchState = search ? createSearchState() : undefined;
+	if (search) createSearchState();
 
 	// Every rule about the page being read is resolved in one pure module
 	// (`core/docs-page.ts`): the active version and the content scoped to it, the
@@ -125,10 +126,10 @@
 		})
 	);
 
-	// Keep the search palette scoped to the version currently being read.
-	$effect(() => {
-		if (searchState) searchState.version = view.activeVersionId;
-	});
+	// One route to the chrome. The headers, the switcher and the search palette
+	// read what they need off this instead of taking it as props through two
+	// intermediate layers.
+	setDocsPage(() => view);
 
 	const lastUpdatedLabel = $derived.by(() =>
 		view.lastUpdated
@@ -144,6 +145,16 @@
 	);
 
 	const breadcrumbs = $derived(view.breadcrumbs.map((title) => ({ title })));
+
+	// The archived-version banner, or nothing. Its "view this page in <current>"
+	// link is the current version's entry in the same list the switcher renders,
+	// so the two can't disagree about where the reader lands.
+	const archivedBanner = $derived.by(() => {
+		const { isArchived, activeVersion, currentVersion, versionLinks } = view;
+		if (!isArchived || !activeVersion || !currentVersion) return undefined;
+		const href = versionLinks.find((link) => link.id === currentVersion.id)?.href;
+		return href ? { active: activeVersion, current: currentVersion, href } : undefined;
+	});
 
 	// In-page TOC, scanned from the rendered content and re-scanned after every
 	// navigation (client-side included) so it never goes stale.
@@ -194,15 +205,7 @@
 
 	<!-- One header system everywhere: DocsHeader on desktop, DocsMobileHeader
 	     below lg. The `page` layout just omits the sidebar nav and in-page TOC. -->
-	<DocsHeader
-		{config}
-		{logo}
-		{actions}
-		{versions}
-		active={view.activeVersion}
-		{content}
-		pathname={view.pathname}
-	/>
+	<DocsHeader {config} {logo} {actions} />
 
 	{#if layout === 'page'}
 		<DocsMobileHeader {config} {logo} {actions} />
@@ -219,10 +222,6 @@
 			tocActiveId={toc.activeId}
 			{logo}
 			{actions}
-			{versions}
-			active={view.activeVersion}
-			{content}
-			pathname={view.pathname}
 		/>
 
 		<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
@@ -234,13 +233,8 @@
 				tabindex="-1"
 				class="min-w-0 flex-1 py-6 lg:py-0"
 			>
-				{#if view.isArchived && view.activeVersion && view.currentVersion}
-					<VersionBanner
-						active={view.activeVersion}
-						current={view.currentVersion}
-						pathname={view.pathname}
-						{content}
-					/>
+				{#if archivedBanner}
+					<VersionBanner {...archivedBanner} />
 				{/if}
 
 				<div class="flex items-start justify-between gap-4">

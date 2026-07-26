@@ -233,6 +233,41 @@ describe('resolveDocsPage: breadcrumbs', () => {
 	});
 });
 
+describe('resolveDocsPage: versionLinks', () => {
+	it('keeps the reader on the same page in every other version', () => {
+		const links = resolve('/docs/intro').versionLinks;
+		expect(links).toEqual([
+			{ id: 'v2', label: 'v2', href: '/docs/intro', active: true },
+			{ id: 'v1', label: 'v1', href: '/docs/v1/intro', active: false }
+		]);
+	});
+
+	it("falls back to a version's landing when the page doesn't exist there", () => {
+		// v1 was archived before the guide was written.
+		const links = resolve('/docs/guide').versionLinks;
+		expect(links.find((link) => link.id === 'v1')?.href).toBe('/docs/v1/intro');
+	});
+
+	it('maps back to the unprefixed current version from an archive', () => {
+		const links = resolve('/docs/v1/intro').versionLinks;
+		expect(links).toEqual([
+			{ id: 'v2', label: 'v2', href: '/docs/intro', active: false },
+			{ id: 'v1', label: 'v1', href: '/docs/v1/intro', active: true }
+		]);
+	});
+
+	it('leaves the reader in place off the docs tree, rather than on the landing', () => {
+		// The active version is the fallback here, not the owner of the page, so
+		// "switch to the version you're already reading" must not navigate.
+		const links = resolve('/').versionLinks;
+		expect(links.find((link) => link.active)?.href).toBe('/');
+	});
+
+	it('is empty on an unversioned site, so no switcher is rendered', () => {
+		expect(resolve('/docs/intro', { versions: [] }).versionLinks).toEqual([]);
+	});
+});
+
 describe('resolveDocsPage: nav', () => {
 	it('is built from the scoped content, so an archive shows only its own pages', () => {
 		expect(resolve('/docs/v1/intro').nav).toEqual([

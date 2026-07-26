@@ -30,4 +30,4 @@ export {
 	type NavGroup,
 	type NavNode
 } from './nav.js';
-export { resolveDocsPage, type DocsPageView } from './docs-page.js';
+export { resolveDocsPage, type DocsPageView, type VersionLink } from './docs-page.js';
