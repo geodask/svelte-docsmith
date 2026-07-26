@@ -21,10 +21,15 @@ export type MarkdownSource = {
 
 /**
  * A page's frontmatter block: `---` on the first line, through the next line
- * that is exactly `---`. Group 1 is the YAML; the whole match spans the block
+ * that starts with `---`. Group 1 is the YAML; the whole match spans the block
  * including the line break that ends it, so the body starts where it stops.
+ *
+ * Deliberately as loose about the closing delimiter as remark-frontmatter,
+ * which is what mdsvex strips at render time. A stricter rule here would read
+ * a page differently from the renderer: a page mdsvex renders body-only would
+ * keep its frontmatter as prose, or lose the title that puts it in the nav.
  */
-const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
 /** An opening or closing code fence, indented anywhere on its line. */
 const FENCE = /^\s*(`{3,}|~{3,})/;
@@ -84,7 +89,7 @@ function fenceScanner(): (line: string) => boolean {
 }
 
 /** Apply `transform` to a page's prose lines, leaving fenced code untouched. */
-export function outsideCodeFences(text: string, transform: (chunk: string) => string): string {
+export function outsideCodeFences(text: string, transform: (line: string) => string): string {
 	const isProse = fenceScanner();
 	return text
 		.split('\n')
