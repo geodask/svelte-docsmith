@@ -10,7 +10,7 @@
 	} from '$lib/core/index.js';
 	import { createToc } from '$lib/toc/index.js';
 	import { createSearchState } from '$lib/search/context.svelte.js';
-	import { setDocsPage } from '../docs-page-context.svelte.js';
+	import { setDocsPage } from '../docs-page-context.js';
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
 	import ThemeProvider from '../chrome/theme-provider.svelte';

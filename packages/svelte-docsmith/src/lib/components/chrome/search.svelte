@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import * as Command from '$lib/components/shadcn/command/index.js';
 	import { useSearch } from '$lib/search/context.svelte.js';
-	import { useDocsPage } from '../docs-page-context.svelte.js';
+	import { useDocsPage } from '../docs-page-context.js';
 	import type { SearchDoc } from '$lib/core/index.js';
 	import type { SearchEngine } from '$lib/search/create-search.js';
 	import CornerDownLeft from '@lucide/svelte/icons/corner-down-left';
@@ -30,7 +30,7 @@
 	// The version being read, straight off the shell's resolved page view, so
 	// results and the cached engine follow the reader across a version switch.
 	const docsPage = useDocsPage();
-	const activeVersion = $derived(docsPage().activeVersionId);
+	const activeVersion = $derived(docsPage.view.activeVersionId);
 
 	let query = $state('');
 	let engine = $state<SearchEngine | null>(null);

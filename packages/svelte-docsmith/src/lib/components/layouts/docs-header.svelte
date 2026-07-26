@@ -12,7 +12,7 @@
 	import type { Snippet } from 'svelte';
 	import { cn } from '$lib/utils/cn.js';
 	import { normalizePath } from '$lib/utils/normalize-path.js';
-	import { useDocsPage } from '../docs-page-context.svelte.js';
+	import { useDocsPage } from '../docs-page-context.js';
 
 	const {
 		config,
@@ -32,8 +32,7 @@
 	// Everything about the page being read comes off the shell's one resolved
 	// view, including the normalized path the nav highlights against.
 	const docsPage = useDocsPage();
-	const view = $derived(docsPage());
-	const current = $derived(view.pathname);
+	const current = $derived(docsPage.view.pathname);
 
 	/**
 	 * A header link is usually the entry point to a whole section rather than a
@@ -96,9 +95,9 @@
 				</nav>
 			{/if}
 
-			{#if view.versionLinks.length > 1}
+			{#if docsPage.view.versionLinks.length > 1}
 				<div class="px-1">
-					<VersionSwitcher links={view.versionLinks} />
+					<VersionSwitcher links={docsPage.view.versionLinks} />
 				</div>
 			{:else if config.version}
 				<div class="px-2">

@@ -12,7 +12,7 @@
 	import { Separator } from '$lib/components/shadcn/separator/index.js';
 	import * as Sheet from '$lib/components/shadcn/sheet/index.js';
 	import { useSearch } from '$lib/search/context.svelte.js';
-	import { useDocsPage } from '../docs-page-context.svelte.js';
+	import { useDocsPage } from '../docs-page-context.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import Menu from '@lucide/svelte/icons/menu';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
@@ -43,7 +43,6 @@
 
 	const search = useSearch();
 	const docsPage = useDocsPage();
-	const view = $derived(docsPage());
 
 	let isMenuOpen = $state(false);
 	let isTocOpen = $state(false);
@@ -81,9 +80,9 @@
 						<span class="inline-block">{config.title}</span>
 					</a>
 				</div>
-				{#if view.versionLinks.length > 1}
+				{#if docsPage.view.versionLinks.length > 1}
 					<div class="px-7 pb-3">
-						<VersionSwitcher links={view.versionLinks} />
+						<VersionSwitcher links={docsPage.view.versionLinks} />
 					</div>
 				{/if}
 				<ScrollArea class="my-4 h-[calc(100vh-8rem)] pb-10 pl-2">
