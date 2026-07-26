@@ -8,6 +8,8 @@
 import path from 'node:path';
 import type { DocsContentItem, LlmsDoc, SearchDoc } from '$lib/core/content.js';
 import type { DocsVersions } from '$lib/core/version.js';
+import { firstSegmentUnder } from '$lib/utils/url.js';
+import { docsBaseFrom, urlFor } from '../paths.js';
 import { titleOf, type SourcePage } from './pages.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
 
@@ -30,33 +32,34 @@ type IndexedPage = SourcePage & { url: string; title: string; version: string | 
  */
 function indexedPages(pages: SourcePage[], options: IndexOptions): IndexedPage[] {
 	const resolved: IndexedPage[] = [];
+	const docsBase = docsBaseFrom(options.routesDir, options.contentDir);
 
 	for (const page of pages) {
 		const title = titleOf(page);
 		if (title === undefined) continue;
-		const dir = path.dirname(page.file);
-		resolved.push({
-			...page,
-			url: '/' + path.relative(options.routesDir, dir).split(path.sep).join('/'),
-			title,
-			version: versionOf(dir)
-		});
+		const url = urlFor(options.routesDir, path.dirname(page.file));
+		resolved.push({ ...page, url, title, version: versionOf(url) });
 	}
 
 	// Stable output keeps the generated modules diff-friendly across rebuilds.
 	return resolved.sort((a, b) => a.url.localeCompare(b.url));
 
 	/**
-	 * A page belongs to an archived version when its first directory segment under
-	 * the docs root is that archive's id; everything else is the current version,
-	 * which lives unprefixed at the docs root. No versions ⇒ undefined, which
-	 * keeps an unversioned site's index byte-for-byte what it was.
+	 * A page belongs to an archived version when the first segment of its URL below
+	 * the docs base is that archive's id; everything else is the current version,
+	 * which lives unprefixed at the docs base.
+	 *
+	 * Decided in URL space, by the same rule `activeVersion` applies to the reader's
+	 * pathname at runtime. Deciding it from the directory instead would be a second
+	 * rule for the same question, in a second vocabulary, free to drift from the one
+	 * the reader is actually served by. No versions ⇒ undefined, which keeps an
+	 * unversioned site's index byte-for-byte what it was.
 	 */
-	function versionOf(dir: string): string | undefined {
+	function versionOf(url: string): string | undefined {
 		const { versions } = options;
 		if (!versions) return undefined;
-		const firstSegment = path.relative(options.contentDir, dir).split(path.sep)[0];
-		const archived = versions.archived?.find((v) => v.id === firstSegment);
+		const segment = firstSegmentUnder(url, docsBase);
+		const archived = versions.archived?.find((v) => v.id === segment);
 		return archived ? archived.id : versions.current.id;
 	}
 }

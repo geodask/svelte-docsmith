@@ -73,6 +73,33 @@ describe('contentIndex', () => {
 		expect(contentIndex([page('intro', 'title: Intro')], options)[0].version).toBeUndefined();
 	});
 
+	// With `content: 'src/routes'` the docs base is `/`, so a page's first URL
+	// segment is its version candidate with nothing in front of it.
+	it('tags archives when the docs sit at the routes root', () => {
+		const versions: DocsVersions = {
+			current: { id: 'v2', label: 'v2' },
+			archived: [{ id: 'v1', label: 'v1' }]
+		};
+		const rooted = (relDir: string, frontmatter: string) =>
+			toPage(path.join(routesDir, relDir, '+page.md'), `---\n${frontmatter}\n---\n\n# body\n`);
+		const pages = [
+			rooted('', 'title: Home'),
+			rooted('intro', 'title: Intro'),
+			rooted('v1/intro', 'title: Intro')
+		];
+
+		const version = Object.fromEntries(
+			contentIndex(pages, { contentDir: routesDir, routesDir, versions }).map((d) => [
+				d.path,
+				d.version
+			])
+		);
+
+		expect(version['/']).toBe('v2');
+		expect(version['/intro']).toBe('v2');
+		expect(version['/v1/intro']).toBe('v1');
+	});
+
 	it('carries through the date the page was given', () => {
 		const dated = { ...page('intro', 'title: Intro'), lastUpdated: '2026-03-04' };
 
