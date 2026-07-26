@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { DocsContentItem, DocsmithConfig, SearchDoc } from '$lib/core/index.js';
+	import type {
+		DocsContentItem,
+		DocsmithConfig,
+		ResolvedVersion,
+		SearchDoc
+	} from '$lib/core/index.js';
 	import DocsShell from './docs-shell.svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import type { Snippet } from 'svelte';
@@ -8,6 +13,7 @@
 	const {
 		config,
 		content = [],
+		versions = [],
 		search,
 		status,
 		title,
@@ -20,8 +26,14 @@
 		config: DocsmithConfig;
 		/** Content index, so the error page keeps the same header/footer as the site. */
 		content?: DocsContentItem[];
+		/**
+		 * The resolved version manifest (same as `DocsShell`). Pass it on a
+		 * versioned site so an error under an archived prefix keeps that version's
+		 * search scope, switcher, and `noindex`.
+		 */
+		versions?: ResolvedVersion[];
 		/** Enable the ⌘K search palette on the error page (same loader as DocsShell). */
-		search?: () => Promise<SearchDoc[]>;
+		search?: (versionId?: string) => Promise<SearchDoc[]>;
 		/** HTTP status; defaults to the current `page.status`. */
 		status?: number;
 		/** Heading; defaults to a message keyed off the status. */
@@ -49,7 +61,15 @@
 	);
 </script>
 
-<DocsShell {config} {content} {search} {pattern} layout="page" seo={{ title: resolvedTitle }}>
+<DocsShell
+	{config}
+	{content}
+	{versions}
+	{search}
+	{pattern}
+	layout="page"
+	seo={{ title: resolvedTitle }}
+>
 	<section
 		class="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 py-20 text-center md:px-6"
 	>
