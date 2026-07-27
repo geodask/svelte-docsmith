@@ -98,7 +98,7 @@
 		{/if}
 
 		<pre
-			class="not-prose shiki max-h-[32rem] flex shrink"
+			class="docsmith-code not-prose shiki max-h-[32rem] flex shrink"
 			class:docsmith-line-numbers={lineNumbers}
 			style={lineNumbers && startLine !== 1 ? `--docsmith-line-start: ${startLine - 1}` : undefined}
 			use:clipboard.readText>
@@ -113,8 +113,17 @@
 	 * published package, where the consumer's Tailwind theme context isn't
 	 * available to resolve @apply (Tailwind v4 compiles scoped styles in
 	 * isolation).
+	 *
+	 * Shiki's markup arrives through `{@html}`, so Svelte cannot scope these for
+	 * us and they have to be global. Every one is therefore anchored on
+	 * `pre.docsmith-code`, the class this component puts on its own element.
+	 * Anchoring on the bare element instead would restyle every code block on
+	 * the page, including ones this component never rendered — and since a
+	 * route's CSS only arrives when that route loads (SvelteKit preloads on
+	 * link hover), the restyle would land mid-session and shift the layout
+	 * under the pointer.
 	 */
-	:global(pre code) {
+	:global(pre.docsmith-code code) {
 		display: block;
 		flex-grow: 1;
 		height: 100%;
@@ -122,7 +131,7 @@
 		padding-block: 1rem;
 	}
 
-	:global(pre span.line) {
+	:global(pre.docsmith-code span.line) {
 		display: inline-block;
 		width: 100%;
 		padding-inline: 1rem;
@@ -149,15 +158,15 @@
 	   A CSS counter on Shiki's existing per-line spans, so numbering adds no DOM
 	   and stays out of the text the copy button reads. `--docsmith-line-start`
 	   offsets the counter for a snippet lifted out of a larger file. */
-	:global(pre.docsmith-line-numbers code) {
+	:global(pre.docsmith-code.docsmith-line-numbers code) {
 		counter-reset: docsmith-line var(--docsmith-line-start, 0);
 	}
-	:global(pre.docsmith-line-numbers span.line) {
+	:global(pre.docsmith-code.docsmith-line-numbers span.line) {
 		counter-increment: docsmith-line;
 		position: relative;
 		padding-inline-start: 3.2rem;
 	}
-	:global(pre.docsmith-line-numbers span.line::before) {
+	:global(pre.docsmith-code.docsmith-line-numbers span.line::before) {
 		content: counter(docsmith-line);
 		position: absolute;
 		left: 0;
@@ -169,19 +178,19 @@
 		user-select: none;
 	}
 	/* The diff gutter glyph would collide with the number, so shift it over. */
-	:global(pre.docsmith-line-numbers span.line.diff::before) {
+	:global(pre.docsmith-code.docsmith-line-numbers span.line.diff::before) {
 		content: counter(docsmith-line);
 	}
-	:global(pre.docsmith-line-numbers span.line.diff::after) {
+	:global(pre.docsmith-code.docsmith-line-numbers span.line.diff::after) {
 		position: absolute;
 		left: 2.7rem;
 		font-weight: 600;
 	}
-	:global(pre.docsmith-line-numbers span.line.diff.add::after) {
+	:global(pre.docsmith-code.docsmith-line-numbers span.line.diff.add::after) {
 		content: '+';
 		color: oklch(0.6 0.15 150);
 	}
-	:global(pre.docsmith-line-numbers span.line.diff.remove::after) {
+	:global(pre.docsmith-code.docsmith-line-numbers span.line.diff.remove::after) {
 		content: '−';
 		color: oklch(0.58 0.19 25);
 	}
@@ -193,76 +202,76 @@
 	   the code background via color-mix. */
 
 	/* --- Line highlight (// [!code highlight] and {1,3} meta) --- */
-	:global(pre span.line.highlighted) {
+	:global(pre.docsmith-code span.line.highlighted) {
 		background: color-mix(in oklch, var(--primary) 12%, transparent);
 	}
-	:global(.dark pre span.line.highlighted) {
+	:global(.dark pre.docsmith-code span.line.highlighted) {
 		background: color-mix(in oklch, var(--primary) 20%, transparent);
 	}
 
 	/* --- Diff (// [!code ++] / [!code --]) with +/- gutter glyphs --- */
-	:global(pre span.line.diff) {
+	:global(pre.docsmith-code span.line.diff) {
 		position: relative;
 	}
-	:global(pre span.line.diff.add) {
+	:global(pre.docsmith-code span.line.diff.add) {
 		background: color-mix(in oklch, oklch(0.7 0.16 150) 15%, transparent);
 	}
-	:global(pre span.line.diff.remove) {
+	:global(pre.docsmith-code span.line.diff.remove) {
 		background: color-mix(in oklch, oklch(0.62 0.2 25) 14%, transparent);
 	}
-	:global(.dark pre span.line.diff.add) {
+	:global(.dark pre.docsmith-code span.line.diff.add) {
 		background: color-mix(in oklch, oklch(0.7 0.16 150) 22%, transparent);
 	}
-	:global(.dark pre span.line.diff.remove) {
+	:global(.dark pre.docsmith-code span.line.diff.remove) {
 		background: color-mix(in oklch, oklch(0.62 0.2 25) 22%, transparent);
 	}
-	:global(pre span.line.diff::before) {
+	:global(pre.docsmith-code span.line.diff::before) {
 		position: absolute;
 		left: 0.45rem;
 		font-weight: 600;
 	}
-	:global(pre span.line.diff.add::before) {
+	:global(pre.docsmith-code span.line.diff.add::before) {
 		content: '+';
 		color: oklch(0.6 0.15 150);
 	}
-	:global(pre span.line.diff.remove::before) {
+	:global(pre.docsmith-code span.line.diff.remove::before) {
 		content: '−';
 		color: oklch(0.58 0.19 25);
 	}
-	:global(.dark pre span.line.diff.add::before) {
+	:global(.dark pre.docsmith-code span.line.diff.add::before) {
 		color: oklch(0.78 0.17 150);
 	}
-	:global(.dark pre span.line.diff.remove::before) {
+	:global(.dark pre.docsmith-code span.line.diff.remove::before) {
 		color: oklch(0.72 0.18 25);
 	}
 
 	/* --- Error / warning severity (// [!code error] / [!code warning]).
 	   No gutter glyph, so they stay distinct from the +/- diff lines. --- */
-	:global(pre span.line.highlighted.error) {
+	:global(pre.docsmith-code span.line.highlighted.error) {
 		background: color-mix(in oklch, oklch(0.62 0.2 25) 18%, transparent);
 	}
-	:global(pre span.line.highlighted.warning) {
+	:global(pre.docsmith-code span.line.highlighted.warning) {
 		background: color-mix(in oklch, oklch(0.8 0.13 85) 22%, transparent);
 	}
-	:global(.dark pre span.line.highlighted.error) {
+	:global(.dark pre.docsmith-code span.line.highlighted.error) {
 		background: color-mix(in oklch, oklch(0.62 0.2 25) 26%, transparent);
 	}
-	:global(.dark pre span.line.highlighted.warning) {
+	:global(.dark pre.docsmith-code span.line.highlighted.warning) {
 		background: color-mix(in oklch, oklch(0.8 0.13 85) 20%, transparent);
 	}
 
 	/* --- Focus (// [!code focus]): dim the other lines and restore on hover.
 	   A clean opacity fade reads calmer than a muddy blur. `:has` recreates
 	   Shiki's stripped container flag from the line classes alone. --- */
-	:global(pre code:has(span.line.focused) span.line:not(.focused)) {
+	:global(pre.docsmith-code code:has(span.line.focused) span.line:not(.focused)) {
 		opacity: 0.42;
 		transition: opacity 0.25s ease;
 	}
-	:global(pre:hover code:has(span.line.focused) span.line:not(.focused)) {
+	:global(pre.docsmith-code:hover code:has(span.line.focused) span.line:not(.focused)) {
 		opacity: 1;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		:global(pre code:has(span.line.focused) span.line:not(.focused)) {
+		:global(pre.docsmith-code code:has(span.line.focused) span.line:not(.focused)) {
 			transition: none;
 		}
 	}
@@ -273,11 +282,11 @@
 	   inspectable; the popup is a hidden sibling revealed on hover. `unclipPopups`
 	   then promotes it to fixed positioning so the code block's scrolling does not
 	   clip it — see the comment there. */
-	:global(pre .twoslash-hover) {
+	:global(pre.docsmith-code .twoslash-hover) {
 		position: relative;
 		border-bottom: 1px dotted color-mix(in oklch, var(--muted-foreground) 55%, transparent);
 	}
-	:global(pre .twoslash-popup-container) {
+	:global(pre.docsmith-code .twoslash-popup-container) {
 		position: absolute;
 		z-index: 40;
 		display: none;
@@ -298,11 +307,11 @@
 		font-size: 0.85em;
 		line-height: 1.5;
 	}
-	:global(pre .twoslash-hover:hover .twoslash-popup-container) {
+	:global(pre.docsmith-code .twoslash-hover:hover .twoslash-popup-container) {
 		display: block;
 	}
 	/* The signature keeps Shiki's own colours and monospace. */
-	:global(pre .twoslash-popup-code) {
+	:global(pre.docsmith-code .twoslash-popup-code) {
 		display: block;
 		font-family: var(--font-mono, ui-monospace, monospace);
 		white-space: pre-wrap;
@@ -311,7 +320,7 @@
 	/* Prose, by contrast, is prose. Inside a <pre> it would otherwise inherit
 	   monospace and whatever token colour the hovered span happened to carry,
 	   which reads as more code rather than an explanation of it. */
-	:global(pre .twoslash-popup-docs) {
+	:global(pre.docsmith-code .twoslash-popup-docs) {
 		/* The dark-theme swap repaints every span inside `.shiki` with
 		   `--shiki-dark`, which these spans inherit from whichever token was
 		   hovered — so docs took on the colour of the word above them. Redefining
@@ -330,20 +339,20 @@
 
 	/* Each @param is its own line: the tags are inline spans, so without this
 	   they run together into one paragraph. */
-	:global(pre .twoslash-popup-docs-tags) {
+	:global(pre.docsmith-code .twoslash-popup-docs-tags) {
 		display: flex;
 		flex-direction: column;
 		gap: 0.35rem;
 	}
-	:global(pre .twoslash-popup-docs-tag) {
+	:global(pre.docsmith-code .twoslash-popup-docs-tag) {
 		display: block;
 	}
-	:global(pre .twoslash-popup-docs-tag-value) {
+	:global(pre.docsmith-code .twoslash-popup-docs-tag-value) {
 		--shiki-dark: var(--muted-foreground);
 		color: var(--muted-foreground);
 	}
 	/* And the tag name needs a gap, or it reads as "@paramcallbackfn". */
-	:global(pre .twoslash-popup-docs-tag-name) {
+	:global(pre.docsmith-code .twoslash-popup-docs-tag-name) {
 		--shiki-dark: var(--primary);
 		margin-right: 0.4em;
 		font-family: var(--font-mono, ui-monospace, monospace);
@@ -351,18 +360,18 @@
 		color: var(--primary);
 	}
 	/* A snippet that deliberately shows an error (// @errors:) marks the line. */
-	:global(pre .twoslash-error) {
+	:global(pre.docsmith-code .twoslash-error) {
 		background: color-mix(in oklch, oklch(0.62 0.2 25) 14%, transparent);
 	}
 
 	/* --- Word highlight (// [!code word:name]): a primary-tinted inline pill --- */
-	:global(pre .highlighted-word) {
+	:global(pre.docsmith-code .highlighted-word) {
 		border-radius: 0.3rem;
 		padding: 0.1rem 0.3rem;
 		background: color-mix(in oklch, var(--primary) 16%, transparent);
 		box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 35%, transparent);
 	}
-	:global(.dark pre .highlighted-word) {
+	:global(.dark pre.docsmith-code .highlighted-word) {
 		background: color-mix(in oklch, var(--primary) 24%, transparent);
 	}
 </style>
