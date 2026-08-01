@@ -13,32 +13,36 @@ order: 1
 
 ## What is Svelte DocSmith?
 
-Svelte DocSmith is a framework for building documentation sites with Svelte 5
-and SvelteKit. Your interactive examples live inside one real, stateful app.
-They are not sandboxed as isolated islands, and not screenshots of a component
+Svelte DocSmith is the documentation framework for Svelte 5 library
+authors. Your interactive examples live inside one real, stateful SvelteKit
+app — not sandboxed as isolated islands, and not screenshots of a component
 that used to work.
 
-You write markdown; DocSmith gives you the pipeline that turns it into styled,
-navigable, syntax-highlighted pages, and lets you drop live Svelte components
-straight into the prose.
+You write markdown under `src/routes/docs/`. DocSmith turns it into styled,
+navigable, syntax-highlighted pages, and lets you drop the same components
+your users import straight into the prose.
 
 ## Why another docs tool?
 
-Most Svelte docs are written by hand or bolted onto a general-purpose static
-site generator. Either way you end up maintaining a navigation tree, wiring up a
-markdown pipeline, and rebuilding the same layout every project. DocSmith gives
-you the pipeline, the layout, and the navigation out of the box, so you can
-focus on the content.
+A library's docs are only as good as their examples. Screenshots go stale.
+Sandboxed islands drift from the package your users install. When the
+example is the real component, running in the same app as the docs, that
+rot is gone by construction.
 
-And because a page is a real SvelteKit route, an example in your docs is the
-same component your users import: running, stateful, and impossible to let rot.
+That is why a DocSmith page is a real SvelteKit route: so the button, form,
+or chart in your docs is the same component your users import — running,
+stateful, and impossible to let rot. Live examples are the reason to adopt
+DocSmith. The rest of the stack exists to make them honest.
+
+You also get a markdown pipeline, a docs shell, and nav derived from
+frontmatter — so you spend time on the content, not the scaffolding.
 
 ## Highlights
 
-- **Markdown as routes.** `.md` files compile to real Svelte components via
-  mdsvex. No loader, no catch-all route.
 - **Live examples.** Drop a component into a page; it runs, and its source is
   shown from the same file, so the two can never drift.
+- **Markdown as routes.** `.md` files compile to real Svelte components via
+  mdsvex. No loader, no catch-all route.
 - **Syntax highlighting.** Shiki runs at build time on the HAST tree, with a
   generous language set and dual light/dark themes.
 - **Nav derives itself.** The sidebar is built from each page's frontmatter,
