@@ -7,6 +7,18 @@ resolved for rendering.
 
 ## Language
 
+### Audience
+
+**Library author**:
+The person building a docs site with DocSmith, documenting a Svelte library they
+maintain. The audience DocSmith is designed for: where their needs conflict with
+anyone else's, theirs decide.
+_Avoid_: user, consumer, developer
+
+**Reader**:
+The person reading a published docs site, as opposed to building it.
+_Avoid_: visitor, end user, audience
+
 ### Content pipeline
 
 **Docs root**:
@@ -56,8 +68,16 @@ _Avoid_: latest, stable, live, next
 
 **Archived version**:
 A frozen copy of the docs for a superseded release, served under its own URL
-prefix and never edited afterwards.
+prefix. It freezes content, not dependencies: the prose, code samples and URLs
+are that version's own, while components and rendering follow whatever DocSmith
+and library versions the app currently has installed.
 _Avoid_: old version, previous version, snapshot
+
+**Freeze boundary**:
+The docs root. Archiving copies every file inside it and nothing outside, so a
+page and any file beside it are frozen while everything it imports stays
+current. The reason an archived live example demonstrates current behaviour.
+_Avoid_: archive scope, snapshot boundary
 
 **Version base**:
 The URL prefix owning one version: the docs base for the current version,

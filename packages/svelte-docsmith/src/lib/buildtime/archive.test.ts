@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { rewriteDocsLinks, freezeLastUpdated, isInheritedRouteFile } from './archive.js';
+import {
+	boundaryCrossings,
+	rewriteDocsLinks,
+	freezeLastUpdated,
+	isInheritedRouteFile
+} from './archive.js';
 
 const rewrite = (text: string, archivedIds: string[] = ['v1']) =>
 	rewriteDocsLinks(text, { docsBase: '/docs', versionId: 'v2', archivedIds });
@@ -80,6 +85,79 @@ describe('freezeLastUpdated', () => {
 		expect(freezeLastUpdated('---\ntitle: X\n---\nbody', undefined)).toBe(
 			'---\ntitle: X\n---\nbody'
 		);
+	});
+});
+
+describe('boundaryCrossings', () => {
+	/** A page whose script block holds `code`, at `pageDir` under the docs root. */
+	const crossings = (code: string, pageDir = '') =>
+		boundaryCrossings(`---\ntitle: X\n---\n\n<script>\n\t${code}\n</script>\n\nProse.\n`, pageDir);
+
+	it('reports an import from $lib', () => {
+		expect(crossings("import Counter from '$lib/examples/counter.svelte';")).toEqual([
+			'$lib/examples/counter.svelte'
+		]);
+	});
+
+	it('reports a bare npm specifier', () => {
+		expect(crossings("import Rocket from '@lucide/svelte/icons/rocket';")).toEqual([
+			'@lucide/svelte/icons/rocket'
+		]);
+	});
+
+	// The expected shape for an archived page, and covered by the stability
+	// promise rather than by this notice.
+	it('does not report the library or one of its subpaths', () => {
+		const code = [
+			"import { Callout } from 'svelte-docsmith';",
+			"import { docs } from 'svelte-docsmith/content';"
+		].join('\n\t');
+		expect(crossings(code)).toEqual([]);
+	});
+
+	// Archiving copies every file under the docs root, so these are frozen too.
+	it('does not report a relative import that stays inside the docs root', () => {
+		expect(crossings("import Demo from './demo.svelte';")).toEqual([]);
+		expect(crossings("import Demo from '../shared/demo.svelte';", 'guides/nested')).toEqual([]);
+	});
+
+	it('reports a relative import that climbs out of the docs root', () => {
+		expect(crossings("import Demo from '../../lib/demo.svelte';", 'guides')).toEqual([
+			'../../lib/demo.svelte'
+		]);
+		expect(crossings("import Demo from '../demo.svelte';")).toEqual(['../demo.svelte']);
+	});
+
+	it('reads side-effect, dynamic, type-only and multi-line imports', () => {
+		expect(crossings("import '$lib/styles.css';")).toEqual(['$lib/styles.css']);
+		expect(crossings("const m = await import('$lib/demo.svelte');")).toEqual(['$lib/demo.svelte']);
+		expect(crossings("import type { Props } from '$lib/types';")).toEqual(['$lib/types']);
+		expect(crossings("import {\n\t\tone,\n\t\ttwo\n\t} from '$lib/pair';")).toEqual(['$lib/pair']);
+	});
+
+	// A page documenting an import is not performing one.
+	it('ignores imports inside fenced code', () => {
+		const source = [
+			'---',
+			'title: X',
+			'---',
+			'',
+			'```svelte',
+			'<script>',
+			"\timport Counter from '$lib/examples/counter.svelte';",
+			'</script>',
+			'```'
+		].join('\n');
+		expect(boundaryCrossings(source, '')).toEqual([]);
+	});
+
+	it('is empty for a page with no script block', () => {
+		expect(boundaryCrossings('---\ntitle: X\n---\n\nJust prose.\n', '')).toEqual([]);
+	});
+
+	it('reports each specifier once', () => {
+		const code = ["import a from '$lib/x';", "import b from '$lib/x';"].join('\n\t');
+		expect(crossings(code)).toEqual(['$lib/x']);
 	});
 });
 

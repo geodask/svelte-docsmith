@@ -9,7 +9,7 @@
  */
 
 import { atBoundary, firstSegmentUnder } from '../utils/url.js';
-import { outsideCodeFences, withFrontmatter } from './markdown-source.js';
+import { outsideCodeFences, scriptBlocks, withFrontmatter } from './markdown-source.js';
 
 /** Route files at the docs root that an archive nested inside it already inherits. */
 export function isInheritedRouteFile(name: string): boolean {
@@ -62,4 +62,65 @@ export function freezeLastUpdated(text: string, date: string | undefined): strin
 	return withFrontmatter(text, (front) =>
 		/^lastUpdated:/m.test(front) ? front : `${front}\nlastUpdated: '${date}'`
 	);
+}
+
+/**
+ * An import's specifier, static or dynamic. The clause between `import` and
+ * `from` may not hold a quote or a paren, so the scan cannot run past a
+ * side-effect import to borrow a later `from`, and `import.meta.glob('./x')`
+ * matches nothing.
+ */
+const IMPORT = /\bimport\s*\(?\s*(?:[^'"()]*?\bfrom\s*)?['"]([^'"]+)['"]/g;
+
+/** The package an archived page is expected to import, and its subpaths. */
+const LIBRARY = 'svelte-docsmith';
+
+/**
+ * Whether a relative specifier climbs out of the docs root when resolved from a
+ * page `depth` directories inside it. Counting segments rather than resolving
+ * real paths keeps the rule pure, and the docs root is the only boundary that
+ * matters: where under it a surviving import lands is the archive's business.
+ */
+function escapesRoot(specifier: string, depth: number): boolean {
+	let level = depth;
+	for (const segment of specifier.split('/')) {
+		if (segment === '..') level--;
+		else if (segment !== '.' && segment !== '') level++;
+		if (level < 0) return true;
+	}
+	return false;
+}
+
+/**
+ * The specifiers a page's `<script>` imports from outside the freeze boundary,
+ * deduplicated in source order. `pageDir` is the page's directory relative to
+ * the docs root, which is what its relative imports resolve against.
+ *
+ * Archiving copies the docs root and nothing else, so anything reached from
+ * outside it keeps resolving to current code: a live example on an archived
+ * page demonstrates the current library rather than the version the page
+ * documents, with a green build and nothing said. Hence `$lib`, bare npm
+ * specifiers and relative paths that climb out all count, while a relative
+ * import landing inside the docs root is frozen along with the page.
+ *
+ * `svelte-docsmith` itself is never reported. An archived page importing the
+ * authoring components is the expected shape, and those are covered by the
+ * stability promise rather than by this notice. See
+ * `docs/adr/0005-an-archive-freezes-content-not-dependencies.md`.
+ */
+export function boundaryCrossings(source: string, pageDir: string): string[] {
+	const depth = pageDir.split('/').filter(Boolean).length;
+	const found = new Set<string>();
+
+	for (const block of scriptBlocks(source)) {
+		for (const [, specifier] of block.matchAll(IMPORT)) {
+			if (specifier === LIBRARY || specifier.startsWith(`${LIBRARY}/`)) continue;
+			// Only a package name can start with something other than a dot, and no
+			// package name starts with one, so this is the whole relative/bare split.
+			if (specifier.startsWith('.') && !escapesRoot(specifier, depth)) continue;
+			found.add(specifier);
+		}
+	}
+
+	return [...found];
 }

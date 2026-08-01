@@ -142,6 +142,65 @@ describe('archive-version', () => {
 	});
 });
 
+/**
+ * Archiving copies the docs root and nothing else, so a page importing from
+ * outside it keeps resolving to current code once frozen. The author should
+ * hear about it while the terminal is still open.
+ * See `docs/adr/0005-an-archive-freezes-content-not-dependencies.md`.
+ */
+describe('archive-version freeze boundary notice', () => {
+	/** A page under the docs root whose script block holds `code`. */
+	const page = (cwd: string, route: string, code: string) =>
+		write(
+			path.join(cwd, 'src/routes/docs', route, '+page.md'),
+			`---\ntitle: ${route}\n---\n\n<script>\n\t${code}\n</script>\n\nProse.\n`
+		);
+
+	it('names a page that imports from $lib, and the import', () => {
+		const cwd = scratch();
+		page(cwd, 'live', "import Counter from '$lib/examples/counter.svelte';");
+
+		const output = archive(cwd);
+		expect(output).toContain('freeze boundary');
+		expect(output).toContain('src/routes/docs/v1/live/+page.md');
+		expect(output).toContain('$lib/examples/counter.svelte');
+	});
+
+	it('lists every offending page, not just the first', () => {
+		const cwd = scratch();
+		page(cwd, 'live', "import Counter from '$lib/examples/counter.svelte';");
+		page(cwd, 'gallery', "import Gallery from '$lib/components/gallery.svelte';");
+
+		const output = archive(cwd);
+		expect(output).toContain('2 pages import across the freeze boundary');
+		expect(output).toContain('src/routes/docs/v1/live/+page.md');
+		expect(output).toContain('src/routes/docs/v1/gallery/+page.md');
+	});
+
+	// The library is the expected import, a sibling file is copied into the
+	// archive alongside the page, and the tree's other pages have no script at all.
+	it('says nothing when every import stays inside the boundary', () => {
+		const cwd = scratch();
+		page(
+			cwd,
+			'safe',
+			"import { Callout } from 'svelte-docsmith';\n\timport Demo from './demo.svelte';"
+		);
+		write(path.join(cwd, 'src/routes/docs/safe/demo.svelte'), '<p>demo</p>\n');
+
+		expect(archive(cwd)).not.toContain('freeze boundary');
+	});
+
+	it('is informational: the archive is written and the config still printed', () => {
+		const cwd = scratch();
+		page(cwd, 'live', "import Counter from '$lib/examples/counter.svelte';");
+
+		const output = archive(cwd);
+		expect(exists(cwd, `src/routes/docs/v1/${ARCHIVE_MARKER}`)).toBe(true);
+		expect(output).toContain("archived: [{ id: 'v1', label: 'v1' }]");
+	});
+});
+
 describe('archive-version failures', () => {
 	it('rejects a missing id', () => {
 		const cwd = scratch();

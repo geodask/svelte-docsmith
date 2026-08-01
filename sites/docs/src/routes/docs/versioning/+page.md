@@ -212,6 +212,11 @@ Worth knowing before you keep many of them around:
 
 - Archived pages are compiled by your current setup, so a breaking change to a
   docs component changes how every archive renders.
+- An archive freezes your content, not what it imports. A page importing a
+  component from `$lib` or a package keeps resolving to whatever your app has
+  installed, so a live example on an archived page demonstrates your current
+  library rather than the version the page documents. `archive-version` lists
+  the pages this applies to as it copies them.
 - Each archive adds its pages to the content index and its text to the search
   index, both of which grow linearly with the number of versions you keep.
 - Archive folders are real files in your repo, permanently.
