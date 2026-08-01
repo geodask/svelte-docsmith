@@ -7,6 +7,9 @@
  * message and an exit code. Keeping the process boundary out here means the
  * command is typechecked, and testable in-process against a temporary directory
  * rather than by spawning node and parsing stdout.
+ *
+ * @experimental `archive-version` sits outside the 1.0 stability promise and
+ * may change in a minor until authors have used versioning for real.
  */
 import { archiveVersion, type ArchiveVersionOptions } from './archive-version.js';
 import { CliError } from './error.js';

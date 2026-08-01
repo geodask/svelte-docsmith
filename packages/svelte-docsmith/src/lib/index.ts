@@ -42,10 +42,12 @@ export {
 	type LlmsDoc
 } from './core/index.js';
 
-// Versioned docs. Declare `versions` in the `docsmith()` vite plugin; the
-// resolved manifest is exported from `svelte-docsmith/content` and passed to
-// `DocsShell`. `currentOnly` scopes sitemap.xml / llms.txt to the current
-// version, so archived releases don't compete with it in search results.
+// Versioned docs (experimental — outside the 1.0 stability promise). Declare
+// `versions` in the `docsmith()` vite plugin; the resolved manifest is exported
+// from `svelte-docsmith/content` and passed to `DocsShell`. `currentOnly`
+// scopes sitemap.xml / llms.txt to the current version, so archived releases
+// don't compete with it in search results. An archive freezes content, not
+// dependencies.
 export {
 	currentOnly,
 	type DocsVersion,

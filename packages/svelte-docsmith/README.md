@@ -15,8 +15,17 @@ Write a markdown file under `src/routes/docs/` and you get a styled page with
 syntax highlighting, heading anchors, a sidebar derived from your content, and a
 live table of contents. No per-page wiring, no content collection to configure.
 
-> **Status: pre-1.0.** Published to npm and usable today. The public API is still
-> stabilising, so minor releases may include breaking changes until v1.0.
+> **Status: pre-1.0.** Published to npm and usable today. Minor releases may still
+> include breaking changes until v1.0.
+>
+> **What 1.0 will lock.** Authoring components, `DocsShell`, `ErrorPage`,
+> `defineConfig`, the preprocessor, the Vite plugin, the sitemap / llms / feed
+> generators, the search engine, and the theming contract — ordinary semver,
+> breaking changes ride a major.
+>
+> **What stays experimental.** Versioning: `DocsVersions`, `currentOnly`, the
+> archive marker, and the `archive-version` command. They may still change in a
+> minor until authors have used them for real.
 
 ## Install
 

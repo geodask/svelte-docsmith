@@ -7,12 +7,21 @@
  * anyone edits; superseded releases are frozen copies under their own prefix.
  * See `docs/adr/0001-unprefixed-current-docs.md`. All of it is a no-op when a
  * site declares no versions.
+ *
+ * **Experimental.** The versioning API sits outside the 1.0 stability promise
+ * and may change in a minor until authors have used it for real. An archive
+ * freezes content, not dependencies — see
+ * `docs/adr/0005-an-archive-freezes-content-not-dependencies.md`.
  */
 import type { DocsContentItem } from './content.js';
 import { navFromContent, flattenNav } from './nav.js';
 import { join, normalizePath, under } from '../utils/url.js';
 
-/** One documentation version, declared in the `docsmith()` vite plugin. */
+/**
+ * One documentation version, declared in the `docsmith()` vite plugin.
+ *
+ * @experimental Outside the 1.0 stability promise. May change in a minor.
+ */
 export type DocsVersion = {
 	/** Stable id. Also the URL/directory segment for an archived version. */
 	id: string;
@@ -27,13 +36,23 @@ export type DocsVersion = {
  * the docs root, is served unprefixed, and is the folder you edit. `archived`
  * holds frozen copies of superseded releases, each in `<docs root>/<id>/`, in
  * the order they should appear in the switcher (newest first).
+ *
+ * Freezes content, not dependencies: prose, samples and URLs stay that
+ * version's, while imports keep resolving to whatever the app has installed.
+ *
+ * @experimental Outside the 1.0 stability promise. May change in a minor until
+ * authors have used versioning for real.
  */
 export type DocsVersions = {
 	current: DocsVersion;
 	archived?: DocsVersion[];
 };
 
-/** A {@link DocsVersion} with the URL fields the runtime needs, computed at build time. */
+/**
+ * A {@link DocsVersion} with the URL fields the runtime needs, computed at build time.
+ *
+ * @experimental Outside the 1.0 stability promise. May change in a minor.
+ */
 export type ResolvedVersion = DocsVersion & {
 	/** Absolute URL base: the docs root for `current`, `/docs/<id>` for an archive. */
 	basePath: string;
@@ -239,6 +258,9 @@ export function currentVersion(versions: ResolvedVersion[]): ResolvedVersion | u
  * Keep only the current version's pages, for `sitemap.xml` and `llms.txt`, so
  * search engines and LLMs index one canonical set. A no-op when the site
  * declares no versions. Works over any record carrying `version`.
+ *
+ * @experimental Outside the 1.0 stability promise. May change in a minor until
+ * authors have used versioning for real.
  */
 export function currentOnly<T extends { version?: string }>(
 	items: T[],
