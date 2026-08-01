@@ -1,5 +1,19 @@
 # svelte-docsmith
 
+## 0.13.0
+
+### Minor Changes
+
+- c0a64d7: - Report the pages an archive copies that import across the freeze boundary, so `archive-version` says out loud when a frozen page will keep resolving to current code
+  - The notice names each page and the specifiers it crosses on (`$lib`, bare npm packages, relative paths that climb out of the docs root), and is informational: the archive is still written and the config block still printed
+
+### Patch Changes
+
+- 8618fb0: - Document every package export and the features they power (versioning, changelog/feed, mermaid, landing sections, generators, archive CLI) so the README matches what ships
+  - Use the full `git+https://` form for `repository.url` so publint stays quiet
+- 8704d84: Omit git-derived page dates on a shallow clone instead of dating every page the same day. A shallow history makes the walk look successful while stamping every file with the tip commit, which turns sitemap `<lastmod>` into uniform noise. The build warns and leaves `lastUpdated` unset (frontmatter still wins); use a full clone (`fetch-depth: 0`) when real dates matter.
+- 5bfbb0d: - Document the 1.0 stability promise: which surface ordinary semver will cover, and that versioning (`DocsVersions`, `currentOnly`, archive marker, `archive-version`) stays experimental outside it
+
 ## 0.12.2
 
 ### Patch Changes
