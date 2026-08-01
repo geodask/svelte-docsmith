@@ -3,10 +3,18 @@
  * archived version folder so they keep serving the release they document while
  * the docs root goes on being edited.
  *
+ * Freezes content, not dependencies: the prose, samples and URLs are that
+ * version's, while anything a page imports keeps resolving to whatever the app
+ * currently has installed. See
+ * `docs/adr/0005-an-archive-freezes-content-not-dependencies.md`.
+ *
  * The pure text transforms live in `../archive.js`; this is the filesystem work
  * around them. It takes its working directory and its output sink rather than
  * reading `process.cwd()` and calling `console.log`, so the whole command runs
  * in-process under test. See `docs/adr/0002-archives-are-rewritten-source-copies.md`.
+ *
+ * @experimental Outside the 1.0 stability promise. Flags and behaviour may
+ * change in a minor until authors have used versioning for real.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -40,6 +48,9 @@ export type ArchiveVersionOptions = {
  * Copy the docs root into `<content>/<id>/`, mark it as an archive, and rewrite
  * each copied page so it stays inside the archive and keeps its real
  * last-updated date. Returns the number of pages archived.
+ *
+ * @experimental Outside the 1.0 stability promise. May change in a minor until
+ * authors have used versioning for real.
  */
 export function archiveVersion(
 	options: ArchiveVersionOptions,

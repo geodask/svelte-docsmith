@@ -18,6 +18,9 @@ import type { ArchivesOnDisk } from '../core/version.js';
  * are otherwise indistinguishable, since a page is assigned to a version by its
  * first directory segment. See
  * `docs/adr/0003-the-archive-marker-defines-an-archive.md`.
+ *
+ * @experimental Outside the 1.0 stability promise. Name and role may change in
+ * a minor until authors have used versioning for real.
  */
 export const ARCHIVE_MARKER = '.docsmith-archive';
 

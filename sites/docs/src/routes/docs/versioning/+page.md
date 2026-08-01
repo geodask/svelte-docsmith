@@ -9,6 +9,16 @@ order: 12
 	import { Callout } from 'svelte-docsmith';
 </script>
 
+<Callout variant="warning" title="Experimental">
+
+Versioning sits outside the 1.0 stability promise. `DocsVersions`,
+`currentOnly`, the archive marker, and `archive-version` may change in a minor
+release until authors have used them for real. An archive freezes prose, code
+samples and URLs — not what a page imports. Live examples on an archived page
+keep resolving to whatever the app currently has installed.
+
+</Callout>
+
 ## Why version your docs
 
 Ship a breaking major and two readers need different things: the one still on

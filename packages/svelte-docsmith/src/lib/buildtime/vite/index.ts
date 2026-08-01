@@ -57,6 +57,10 @@ export interface DocsmithViteOptions {
 	 * keep their unprefixed URLs. Each archived version's pages live under
 	 * `<content>/<id>/` and are served at `/docs/<id>/…`. Omit for a single,
 	 * unversioned docs tree (the default).
+	 *
+	 * @experimental Outside the 1.0 stability promise. May change in a minor
+	 * until authors have used versioning for real. An archive freezes content,
+	 * not dependencies.
 	 */
 	versions?: DocsVersions;
 }
