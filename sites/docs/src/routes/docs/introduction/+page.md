@@ -32,10 +32,13 @@ rot is gone by construction.
 That is why a DocSmith page is a real SvelteKit route: so the button, form,
 or chart in your docs is the same component your users import — running,
 stateful, and impossible to let rot. Live examples are the reason to adopt
-DocSmith. The rest of the stack exists to make them honest.
+DocSmith.
 
-You also get a markdown pipeline, a docs shell, and nav derived from
-frontmatter — so you spend time on the content, not the scaffolding.
+The scaffolding holds its own. Drop a page under `src/routes/docs/` and the
+sidebar builds itself from frontmatter — never a hand-maintained nav tree.
+The shell brings the header, mobile nav, in-page TOC, and prev/next links;
+the pipeline handles highlighting and anchors. You write content; the
+chrome and navigation keep up.
 
 ## Highlights
 
