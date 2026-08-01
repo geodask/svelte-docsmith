@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	outsideCodeFences,
 	proseLines,
+	scriptBlocks,
 	splitFrontmatter,
 	withFrontmatter
 } from './markdown-source.js';
@@ -109,6 +110,53 @@ describe('outsideCodeFences', () => {
 
 	it('leaves an unclosed fence open to the end of the page', () => {
 		expect(upper('a\n```\nb\nc')).toBe('A\n```\nb\nc');
+	});
+});
+
+describe('scriptBlocks', () => {
+	const blocks = (text: string) => [...scriptBlocks(text)];
+
+	it('yields the code inside a page’s script block', () => {
+		expect(blocks('---\ntitle: X\n---\n\n<script>\n\tlet a = 1;\n</script>\n\nProse.\n')).toEqual([
+			'\n\tlet a = 1;\n'
+		]);
+	});
+
+	it('reads a tag carrying attributes', () => {
+		expect(blocks('<script lang="ts">let a: number;</script>')).toEqual(['let a: number;']);
+		expect(blocks('<script module>let a;</script>')).toEqual(['let a;']);
+	});
+
+	it('yields every block on the page, in order', () => {
+		expect(blocks('<script module>let a;</script>\n\ntext\n\n<script>let b;</script>')).toEqual([
+			'let a;',
+			'let b;'
+		]);
+	});
+
+	// A ```svelte sample opening with a script tag is code being displayed, not
+	// code the page runs — most of the authoring docs are exactly that.
+	it('skips a script block inside a fence', () => {
+		expect(blocks('```svelte\n<script>\n\tlet a = 1;\n</script>\n```')).toEqual([]);
+	});
+
+	it('yields nothing for a page with no script block', () => {
+		expect(blocks('---\ntitle: X\n---\n\n# Heading\n')).toEqual([]);
+	});
+
+	// Prose about authoring says `<script>` in inline code all the time, and a
+	// page that only talks about one is a page with no script block.
+	it('ignores a script tag mentioned mid-sentence', () => {
+		const source = "Open a `<script>`, `import Thing from '$lib/thing'`, then close `</script>`.";
+		expect(blocks(source)).toEqual([]);
+	});
+
+	// Four spaces make an indented code block, which is a sample being displayed
+	// for the same reason a fenced one is.
+	it('skips a script block inside an indented code sample', () => {
+		const source =
+			'1. Add the setup:\n\n        <script>\n        \tlet a = 1;\n        </script>\n';
+		expect(blocks(source)).toEqual([]);
 	});
 });
 

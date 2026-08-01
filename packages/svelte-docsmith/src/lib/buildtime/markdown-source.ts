@@ -104,3 +104,26 @@ export function* proseLines(text: string): Generator<string> {
 		if (isProse(line)) yield line;
 	}
 }
+
+/**
+ * A `<script>` element with any attributes, through its closing tag. The open
+ * tag has to start a line, indented no further than CommonMark lets HTML be:
+ * four spaces make an indented code block, and mid-line means a sentence about
+ * a script tag rather than one. Authoring prose writes `` `<script>` `` in
+ * inline code constantly, and a page that only talks about a script block has
+ * no script block.
+ */
+const SCRIPT_BLOCK = /^ {0,3}<script\b[^>]*>([\s\S]*?)<\/script>/gim;
+
+/**
+ * The code inside each `<script>` block a page actually runs, in order.
+ *
+ * Fenced blocks are skipped, which is the whole reason this reads the page
+ * through {@link proseLines} rather than scanning the raw text: a docs page
+ * about authoring is mostly ```svelte samples that open with a `<script>`, and
+ * those are code being displayed, not code the page runs.
+ */
+export function* scriptBlocks(text: string): Generator<string> {
+	const prose = [...proseLines(splitFrontmatter(text).body)].join('\n');
+	for (const match of prose.matchAll(SCRIPT_BLOCK)) yield match[1];
+}
