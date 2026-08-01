@@ -21,6 +21,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history so page lastUpdated / sitemap lastmod are real dates.
+          # A shallow clone would omit them (see commitDates in svelte-docsmith).
+          fetch-depth: 0
 
       - name: Setup PNPM
         # Version is read from the root package.json "packageManager" field.

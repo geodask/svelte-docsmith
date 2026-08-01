@@ -29,12 +29,19 @@ import path from 'node:path';
  * all-or-nothing: a truncated read would date some pages and not others, which
  * looks like real data and is not.
  *
- * Only a truncated read calls `onFail`, because it is the one failure that would
- * otherwise date some pages and not others. A directory outside a repository, a
- * missing directory, or a machine without git all yield no dates, which every
- * caller already handles and which the plugin already reports where it matters.
- * Reporting is the caller's to do, which is why this takes a callback rather
- * than writing to the console itself.
+ * A shallow clone also yields no dates. Its single commit introduces every
+ * tracked file, so a walk would stamp every page with the same day — silent,
+ * plausible, and wrong for both page footers and sitemap `<lastmod>`. Omitting
+ * the date is legitimate; a uniform wrong date is not. Callers that need real
+ * dates should build from a full clone (`fetch-depth: 0` in CI, unshallow on
+ * the host).
+ *
+ * `onFail` fires for a truncated read or a shallow repository: those are the
+ * cases that would otherwise produce dates that look real and are not. A
+ * directory outside a repository, a missing directory, or a machine without git
+ * all yield no dates quietly, which every caller already handles. Reporting is
+ * the caller's to do, which is why this takes a callback rather than writing to
+ * the console itself.
  */
 export function commitDates(
 	dir: string,
@@ -47,6 +54,15 @@ export function commitDates(
 	maxBuffer = 256 * 1024 * 1024
 ): Map<string, string> {
 	const dates = new Map<string, string>();
+	// One cheap probe before the walk. On a shallow clone the walk would "work"
+	// and return one day for every file — worse than failing, so refuse first.
+	if (isShallowRepository(dir)) {
+		onFail?.(
+			'shallow clone: git history is incomplete, so commit dates would be wrong. ' +
+				'Build from a full clone (e.g. actions/checkout fetch-depth: 0), or set lastUpdated in frontmatter.'
+		);
+		return dates;
+	}
 	const res = spawnSync(
 		'git',
 		['log', '--format=%cs', '--name-only', '--relative', '--no-renames', '--', '.'],
@@ -75,6 +91,18 @@ export function commitDates(
 		if (date && !dates.has(file)) dates.set(file, date);
 	}
 	return dates;
+}
+
+/**
+ * Whether `dir` sits in a shallow clone. Outside a repository, or when git is
+ * missing, returns false so the walk's own failure path still owns that case.
+ */
+function isShallowRepository(dir: string): boolean {
+	const res = spawnSync('git', ['rev-parse', '--is-shallow-repository'], {
+		cwd: dir,
+		encoding: 'utf-8'
+	});
+	return res.status === 0 && res.stdout.trim() === 'true';
 }
 
 /**

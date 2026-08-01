@@ -93,8 +93,15 @@ export function GET() {
 }
 ```
 
-Each entry gets a `<lastmod>` from the page's last git commit. Then point
-crawlers at it from `static/robots.txt`:
+Each entry gets a `<lastmod>` from the page's last git commit — or none, when
+the page has no date (no frontmatter `lastUpdated`, and git could not supply
+one). On a **shallow clone** (the default for `actions/checkout` and many
+hosts), DocSmith omits every git-derived date rather than stamp every page with
+the same build day, which would teach crawlers to ignore the field. Build from a
+full history (`fetch-depth: 0` in GitHub Actions) when you want real
+`<lastmod>` values, or set `lastUpdated` in frontmatter on pages that need one.
+
+Then point crawlers at the sitemap from `static/robots.txt`:
 
 ```txt
 User-agent: *

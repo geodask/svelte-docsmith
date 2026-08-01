@@ -40,8 +40,9 @@ _Avoid_: page entry, doc file
 **Last updated**:
 The day a page's content was last accurate. Taken from the page's own
 frontmatter when it declares one, otherwise from the commit that last touched
-the file. Archiving writes it into frontmatter, so a frozen copy keeps the day
-it was really accurate rather than the day it was copied.
+the file. Omitted entirely on a shallow clone (incomplete history would stamp
+every page the same day). Archiving writes it into frontmatter, so a frozen
+copy keeps the day it was really accurate rather than the day it was copied.
 _Avoid_: commit date, page date, modified date, mtime
 
 **Content index**:

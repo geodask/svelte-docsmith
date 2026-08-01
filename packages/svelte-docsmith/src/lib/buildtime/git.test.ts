@@ -5,11 +5,11 @@ import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { commitDates } from './git.js';
 
-let root: string | undefined;
+/** Temp dirs to remove after each test (the full repo, and any shallow clone). */
+const temps: string[] = [];
 
 afterEach(() => {
-	if (root) fs.rmSync(root, { recursive: true, force: true });
-	root = undefined;
+	for (const dir of temps.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });
 
 /**
@@ -17,30 +17,30 @@ afterEach(() => {
  * chose rather than against whatever this checkout happens to contain.
  */
 function repo(): string {
-	root = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-git-'));
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-git-'));
+	temps.push(root);
 
 	spawnSync('git', ['init', '-q'], { cwd: root });
 	spawnSync('git', ['config', 'user.email', 't@t'], { cwd: root });
 	spawnSync('git', ['config', 'user.name', 't'], { cwd: root });
 
-	write('docs/+page.md', 'intro\n');
-	write('docs/deep/nested/+page.md', 'nested\n');
+	write(root, 'docs/+page.md', 'intro\n');
+	write(root, 'docs/deep/nested/+page.md', 'nested\n');
 	commitOn(root, 'first', '2020-01-02');
 
 	// A second, later commit touching only one of them, so the two pages end up
 	// with different dates and a newest-wins bug cannot pass unnoticed.
-	write('docs/+page.md', 'intro, revised\n');
+	write(root, 'docs/+page.md', 'intro, revised\n');
 	commitOn(root, 'second', '2024-06-07');
 
 	return root;
 }
 
-function write(rel: string, text: string) {
-	const file = path.join(root!, rel);
+function write(root: string, rel: string, text: string) {
+	const file = path.join(root, rel);
 	fs.mkdirSync(path.dirname(file), { recursive: true });
 	fs.writeFileSync(file, text);
 }
-
 /**
  * `%cs` reads the *committer* day, so pin that rather than the author date
  * `--date` sets, which git would otherwise leave as today for every commit.
@@ -92,7 +92,8 @@ describe('commitDates', () => {
 	});
 
 	it('returns an empty map outside a repository', () => {
-		root = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-git-'));
+		const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-git-'));
+		temps.push(root);
 		fs.writeFileSync(path.join(root, '+page.md'), '# loose\n');
 
 		expect(commitDates(root).size).toBe(0);
@@ -110,7 +111,8 @@ describe('commitDates', () => {
 	});
 
 	it('stays quiet outside a repository, which is a choice rather than a failure', () => {
-		root = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-git-'));
+		const root = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-git-'));
+		temps.push(root);
 		const onFail = vi.fn();
 
 		commitDates(root, onFail);
@@ -118,8 +120,7 @@ describe('commitDates', () => {
 		expect(onFail).not.toHaveBeenCalled();
 	});
 
-	// The one failure worth reporting: the read is truncated rather than refused,
-	// so without this the map would silently hold dates for only some pages.
+	// Truncation would otherwise leave a half-filled map of real-looking dates.
 	it('reports a read that outgrew the output buffer, and returns no dates at all', () => {
 		const dir = repo();
 		const onFail = vi.fn();
@@ -130,5 +131,27 @@ describe('commitDates', () => {
 
 		expect(dates.size).toBe(0);
 		expect(onFail).toHaveBeenCalledTimes(1);
+	});
+
+	// A shallow clone's only commit "introduces" every file, so a walk would date
+	// every page the build day. No date is honest; a uniform wrong date is not.
+	it('returns no dates on a shallow clone, and says why', () => {
+		const full = repo();
+		const shallow = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-shallow-'));
+		// mkdtemp creates the dir; clone wants an empty path or a name that does
+		// not yet exist — remove and let git create it under the same parent.
+		fs.rmSync(shallow, { recursive: true, force: true });
+		temps.push(shallow);
+		const clone = spawnSync('git', ['clone', '-q', '--depth=1', `file://${full}`, shallow], {
+			encoding: 'utf-8'
+		});
+		expect(clone.status).toBe(0);
+
+		const onFail = vi.fn();
+		const dates = commitDates(path.join(shallow, 'docs'), onFail);
+
+		expect(dates.size).toBe(0);
+		expect(onFail).toHaveBeenCalledTimes(1);
+		expect(onFail.mock.calls[0][0]).toMatch(/shallow/i);
 	});
 });
