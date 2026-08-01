@@ -10,6 +10,11 @@
 		"index.js",
 		"template"
 	],
+	"scripts": {
+		"test": "node --test test/**/*.test.js",
+		"test:unit": "node --test test/**/*.test.js",
+		"test:coverage": "node --test test/**/*.test.js"
+	},
 	"keywords": [
 		"svelte",
 		"sveltekit",

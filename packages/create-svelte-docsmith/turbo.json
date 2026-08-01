@@ -1,0 +1,17 @@
+{
+	"extends": ["//"],
+	"tasks": {
+		"test": {
+			"dependsOn": ["svelte-docsmith#build"],
+			"cache": false
+		},
+		"test:unit": {
+			"dependsOn": ["svelte-docsmith#build"],
+			"cache": false
+		},
+		"test:coverage": {
+			"dependsOn": ["svelte-docsmith#build"],
+			"cache": false
+		}
+	}
+}
