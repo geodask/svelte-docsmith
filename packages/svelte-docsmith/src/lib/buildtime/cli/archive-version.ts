@@ -106,7 +106,7 @@ export function archiveVersion(
 	// be read: an archive is written once and never edited again, so a page that
 	// misses its date here keeps the wrong one for good.
 	const dates = commitDates(contentDir, (reason) => {
-		log(`\n! Could not read commit dates: ${reason}`);
+		log(`\n! Skipping git-derived page dates: ${reason}`);
 		log('  Archived pages will keep no last-updated date.\n');
 	});
 

@@ -122,8 +122,11 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 	let dates: Map<string, string> | undefined;
 	const trackedDates = () =>
 		(dates ??= commitDates(contentDir, (reason) => {
+			// Truncation and shallow clones both refuse dates deliberately; the
+			// reason line says which. "Could not read" would misframe a shallow
+			// skip as a hard failure.
 			console.warn(
-				`[svelte-docsmith] could not read commit dates under ${contentDir}\n` +
+				`[svelte-docsmith] skipping git-derived page dates under ${contentDir}\n` +
 					`  ${reason}\n` +
 					`  Pages will render without a last-updated date, and sitemap entries without \`lastmod\`.`
 			);
