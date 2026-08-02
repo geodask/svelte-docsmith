@@ -8,9 +8,7 @@
 
 	// Label names the destination mode so the control is self-describing for
 	// assistive tech and matches what the icon shows (sun = go light, moon = go dark).
-	const label = $derived(
-		mode.current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
-	);
+	const label = $derived(mode.current === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
 </script>
 
 <Button

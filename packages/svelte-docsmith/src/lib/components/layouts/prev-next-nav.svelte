@@ -20,7 +20,9 @@
 				href={prev.url}
 				class="border-border hover:border-primary/60 hover:bg-primary/5 group flex min-w-0 flex-1 flex-col gap-1 rounded-lg border p-4 transition-colors"
 			>
-				<span class="text-muted-foreground group-hover:text-primary flex items-center gap-1 text-xs">
+				<span
+					class="text-muted-foreground group-hover:text-primary flex items-center gap-1 text-xs"
+				>
 					<ChevronLeft class="size-3.5" aria-hidden="true" />
 					Previous
 				</span>
@@ -34,7 +36,9 @@
 				href={next.url}
 				class="border-border hover:border-primary/60 hover:bg-primary/5 group ml-auto flex min-w-0 flex-1 flex-col items-end gap-1 rounded-lg border p-4 text-right transition-colors"
 			>
-				<span class="text-muted-foreground group-hover:text-primary flex items-center gap-1 text-xs">
+				<span
+					class="text-muted-foreground group-hover:text-primary flex items-center gap-1 text-xs"
+				>
 					Next
 					<ChevronRight class="size-3.5" aria-hidden="true" />
 				</span>
