@@ -43,7 +43,7 @@
 						href={node.url}
 						aria-current={current === node.url ? 'page' : undefined}
 						class={cn(
-							'hover:text-primary hover:bg-primary/20 block rounded-md px-2 py-1.5 text-sm transition-colors',
+							'hover:text-primary hover:bg-primary/10 block rounded-md px-2 py-1.5 text-sm transition-colors',
 							current === node.url
 								? 'text-primary bg-primary/20 font-medium'
 								: 'text-muted-foreground'

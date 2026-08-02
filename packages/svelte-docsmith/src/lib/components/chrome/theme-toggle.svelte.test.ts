@@ -11,12 +11,13 @@ import ThemeToggle from './theme-toggle.svelte';
 describe('ThemeToggle', () => {
 	it('exposes a labelled button for assistive tech', () => {
 		render(ThemeToggle);
-		expect(screen.getByRole('button', { name: 'Toggle theme' })).toBeInTheDocument();
+		// Mocked mode is light, so the control offers the dark destination.
+		expect(screen.getByRole('button', { name: 'Switch to dark mode' })).toBeInTheDocument();
 	});
 
 	it('delegates the switch to mode-watcher on click', async () => {
 		render(ThemeToggle);
-		await fireEvent.click(screen.getByRole('button', { name: 'Toggle theme' }));
+		await fireEvent.click(screen.getByRole('button', { name: 'Switch to dark mode' }));
 		expect(toggleMode).toHaveBeenCalledTimes(1);
 	});
 });

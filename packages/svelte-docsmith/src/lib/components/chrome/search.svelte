@@ -34,6 +34,7 @@
 
 	let query = $state('');
 	let engine = $state<SearchEngine | null>(null);
+	let indexDocs = $state<SearchDoc[]>([]);
 	let status = $state<'idle' | 'loading' | 'error'>('idle');
 	// The version the cached engine was built for, so a loader that returns only
 	// one version's records is rebuilt when the reader switches versions. Stays
@@ -43,6 +44,28 @@
 	const trimmed = $derived(query.trim());
 	// Scope to the active version on a versioned site; `undefined` otherwise.
 	const results = $derived(engine && trimmed ? engine.search(query, undefined, activeVersion) : []);
+
+	// Empty-state starters: prefer common first pages when present, then fill
+	// from the rest of the index so a custom site still has something useful.
+	const suggestions = $derived.by(() => {
+		const scoped = activeVersion
+			? indexDocs.filter((d) => d.version === activeVersion)
+			: indexDocs;
+		if (!scoped.length) return [];
+		const preferred = [/introduction/i, /quick[- ]?start/i, /install/i, /getting started/i];
+		const picked: SearchDoc[] = [];
+		for (const re of preferred) {
+			const hit = scoped.find(
+				(d) => !picked.includes(d) && (re.test(d.title) || re.test(d.path) || re.test(d.section ?? ''))
+			);
+			if (hit) picked.push(hit);
+		}
+		for (const d of scoped) {
+			if (picked.length >= 4) break;
+			if (!picked.includes(d)) picked.push(d);
+		}
+		return picked.slice(0, 4);
+	});
 
 	// Build the index the first time the palette opens; keep it for later opens.
 	async function ensureEngine() {
@@ -54,6 +77,7 @@
 				import('$lib/search/create-search.js'),
 				load(version)
 			]);
+			indexDocs = docs;
 			engine = createSearchEngine(docs);
 			engineVersion = version;
 			status = 'idle';
@@ -106,16 +130,48 @@
 					Search is unavailable right now.
 				</div>
 			{:else if !trimmed}
-				<div
-					class="text-muted-foreground flex flex-col items-center gap-3 px-4 py-10 text-center text-sm"
-				>
-					<span
-						class="bg-muted/60 text-muted-foreground flex size-11 items-center justify-center rounded-full"
+				{#if suggestions.length}
+					<p class="text-muted-foreground px-2.5 pb-1.5 text-xs font-medium tracking-wide">
+						Suggested
+					</p>
+					{#each suggestions as doc (doc.path)}
+						<Command.LinkItem
+							href={doc.path}
+							onSelect={() => select(doc.path)}
+							class="group/result mb-0.5 flex items-center gap-3 rounded-lg px-2.5 py-2 aria-selected:bg-accent aria-selected:text-accent-foreground"
+						>
+							<span
+								class="border-border/60 bg-muted/40 text-muted-foreground group-aria-selected/result:border-accent-foreground/20 group-aria-selected/result:text-accent-foreground flex size-8 shrink-0 items-center justify-center rounded-md border"
+							>
+								<FileText class="size-4" />
+							</span>
+							<span class="flex min-w-0 flex-1 flex-col gap-0.5">
+								<span class="truncate font-medium">{doc.title}</span>
+								{#if doc.section}
+									<span
+										class="text-muted-foreground group-aria-selected/result:text-accent-foreground/80 text-xs"
+									>
+										{doc.section}
+									</span>
+								{/if}
+							</span>
+							<CornerDownLeft
+								class="text-muted-foreground group-aria-selected/result:text-accent-foreground size-4 shrink-0 opacity-0 group-aria-selected/result:opacity-100"
+							/>
+						</Command.LinkItem>
+					{/each}
+				{:else}
+					<div
+						class="text-muted-foreground flex flex-col items-center gap-3 px-4 py-10 text-center text-sm"
 					>
-						<SearchIcon class="size-5" />
-					</span>
-					<span>Search across every page of the documentation.</span>
-				</div>
+						<span
+							class="bg-muted/60 text-muted-foreground flex size-11 items-center justify-center rounded-full"
+						>
+							<SearchIcon class="size-5" />
+						</span>
+						<span>Search across every page of the documentation.</span>
+					</div>
+				{/if}
 			{:else if results.length === 0}
 				<div class="text-muted-foreground px-4 py-10 text-center text-sm">
 					No results for <span class="text-foreground font-medium">“{trimmed}”</span>.

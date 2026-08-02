@@ -17,6 +17,7 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/source-serif-4';
+@import '@fontsource/jetbrains-mono';
 
 /* Generate utilities for the classes used inside this package. */
 @source './';
@@ -145,7 +146,7 @@
 		 * or system stacks instead. */
 		--font-sans: 'Inter Variable', Inter, sans-serif;
 		--font-serif: 'Source Serif 4 Variable', 'Source Serif 4', serif;
-		--font-mono: JetBrains Mono, monospace;
+		--font-mono: 'JetBrains Mono', ui-monospace, monospace;
 		--radius: 0.75rem;
 		--shadow-2xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.05);
 		--shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.05);
