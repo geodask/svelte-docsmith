@@ -1,5 +1,28 @@
 # svelte-docsmith
 
+## 0.13.1
+
+### Patch Changes
+
+- 8a871ec: Refine docs chrome edges and ship the full typeface stack:
+
+  - Self-host JetBrains Mono from `theme.css` so code faces match without a separate Google Fonts link
+  - Theme toggle labels the destination mode (`Switch to light/dark mode`)
+  - Search empty state lists suggested starter pages once the index loads
+  - Prev/next cards get directional chevrons and a light primary hover fill
+  - Mobile header includes the GitHub control when configured
+  - Background pattern grid lines follow the `--border` token so presets stay coherent
+  - Sidebar hover is quieter than the active state on dense trees
+
+- 1bc8c94: Polish the docs chrome and landing sections for reading measure, identity, and recovery:
+
+  - Ship Source Serif 4 with `theme.css` and apply it on landing display headings (`Hero`, `FeatureGrid`, `CTA`); land body copy on foreground ink
+  - Cap markdown articles at `max-w-prose` so body measure stays ~65ch on wide screens
+  - Make breadcrumbs navigable: group steps link to the group's first page
+  - After a "No" on page feedback, offer Edit this page and Open an issue when configured
+  - Label the mobile table-of-contents control ("On this page") instead of an icon-only button
+  - Add an optional `before` snippet on `CTA` so notes can sit above the heading while the section still ends on the actions
+
 ## 0.13.0
 
 ### Minor Changes
