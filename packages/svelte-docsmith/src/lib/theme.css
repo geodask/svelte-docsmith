@@ -16,6 +16,7 @@
 @import 'tw-animate-css';
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/source-serif-4';
 
 /* Generate utilities for the classes used inside this package. */
 @source './';
@@ -139,8 +140,11 @@
 		--sidebar-accent-foreground: oklch(0.2101 0.0318 264.6645);
 		--sidebar-border: oklch(0.9276 0.0058 264.5313);
 		--sidebar-ring: oklch(0.6716 0.1368 48.513);
-		--font-sans: Inter, sans-serif;
-		--font-serif: Source Serif 4, serif;
+		/* Fontsource variable packages register as "… Variable"; keep the
+		 * static family names as fallbacks for consumers who load Google Fonts
+		 * or system stacks instead. */
+		--font-sans: 'Inter Variable', Inter, sans-serif;
+		--font-serif: 'Source Serif 4 Variable', 'Source Serif 4', serif;
 		--font-mono: JetBrains Mono, monospace;
 		--radius: 0.75rem;
 		--shadow-2xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.05);

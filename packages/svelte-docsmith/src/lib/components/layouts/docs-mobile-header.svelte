@@ -14,8 +14,8 @@
 	import { useSearch } from '$lib/search/context.svelte.js';
 	import { useDocsPage } from '../docs-page-context.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
+	import List from '@lucide/svelte/icons/list';
 	import Menu from '@lucide/svelte/icons/menu';
-	import PanelRight from '@lucide/svelte/icons/panel-right';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import type { Snippet } from 'svelte';
 
@@ -130,9 +130,12 @@
 				<Popover.Root bind:open={isTocOpen}>
 					<Popover.Trigger>
 						{#snippet child({ props })}
-							<Button variant="ghost" size="icon" class="size-8" {...props}>
-								<PanelRight class="size-4" />
-								<span class="sr-only">Table of contents</span>
+							<!-- Labeled (not icon-only) so first-timers find "on this page"
+							     without guessing PanelRight. Label collapses on the narrowest
+							     phones so the title still has room. -->
+							<Button variant="ghost" size="sm" class="h-8 gap-1.5 px-2" {...props}>
+								<List class="size-4 shrink-0" />
+								<span class="text-xs font-medium max-[22rem]:sr-only">On this page</span>
 							</Button>
 						{/snippet}
 					</Popover.Trigger>

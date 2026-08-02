@@ -27,7 +27,7 @@
 	<div class="min-w-0">
 		<h3 class="font-semibold">{title}</h3>
 		{#if children}
-			<p class="text-muted-foreground mt-1 text-sm leading-relaxed">{@render children()}</p>
+			<p class="text-foreground/80 mt-1 text-sm leading-relaxed">{@render children()}</p>
 		{/if}
 	</div>
 </div>

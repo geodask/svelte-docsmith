@@ -9,7 +9,14 @@
  * component that renders them.
  */
 import type { DocsContentItem } from './content.js';
-import { navFromContent, flattenNav, navTrail, type NavGroup, type NavItem } from './nav.js';
+import {
+	navFromContent,
+	flattenNav,
+	navTrail,
+	type Breadcrumb,
+	type NavGroup,
+	type NavItem
+} from './nav.js';
 import {
 	activeVersion,
 	currentVersion,
@@ -66,10 +73,11 @@ export type DocsPageView = {
 	/** The page's nav title, falling back to the site title off the nav tree. */
 	title: string;
 	/**
-	 * Breadcrumb titles: the page's group trail, then the page itself. Titles
-	 * only, so this layer never depends on a component's `Crumb` type.
+	 * Breadcrumb trail: group steps (with a jump URL to the group's first page),
+	 * then the current page as a title-only final crumb. No component types
+	 * here — the shell maps this onto its `Crumb` shape.
 	 */
-	breadcrumbs: string[];
+	breadcrumbs: Breadcrumb[];
 	/** The page's server-rendered TOC, from {@link entry}. */
 	toc: PageToc;
 	/**
@@ -112,8 +120,8 @@ export function resolveDocsPage(input: {
 	const pageIndex = flatNav.findIndex((item) => item.url === pathname);
 	const title = pageIndex >= 0 ? flatNav[pageIndex].title : siteTitle;
 
-	const breadcrumbs = navTrail(nav, pathname) ?? [];
-	if (pageIndex >= 0) breadcrumbs.push(title);
+	const breadcrumbs: Breadcrumb[] = navTrail(nav, pathname) ?? [];
+	if (pageIndex >= 0) breadcrumbs.push({ title });
 
 	return {
 		pathname,

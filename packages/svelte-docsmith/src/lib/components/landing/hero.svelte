@@ -40,7 +40,7 @@
 		{/if}
 
 		<h1
-			class="text-5xl font-semibold tracking-[-0.03em] text-balance sm:text-6xl lg:text-[4.25rem] lg:leading-[1.02] {eyebrow
+			class="font-serif text-5xl font-semibold tracking-[-0.03em] text-balance sm:text-6xl lg:text-[4.25rem] lg:leading-[1.02] {eyebrow
 				? 'mt-6'
 				: ''}"
 		>
@@ -49,7 +49,7 @@
 
 		{#if description}
 			<p
-				class="text-muted-foreground mt-6 max-w-xl text-lg leading-relaxed text-pretty {media
+				class="text-foreground mt-6 max-w-xl text-lg leading-relaxed text-pretty {media
 					? ''
 					: 'mx-auto'}"
 			>

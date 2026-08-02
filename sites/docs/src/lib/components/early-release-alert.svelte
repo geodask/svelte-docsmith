@@ -1,17 +1,22 @@
 <script lang="ts">
-	import Construction from '@lucide/svelte/icons/construction';
+	import { Callout } from 'svelte-docsmith';
 </script>
 
-<div
-	role="alert"
-	class="flex gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-4 text-start text-yellow-600 dark:text-yellow-400"
->
-	<Construction class="mt-0.5 shrink-0" size={18} />
-	<div>
-		<p class="font-medium">Development in Progress</p>
-		<p class="text-sm">
+<!-- Uses the package Callout so the pre-1.0 note follows the same warning
+     tokens as every other caution in the docs — not a one-off yellow hex. -->
+<div class="early-release">
+	<Callout variant="warning" title="Development in progress">
+		<p>
 			The library is currently in active development. Each minor release may contain breaking
 			changes until it reaches a stable v1.0 release.
 		</p>
-	</div>
+	</Callout>
 </div>
+
+<style>
+	/* Sit flush when composed above a CTA so it reads as a footnote, not a
+	   second section with its own vertical rhythm. */
+	.early-release :global(.callout) {
+		margin: 0;
+	}
+</style>
