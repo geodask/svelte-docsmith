@@ -1,13 +1,5 @@
 <script lang="ts">
-	import {
-		DocsShell,
-		LiveExample,
-		Hero,
-		FeatureGrid,
-		Feature,
-		CTA,
-		Action
-	} from 'svelte-docsmith';
+	import { DocsShell, LiveExample, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
 	import { siteConfig } from '$lib/site-config';
 	import CodeWindow from '$lib/components/landing/code-window.svelte';
 	import EarlyReleaseAlert from '$lib/components/early-release-alert.svelte';
