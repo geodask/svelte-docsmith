@@ -13,6 +13,7 @@
 	import * as Sheet from '$lib/components/shadcn/sheet/index.js';
 	import { useSearch } from '$lib/search/context.svelte.js';
 	import { useDocsPage } from '../docs-page-context.js';
+	import GithubIcon from '$lib/components/icons/github.svelte';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import List from '@lucide/svelte/icons/list';
 	import Menu from '@lucide/svelte/icons/menu';
@@ -121,6 +122,20 @@
 				<Button variant="ghost" size="icon" class="size-8" onclick={() => (search.open = true)}>
 					<SearchIcon class="size-4" />
 					<span class="sr-only">Search documentation</span>
+				</Button>
+			{/if}
+
+			{#if config.github}
+				<Button
+					size="icon"
+					variant="ghost"
+					target="_blank"
+					rel="noopener noreferrer"
+					href={config.github}
+					class="text-muted-foreground hover:text-foreground size-8"
+				>
+					<GithubIcon class="size-4" />
+					<span class="sr-only">GitHub</span>
 				</Button>
 			{/if}
 

@@ -108,4 +108,15 @@ describe('Search palette', () => {
 
 		expect(await screen.findByText(/no results/i)).toBeInTheDocument();
 	});
+
+	it('shows suggested starter pages while the query is empty', async () => {
+		render(Harness, { props: { load: () => Promise.resolve(docs) } });
+
+		await fireEvent.click(screen.getByTestId('open-search'));
+		await screen.findByPlaceholderText(PLACEHOLDER);
+
+		expect(await screen.findByText('Suggested')).toBeInTheDocument();
+		expect(screen.getByText('Introduction')).toBeInTheDocument();
+		expect(screen.getByText('Theming')).toBeInTheDocument();
+	});
 });
