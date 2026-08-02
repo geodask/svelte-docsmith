@@ -87,11 +87,11 @@ Content is authored as `+page.md` files under `src/routes/docs/`, preprocessed b
 
 ### Issue tracker
 
-Issues live as GitHub issues on `geodask/svelte-docsmith`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live as markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Mapped to this repo's existing labels — `needs triage` and `needs info` use spaces, not hyphens. See `docs/agents/triage-labels.md`.
+Default triage roles: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

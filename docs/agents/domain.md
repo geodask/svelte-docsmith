@@ -17,8 +17,6 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 /
 ├── CONTEXT.md
 ├── docs/adr/
-│   ├── 0001-flexsearch-over-pagefind.md
-│   └── 0002-css-only-theme-presets.md
 ├── packages/
 └── sites/
 ```
