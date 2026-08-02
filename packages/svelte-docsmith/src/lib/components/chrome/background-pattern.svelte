@@ -19,8 +19,16 @@ preset; render inside a `relative isolate` container. -->
 	.pattern-grid {
 		/* 24px cell; line colour follows the theme border token at low opacity. */
 		background-image:
-			linear-gradient(to right, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px),
-			linear-gradient(to bottom, color-mix(in oklch, var(--border) 70%, transparent) 1px, transparent 1px);
+			linear-gradient(
+				to right,
+				color-mix(in oklch, var(--border) 70%, transparent) 1px,
+				transparent 1px
+			),
+			linear-gradient(
+				to bottom,
+				color-mix(in oklch, var(--border) 70%, transparent) 1px,
+				transparent 1px
+			);
 		background-size: 24px 24px;
 		mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, #000 70%, transparent 100%);
 	}

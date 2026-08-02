@@ -29,9 +29,7 @@
 		{#if title || description}
 			<div class="mx-auto max-w-2xl text-center">
 				{#if title}
-					<h2
-						class="font-serif text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
-					>
+					<h2 class="font-serif text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
 						{title}
 					</h2>
 				{/if}

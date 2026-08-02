@@ -48,15 +48,14 @@
 	// Empty-state starters: prefer common first pages when present, then fill
 	// from the rest of the index so a custom site still has something useful.
 	const suggestions = $derived.by(() => {
-		const scoped = activeVersion
-			? indexDocs.filter((d) => d.version === activeVersion)
-			: indexDocs;
+		const scoped = activeVersion ? indexDocs.filter((d) => d.version === activeVersion) : indexDocs;
 		if (!scoped.length) return [];
 		const preferred = [/introduction/i, /quick[- ]?start/i, /install/i, /getting started/i];
 		const picked: SearchDoc[] = [];
 		for (const re of preferred) {
 			const hit = scoped.find(
-				(d) => !picked.includes(d) && (re.test(d.title) || re.test(d.path) || re.test(d.section ?? ''))
+				(d) =>
+					!picked.includes(d) && (re.test(d.title) || re.test(d.path) || re.test(d.section ?? ''))
 			);
 			if (hit) picked.push(hit);
 		}
