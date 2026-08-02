@@ -145,12 +145,16 @@ describe('navTrail', () => {
 		{ title: 'Intro', path: '/intro', section: 'Guides', order: 2 }
 	]);
 
-	it('returns the ancestor group titles for a nested page', () => {
-		expect(navTrail(nav, '/mw')).toEqual(['Guides', 'Advanced']);
+	it('returns ancestor groups with first-leaf URLs for a nested page', () => {
+		// Guides' earliest leaf is Middleware (order 1); Advanced's only leaf is /mw.
+		expect(navTrail(nav, '/mw')).toEqual([
+			{ title: 'Guides', url: '/mw' },
+			{ title: 'Advanced', url: '/mw' }
+		]);
 	});
 
-	it('returns the single group for a top-level page', () => {
-		expect(navTrail(nav, '/intro')).toEqual(['Guides']);
+	it('returns the single group with a first-leaf URL for a top-level page', () => {
+		expect(navTrail(nav, '/intro')).toEqual([{ title: 'Guides', url: '/mw' }]);
 	});
 
 	it('returns undefined for a page not in the tree', () => {

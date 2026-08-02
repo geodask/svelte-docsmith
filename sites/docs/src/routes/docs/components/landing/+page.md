@@ -129,9 +129,9 @@ than one continuous scroll.
 ## CTA
 
 The closing panel: a bordered card with a soft glow behind the heading, so the
-page ends on your primary colour instead of trailing off. Anything you pass as
-children sits below the actions, which is where a note or a `Callout` about
-release status fits.
+page ends on your primary colour instead of trailing off. Use `before` for a
+note that should sit above the heading (for example a pre-release `Callout`) so
+the section still ends on the actions; use `children` for content below them.
 
 <PropsTable title="CTA">
 	<Prop name="title" type="string" required>
@@ -143,8 +143,12 @@ release status fits.
 	<Prop name="actions" type="Snippet">
 		Call-to-action buttons.
 	</Prop>
+	<Prop name="before" type="Snippet">
+		Content above the heading — a pre-release note, for example — so the
+		section can still end on the actions.
+	</Prop>
 	<Prop name="children" type="Snippet">
-		Content below the actions, such as a note or callout.
+		Content below the actions, such as a secondary note.
 	</Prop>
 </PropsTable>
 

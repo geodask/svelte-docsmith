@@ -29,10 +29,14 @@
 		{#if title || description}
 			<div class="mx-auto max-w-2xl text-center">
 				{#if title}
-					<h2 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{title}</h2>
+					<h2
+						class="font-serif text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+					>
+						{title}
+					</h2>
 				{/if}
 				{#if description}
-					<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
+					<p class="text-foreground mt-4 text-lg leading-relaxed text-pretty">
 						{description}
 					</p>
 				{/if}

@@ -220,12 +220,20 @@ describe('resolveDocsPage: title', () => {
 });
 
 describe('resolveDocsPage: breadcrumbs', () => {
-	it('trails the group path, then the page', () => {
-		expect(resolve('/docs/middleware').breadcrumbs).toEqual(['Guides', 'Advanced', 'Middleware']);
+	it('trails the group path (with first-leaf URLs), then the page', () => {
+		expect(resolve('/docs/middleware').breadcrumbs).toEqual([
+			{ title: 'Guides', url: '/docs/middleware' },
+			{ title: 'Advanced', url: '/docs/middleware' },
+			{ title: 'Middleware' }
+		]);
 	});
 
 	it('is the group and the page for a top-level page', () => {
-		expect(resolve('/docs/intro').breadcrumbs).toEqual(['Start', 'Intro']);
+		// Start's earliest leaf is Intro (order 1).
+		expect(resolve('/docs/intro').breadcrumbs).toEqual([
+			{ title: 'Start', url: '/docs/intro' },
+			{ title: 'Intro' }
+		]);
 	});
 
 	it('is empty off the nav tree', () => {

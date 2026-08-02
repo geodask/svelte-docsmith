@@ -109,16 +109,38 @@ export function flattenNav(nodes: NavNode[]): NavItem[] {
 	return out;
 }
 
+/** One step in a breadcrumb trail: a label, and an optional jump target. */
+export type Breadcrumb = { title: string; url?: string };
+
 /**
- * The trail of group titles leading to the page at `url` (top group first,
- * excluding the page itself), or `undefined` if the page is not in the tree.
- * Drives the breadcrumb trail.
+ * First leaf URL under a group, depth-first. Groups have no page of their own,
+ * so breadcrumbs that name a group link to its earliest page (the place a
+ * reader lands if they "go up" into that section).
  */
-export function navTrail(nodes: NavNode[], url: string): string[] | undefined {
+function firstLeafUrl(group: NavGroup): string | undefined {
+	for (const child of group.items) {
+		if (isNavGroup(child)) {
+			const url = firstLeafUrl(child);
+			if (url) return url;
+		} else {
+			return child.url;
+		}
+	}
+	return undefined;
+}
+
+/**
+ * The trail of groups leading to the page at `url` (top group first, excluding
+ * the page itself), or `undefined` if the page is not in the tree. Each group
+ * step carries a `url` to its first leaf so breadcrumbs are navigable.
+ */
+export function navTrail(nodes: NavNode[], url: string): Breadcrumb[] | undefined {
 	for (const node of nodes) {
 		if (isNavGroup(node)) {
 			const inner = navTrail(node.items, url);
-			if (inner) return [node.title, ...inner];
+			if (inner) {
+				return [{ title: node.title, url: firstLeafUrl(node) }, ...inner];
+			}
 		} else if (node.url === url) {
 			return [];
 		}

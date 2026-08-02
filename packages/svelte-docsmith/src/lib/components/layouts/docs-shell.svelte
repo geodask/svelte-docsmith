@@ -151,7 +151,7 @@
 		readingTime && view.readingMinutes ? `${view.readingMinutes} min read` : undefined
 	);
 
-	const breadcrumbs = $derived(view.breadcrumbs.map((title) => ({ title })));
+	const breadcrumbs = $derived(view.breadcrumbs);
 
 	// The archived-version banner, or nothing. Its "view this page in <current>"
 	// link is the current version's entry in the same list the switcher renders,
@@ -286,6 +286,10 @@
 							<PageFeedback
 								path={view.pathname}
 								onfeedback={typeof feedback === 'function' ? feedback : undefined}
+								editHref={view.editHref}
+								issueHref={config.github
+									? `${config.github}/issues/new?title=${encodeURIComponent(`Feedback: ${view.title}`)}&body=${encodeURIComponent(`Page: ${view.pathname}\n\n<!-- What was unclear or missing? -->\n`)}`
+									: undefined}
 							/>
 						</div>
 					{/key}

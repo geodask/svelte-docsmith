@@ -25,6 +25,7 @@ export {
 	navFromContent,
 	flattenNav,
 	navTrail,
+	type Breadcrumb,
 	isNavGroup,
 	type NavItem,
 	type NavGroup,

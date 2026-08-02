@@ -5,6 +5,7 @@
 		title,
 		description,
 		actions,
+		before,
 		children
 	}: {
 		title: string;
@@ -12,7 +13,12 @@
 		description?: string;
 		/** Call-to-action buttons. */
 		actions?: Snippet;
-		/** Anything to sit below the actions, e.g. a note or a callout. */
+		/**
+		 * Optional content above the heading (e.g. a pre-release note). Placed
+		 * before the title so the section can still *end* on the actions.
+		 */
+		before?: Snippet;
+		/** Anything to sit below the actions, e.g. a secondary note. */
 		children?: Snippet;
 	} = $props();
 </script>
@@ -29,12 +35,18 @@
 			></div>
 		</div>
 
-		<h2 class="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+		{#if before}
+			<div class="mx-auto mb-8 max-w-xl text-left">{@render before()}</div>
+		{/if}
+
+		<h2
+			class="font-serif mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+		>
 			{title}
 		</h2>
 
 		{#if description}
-			<p class="text-muted-foreground mx-auto mt-4 max-w-xl text-lg leading-relaxed text-pretty">
+			<p class="text-foreground mx-auto mt-4 max-w-xl text-lg leading-relaxed text-pretty">
 				{description}
 			</p>
 		{/if}

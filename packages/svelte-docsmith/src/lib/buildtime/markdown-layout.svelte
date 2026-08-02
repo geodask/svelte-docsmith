@@ -23,7 +23,9 @@
 	}: { title?: string; description?: string; children: Snippet } = $props();
 </script>
 
-<article class="prose prose-base dark:prose-invert max-w-none pb-16">
+<!-- max-w-prose (~65ch) keeps body measure in the DESIGN.md 65–75ch band on
+     ultrawide screens; code blocks and not-prose widgets still overflow locally. -->
+<article class="prose prose-base dark:prose-invert max-w-prose pb-16">
 	{#if title}
 		<h1>{title}</h1>
 	{/if}
