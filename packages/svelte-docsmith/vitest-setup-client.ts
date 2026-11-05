@@ -1,5 +1,16 @@
 import '@testing-library/jest-dom/vitest';
-import { vi } from 'vitest';
+import { cleanup } from '@testing-library/svelte';
+import { afterAll, vi } from 'vitest';
+
+// bits-ui's body scroll lock (used by modal menus and dialogs) resets
+// `document.body` styles on a 24ms timer after the last layer closes. In a
+// file's final test that timer can outlive the jsdom environment and throw
+// `document is not defined` as an unhandled error. Unmount everything and let
+// the timer fire while the DOM still exists.
+afterAll(async () => {
+	cleanup();
+	await new Promise((resolve) => setTimeout(resolve, 50));
+});
 
 // required for svelte5 + jsdom as jsdom does not support matchMedia
 Object.defineProperty(window, 'matchMedia', {
