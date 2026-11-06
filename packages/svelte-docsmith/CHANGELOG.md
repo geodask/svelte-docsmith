@@ -1,5 +1,15 @@
 # svelte-docsmith
 
+## 0.14.0
+
+### Minor Changes
+
+- 22b2241: Support SvelteKit 3. `svelte-docsmith` now accepts `@sveltejs/kit` `^2.16.0 || ^3.0.0` as its peer, so existing SvelteKit 2 sites keep working unchanged. New projects from `create-svelte-docsmith` start on SvelteKit 3: configuration lives in `vite.config.ts` (`sveltekit({ extensions, preprocess, adapter })`) and your own files are imported from `#lib`. The archive notice now also lists `#lib` imports.
+
+### Patch Changes
+
+- a515fce: Upgrade dependencies, including Shiki 4, js-yaml 5 and tailwind-variants 4. Mermaid 12 is now accepted as the optional peer. An unquoted `lastUpdated: 2024-01-02` in frontmatter is now honoured instead of being ignored, and the copy-page menu no longer imports `$app/environment`, which SvelteKit 3 renames.
+
 ## 0.13.1
 
 ### Patch Changes
