@@ -1,5 +1,12 @@
 # svelte-docsmith
 
+## 0.15.0
+
+### Minor Changes
+
+- e5a0966: Validate page frontmatter, with an optional `schema`, and expose custom fields as `data` on content entries.
+- 59efde9: Generate props tables from component types with `<PropsTable of={…}>` and a `?props` import (experimental).
+
 ## 0.14.0
 
 ### Minor Changes
