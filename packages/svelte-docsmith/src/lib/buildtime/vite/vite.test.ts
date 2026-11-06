@@ -606,6 +606,22 @@ describe('agent markdown', () => {
 		expect(ctx.addWatchFile).toHaveBeenCalledWith(example);
 	});
 
+	it('watches an example file it could not read, so creating it rebuilds the index', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		// Resolves, but reading a directory fails.
+		const unreadable = path.join(routesDir, 'docs', 'examples', 'counter.svelte');
+		fs.mkdirSync(unreadable, { recursive: true });
+		writePage(
+			'docs/examples',
+			'title: Examples',
+			"<script>\n\timport counterSource from './counter.svelte?source';\n</script>\n\n<LiveExample source={counterSource} />"
+		);
+
+		const { ctx } = await agentMarkdown();
+
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(unreadable);
+	});
+
 	it('leaves the search index as it was', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writeFile('docs/examples/counter.svelte', COUNTER);
@@ -804,6 +820,22 @@ describe('agent markdown props tables', { timeout: 60_000 }, () => {
 		expect(ctx.warn).toHaveBeenCalledWith(
 			expect.stringMatching(/docs\/gone\/\+page\.md: .*`#lib\/gone\.svelte\?props`/)
 		);
+	});
+
+	it('watches a component it could not read, so fixing it rebuilds the index', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		// Resolves, but reading a directory fails.
+		const unreadable = path.join(routesDir, 'lib', 'broken.svelte');
+		fs.mkdirSync(unreadable, { recursive: true });
+		writePage(
+			'docs/broken',
+			'title: Broken',
+			propsPage({ brokenProps: unreadable }, '<PropsTable of={brokenProps} />')
+		);
+
+		const { ctx } = await agentMarkdown();
+
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(unreadable);
 	});
 
 	it('watches each component and the files its types come from, so editing one rebuilds the index', async () => {

@@ -113,8 +113,10 @@ export async function agentMarkdownFor(
 	const sources = new Map<string, string | undefined>();
 	const tables = new Map<string, ExtractedProps | undefined>();
 	for (const [local, entry] of imports) {
+		// Watched even when it can't be read, so creating or fixing it rebuilds.
+		if (entry.file !== undefined) host.watch(entry.file);
 		if (entry.kind === 'source') {
-			sources.set(local, entry.file === undefined ? undefined : readExample(entry.file, host));
+			sources.set(local, entry.file === undefined ? undefined : readExample(entry.file));
 		} else {
 			tables.set(local, entry.file === undefined ? undefined : await host.props(entry.file));
 		}
@@ -260,12 +262,10 @@ function inline(markdown: string): string {
 		.join('<br><br>');
 }
 
-/** An example file's raw source, as the `?source` transform reads it, and watch it. */
-function readExample(file: string, host: AgentMarkdownHost): string | undefined {
+/** An example file's raw source, as the `?source` transform reads it. */
+function readExample(file: string): string | undefined {
 	try {
-		const code = fs.readFileSync(file, 'utf-8').trimEnd();
-		host.watch(file);
-		return code;
+		return fs.readFileSync(file, 'utf-8').trimEnd();
 	} catch {
 		return undefined;
 	}
