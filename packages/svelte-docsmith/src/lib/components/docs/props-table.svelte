@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import type { ExtractedProps } from '../../core/extracted-props.js';
+	import { propsCaption, type ExtractedProps } from '../../core/extracted-props.js';
 	import Prop from './prop.svelte';
 
 	const {
@@ -19,9 +19,7 @@
 		children?: Snippet;
 	} = $props();
 
-	const caption = $derived(
-		title ?? (of && of.name + (of.typeParameters.length ? `<${of.typeParameters.join(', ')}>` : ''))
-	);
+	const caption = $derived(title ?? (of && propsCaption(of)));
 </script>
 
 <!--

@@ -1,22 +1,32 @@
 <script lang="ts">
 	import { BROWSER } from 'esm-env';
 	import { Button } from '#lib/components/shadcn/button/index.js';
+	import * as Dialog from '#lib/components/shadcn/dialog/index.js';
 	import * as DropdownMenu from '#lib/components/shadcn/dropdown-menu/index.js';
+	import CopyButton from '../chrome/copy-button.svelte';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Copy from '@lucide/svelte/icons/copy';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import Plug from '@lucide/svelte/icons/plug';
 	import { join } from '#lib/utils/url.js';
+	import { editorSetups, mcpUrl } from '#lib/mcp/connect.js';
 
 	const {
 		path,
-		origin = ''
+		origin = '',
+		title = '',
+		mcp
 	}: {
 		/** The current page's normalized pathname, e.g. `/docs/intro`. */
 		path: string;
 		/** Absolute site origin for the AI deep links; falls back to `location.origin`. */
 		origin?: string;
+		/** Site title, which names the MCP server in the editor setup. */
+		title?: string;
+		/** Path (or absolute URL) of the site's MCP server; adds "Connect to your editor". */
+		mcp?: string;
 	} = $props();
 
 	// Convention: each page's markdown lives at `<path>.md`, served by the
@@ -24,28 +34,59 @@
 	const mdHref = $derived(`${path}.md`);
 	// Before hydration with no configured origin there is nothing to prefix, and
 	// `join` leaves the link site-relative rather than mangling it.
-	const absoluteMd = $derived(join(origin || (BROWSER ? location.origin : ''), mdHref));
+	const siteOrigin = $derived(origin || (BROWSER ? location.origin : ''));
+	const absoluteMd = $derived(join(siteOrigin, mdHref));
 	const prompt = $derived(`Read ${absoluteMd} so I can ask questions about this page.`);
 	const chatgptHref = $derived(`https://chatgpt.com/?hints=search&q=${encodeURIComponent(prompt)}`);
 	const claudeHref = $derived(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`);
 
-	let copied = $state(false);
-	let timer: ReturnType<typeof setTimeout>;
+	const serverUrl = $derived(mcp ? mcpUrl(mcp, siteOrigin) : '');
+	const setups = $derived(serverUrl ? editorSetups(title, serverUrl) : []);
+	let connectOpen = $state(false);
 
-	async function copyPage() {
-		try {
-			const res = await fetch(mdHref);
-			if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-			const text = await res.text();
-			// `navigator.clipboard` is undefined on insecure origins and can reject
-			// without permission; fail quietly so the button never throws.
-			await navigator.clipboard.writeText(text);
-			copied = true;
-			clearTimeout(timer);
-			timer = setTimeout(() => (copied = false), 1500);
-		} catch (error) {
-			console.warn('[svelte-docsmith] copy page failed', error);
-		}
+	/**
+	 * A clipboard copy with its own "copied" timer: writes what `read` returns,
+	 * then calls `show(true)`, and `show(false)` 1.5s after the latest copy.
+	 * `navigator.clipboard` is undefined on insecure origins and can reject
+	 * without permission; fail quietly so a copy button never throws.
+	 */
+	function clipboardCopy(failure: string) {
+		let timer: ReturnType<typeof setTimeout>;
+		return async (read: () => string | Promise<string>, show: (shown: boolean) => void) => {
+			try {
+				await navigator.clipboard.writeText(await read());
+				show(true);
+				clearTimeout(timer);
+				timer = setTimeout(() => show(false), 1500);
+			} catch (error) {
+				console.warn(`[svelte-docsmith] ${failure}`, error);
+			}
+		};
+	}
+
+	let copied = $state(false);
+	const copyPageText = clipboardCopy('copy page failed');
+
+	function copyPage() {
+		return copyPageText(
+			async () => {
+				const res = await fetch(mdHref);
+				if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+				return res.text();
+			},
+			(shown) => (copied = shown)
+		);
+	}
+
+	// Which snippet in the connect dialog was just copied, to flip its icon.
+	let copiedSnippet = $state<string | null>(null);
+	const copySnippetText = clipboardCopy('copy to clipboard failed');
+
+	function copySnippet(key: string, text: string) {
+		return copySnippetText(
+			() => text,
+			(shown) => (copiedSnippet = shown ? key : null)
+		);
 	}
 </script>
 
@@ -110,6 +151,58 @@
 					</a>
 				{/snippet}
 			</DropdownMenu.Item>
+			{#if serverUrl}
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item onSelect={() => (connectOpen = true)}>
+					<Plug />
+					Connect to your editor
+				</DropdownMenu.Item>
+			{/if}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 </div>
+
+{#if serverUrl}
+	<Dialog.Root bind:open={connectOpen}>
+		<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+			<Dialog.Header>
+				<Dialog.Title>Connect to your editor</Dialog.Title>
+				<Dialog.Description>
+					Add this MCP server to your editor so its agent can search and read these docs.
+				</Dialog.Description>
+			</Dialog.Header>
+			<div class="grid gap-4">
+				<div class="grid gap-1.5">
+					<span class="font-medium">Server URL</span>
+					<div class="bg-muted flex items-center gap-2 rounded-md pl-3">
+						<code class="min-w-0 flex-1 truncate font-mono text-xs">{serverUrl}</code>
+						<CopyButton
+							label="Copy server URL"
+							copied={copiedSnippet === 'url'}
+							onclick={() => copySnippet('url', serverUrl)}
+						/>
+					</div>
+				</div>
+				{#each setups as { editor, file, code } (editor)}
+					<div class="grid gap-1.5">
+						<div class="flex items-baseline gap-2">
+							<span class="font-medium">{editor}</span>
+							{#if file}
+								<span class="text-muted-foreground font-mono text-xs">{file}</span>
+							{/if}
+						</div>
+						<div class="bg-muted relative rounded-md">
+							<pre class="overflow-x-auto p-3 pr-11 font-mono text-xs">{code}</pre>
+							<CopyButton
+								label="Copy {editor} setup"
+								copied={copiedSnippet === editor}
+								onclick={() => copySnippet(editor, code)}
+								class="absolute top-1 right-1"
+							/>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</Dialog.Content>
+	</Dialog.Root>
+{/if}

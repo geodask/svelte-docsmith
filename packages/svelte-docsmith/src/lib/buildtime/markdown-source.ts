@@ -34,6 +34,9 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 /** An opening or closing code fence, indented anywhere on its line. */
 const FENCE = /^\s*(`{3,}|~{3,})/;
 
+/** The open tag of a `<script>` or `<style>` block, starting a line as HTML may. */
+const SETUP_BLOCK_OPEN = /^ {0,3}<(script|style)(?=[\s>]|$)/i;
+
 /** Split a page into its frontmatter and its body. */
 export function splitFrontmatter(source: string): MarkdownSource {
 	const match = FRONTMATTER.exec(source);
@@ -65,11 +68,20 @@ export function withFrontmatter(
  *
  * Returns a predicate that consumes the page's lines in order and answers
  * whether each one is prose. Fence markers themselves are not.
+ *
+ * With `setupBlocks`, a `<script>` or `<style>` block starting a prose line is
+ * prose through its closing tag, as CommonMark reads such an HTML block, so a
+ * fence-like line in its code (a ``` in a template literal) opens nothing.
  */
-function fenceScanner(): (line: string) => boolean {
+function fenceScanner({ setupBlocks = false } = {}): (line: string) => boolean {
 	let open: string | undefined;
+	let setupClose: RegExp | undefined;
 
 	return (line) => {
+		if (setupClose) {
+			if (setupClose.test(line)) setupClose = undefined;
+			return true;
+		}
 		const match = FENCE.exec(line);
 		if (open) {
 			const closes =
@@ -84,6 +96,11 @@ function fenceScanner(): (line: string) => boolean {
 			open = match[1];
 			return false;
 		}
+		const setup = setupBlocks ? SETUP_BLOCK_OPEN.exec(line) : null;
+		if (setup) {
+			const close = new RegExp(`</${setup[1]}>`, 'i');
+			if (!close.test(line.slice(setup[0].length))) setupClose = close;
+		}
 		return true;
 	};
 }
@@ -95,6 +112,38 @@ export function outsideCodeFences(text: string, transform: (line: string) => str
 		.split('\n')
 		.map((line) => (isProse(line) ? transform(line) : line))
 		.join('\n');
+}
+
+/**
+ * Apply `transform` to each run of consecutive prose lines, leaving fenced code
+ * and its markers untouched. For rewrites that span lines, such as a component
+ * tag with children, which {@link outsideCodeFences} would see a line at a time.
+ *
+ * With `setupBlocks`, each top-level `<script>`/`<style>` block stays whole
+ * inside one run, even when its code has a fence-like line.
+ */
+export function outsideCodeFenceRuns(
+	text: string,
+	transform: (prose: string) => string,
+	options: { setupBlocks?: boolean } = {}
+): string {
+	const isProse = fenceScanner(options);
+	const out: string[] = [];
+	let run: string[] = [];
+	const flush = () => {
+		if (run.length) out.push(transform(run.join('\n')));
+		run = [];
+	};
+	for (const line of text.split('\n')) {
+		if (isProse(line)) {
+			run.push(line);
+		} else {
+			flush();
+			out.push(line);
+		}
+	}
+	flush();
+	return out.join('\n');
 }
 
 /** A page's prose lines, in order, with fenced code and its markers dropped. */

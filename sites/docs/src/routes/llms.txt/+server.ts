@@ -7,7 +7,12 @@ export const prerender = true;
 
 export function GET() {
 	const body = generateLlmsTxt(
-		{ title: siteConfig.title, description: siteConfig.description, origin: siteConfig.url },
+		{
+			title: siteConfig.title,
+			description: siteConfig.description,
+			origin: siteConfig.url,
+			mcp: siteConfig.mcp
+		},
 		currentOnly(docs, versions)
 	);
 	return new Response(body, {

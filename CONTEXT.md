@@ -57,3 +57,19 @@ _Avoid_: extra, extension field, author's own frontmatter, metadata
 The optional Standard Schema passed to `docsmith({ schema })`. It checks custom
 fields only, and never changes them.
 _Avoid_: docs schema, content schema, collection schema
+
+### Agent access
+
+**Agent markdown**:
+A doc page's markdown as coding agents receive it: the page's prose with its
+generated props tables written out as markdown tables and its live examples'
+source written out as code blocks. The same text everywhere an agent reads a
+page.
+_Avoid_: LLM content, raw markdown, page markdown (that is the `+page.md` the
+author writes)
+
+**MCP server**:
+An endpoint the author adds to their docs site that lets a reader's coding agent
+list, search and read the docs' pages as agent markdown. Optional, and only
+possible where the site has a server runtime.
+_Avoid_: MCP endpoint, MCP route, docs API

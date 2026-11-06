@@ -53,6 +53,10 @@ page:
 The caption is the component's name (`Select<T>` for a generic component); pass
 `title` to change it.
 
+Coding agents read the same table. In a page's agent markdown, which feeds
+[`llms-full.txt` and the `.md` pages](/docs/seo#llmstxt), a generated props table
+is written out as a markdown table with the same rows.
+
 <Callout variant="note" title="Setup">
 	Generated tables need TypeScript: <code>npm i -D typescript svelte2tsx</code>. Then add
 	<code>/// &lt;reference types="svelte-docsmith/client" /&gt;</code> to

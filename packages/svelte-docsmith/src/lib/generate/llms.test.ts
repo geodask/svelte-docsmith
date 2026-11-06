@@ -75,6 +75,46 @@ describe('generateLlmsTxt', () => {
 		expect(txt).not.toContain('https://x.dev//docs');
 		expect(txt).not.toContain('>');
 	});
+
+	it('points agents at the MCP server under the description when mcp is set', () => {
+		const txt = generateLlmsTxt(
+			{ title: 'My Docs', description: 'Great docs', origin: 'https://x.dev/', mcp: '/mcp' },
+			docs
+		);
+		expect(txt.startsWith('# My Docs\n\n> Great docs\n\nMCP server: https://x.dev/mcp\n')).toBe(
+			true
+		);
+	});
+
+	it('keeps an absolute mcp URL as given', () => {
+		const txt = generateLlmsTxt(
+			{ title: 'My Docs', origin: 'https://x.dev', mcp: 'https://mcp.x.dev/docs' },
+			docs
+		);
+		expect(txt.startsWith('# My Docs\n\nMCP server: https://mcp.x.dev/docs\n')).toBe(true);
+	});
+
+	it('is unchanged when mcp is not set', () => {
+		const site = { title: 'My Docs', description: 'Great docs', origin: 'https://x.dev' };
+		expect(generateLlmsTxt(site, docs)).toBe(
+			[
+				'# My Docs',
+				'',
+				'> Great docs',
+				'',
+				'## Getting Started',
+				'',
+				'- [Introduction](https://x.dev/docs/intro): What this is',
+				'- [Installation](https://x.dev/docs/install)',
+				'',
+				'## Guides',
+				'',
+				'- [Configuration](https://x.dev/docs/config): All the knobs',
+				''
+			].join('\n')
+		);
+		expect(generateLlmsTxt(site, docs)).not.toContain('MCP');
+	});
 });
 
 describe('generateLlmsFullTxt', () => {
