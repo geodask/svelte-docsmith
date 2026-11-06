@@ -266,7 +266,8 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 				const resolved = resolveVersions(versions, docsBase, docs);
 				return (
 					`export const docs = ${JSON.stringify(docs, null, 2)};\n` +
-					`export const versions = ${JSON.stringify(resolved, null, 2)};\n`
+					`export const versions = ${JSON.stringify(resolved, null, 2)};\n` +
+					`export const content = { docs, versions };\n`
 				);
 			}
 			if (id === VIRTUAL_SEARCH_ID) {
@@ -287,10 +288,13 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
 			if (id === VIRTUAL_CHANGELOG_ID) {
-				if (!changelogFile) return `export const releases = [];\n`;
+				// The route goes out with the releases so the feed links to the page
+				// the plugin dated them against, not to a second default.
+				const route = `export const changelogPath = ${JSON.stringify(changelogRoute)};\n`;
+				if (!changelogFile) return `export const releases = [];\n` + route;
 				this.addWatchFile(changelogFile);
 				const releases = collectReleases(changelogFile, changelogOverrides, changelogRoute);
-				return `export const releases = ${JSON.stringify(releases)};\n`;
+				return `export const releases = ${JSON.stringify(releases)};\n` + route;
 			}
 		},
 

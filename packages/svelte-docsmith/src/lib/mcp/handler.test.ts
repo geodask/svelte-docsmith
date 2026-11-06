@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mcpHandler } from '#lib/index.js';
+import { mcpHandler } from './handler.js';
 import type { LlmsDoc, SearchDoc } from '#lib/core/content.js';
 import type { ResolvedVersion } from '#lib/core/version.js';
 import { createSearchEngine } from '#lib/search/create-search.js';

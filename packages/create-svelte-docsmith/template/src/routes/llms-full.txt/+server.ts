@@ -1,14 +1,5 @@
-import { docs } from 'svelte-docsmith/llms';
-import { versions } from 'svelte-docsmith/content';
-import { generateLlmsFullTxt, currentOnly } from 'svelte-docsmith';
+import { llmsFullTxt } from 'svelte-docsmith/server';
 import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-
-export function GET() {
-	const body = generateLlmsFullTxt(
-		{ title: siteConfig.title, description: siteConfig.description, origin: siteConfig.url },
-		currentOnly(docs, versions)
-	);
-	return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8' } });
-}
+export const GET = llmsFullTxt(siteConfig);

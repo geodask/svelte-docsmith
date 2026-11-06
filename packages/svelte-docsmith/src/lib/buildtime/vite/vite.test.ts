@@ -178,6 +178,16 @@ describe('docsmith() content plugin', () => {
 		expect(out).toContain('export const docs =');
 		expect(out).toContain('"title": "Intro"');
 		expect(out).toContain('"path": "/docs/intro"');
+		// The pages and the version manifest also go out together, for the shell.
+		expect(out).toContain('export const content = { docs, versions };');
+	});
+
+	it('serves the changelog route with the releases, so the feed links where they were dated', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+
+		const out = await loadVirtual('\0svelte-docsmith:changelog', { changelogPath: '/releases' });
+
+		expect(out).toContain('export const changelogPath = "/releases";');
 	});
 
 	it('loads the search virtual module as an exported docs array', async () => {

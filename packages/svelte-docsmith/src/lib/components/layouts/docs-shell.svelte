@@ -3,6 +3,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import {
 		resolveDocsPage,
+		type DocsContent,
 		type DocsContentItem,
 		type DocsmithConfig,
 		type SearchDoc,
@@ -46,13 +47,19 @@
 		layout = 'docs'
 	}: {
 		config: DocsmithConfig;
-		content?: DocsContentItem[];
 		/**
-		 * The resolved version manifest from `svelte-docsmith/content` (its
-		 * `versions` export). Provide it to enable versioned docs — the sidebar,
-		 * search, prev/next, and breadcrumbs scope to the version being read, and
-		 * once an archived version exists a header switcher and an archived-version
-		 * banner appear. Omit for a single tree.
+		 * The `content` export of `svelte-docsmith/content`: every page and the
+		 * version manifest together. On a versioned site the sidebar, search,
+		 * prev/next and breadcrumbs scope to the version being read, and once an
+		 * archived version exists a header switcher and an archived-version banner
+		 * appear.
+		 *
+		 * Still accepts the bare `docs` array, with `versions` passed beside it.
+		 */
+		content?: DocsContent | DocsContentItem[];
+		/**
+		 * @deprecated Pass the `content` export, which carries the versions with
+		 * the pages. Only read when `content` is a bare `docs` array.
 		 */
 		versions?: ResolvedVersion[];
 		children: Snippet;
@@ -119,8 +126,8 @@
 	// "min read" copy, and the live TOC.
 	const view = $derived(
 		resolveDocsPage({
-			content,
-			versions,
+			content: Array.isArray(content) ? content : content.docs,
+			versions: Array.isArray(content) ? versions : content.versions,
 			pathname: page.url.pathname,
 			editUrl: config.editUrl,
 			siteTitle: config.title

@@ -9,12 +9,17 @@ export {
 	type DocsmithFooterColumn,
 	type DocsmithAnnouncement
 } from './config.js';
-export type { DocsContentItem, DocsCustomFields, SearchDoc, LlmsDoc } from './content.js';
+export type {
+	DocsContent,
+	DocsContentItem,
+	DocsCustomFields,
+	SearchDoc,
+	LlmsDoc
+} from './content.js';
 export {
 	resolveVersions,
 	activeVersion,
 	currentVersion,
-	currentOnly,
 	scopeContent,
 	mapPathToVersion,
 	type DocsVersion,

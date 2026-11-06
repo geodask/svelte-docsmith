@@ -13,23 +13,8 @@ export type SitemapEntry = {
 };
 
 /**
- * Build a sitemap.xml body from a list of pages. Framework-agnostic: wire it
- * into a SvelteKit `src/routes/sitemap.xml/+server.ts` that maps the generated
- * `svelte-docsmith/content` index (plus any non-doc routes) into entries.
- *
- * ```ts
- * import { docs } from 'svelte-docsmith/content';
- * import { generateSitemap } from 'svelte-docsmith';
- *
- * export const prerender = true;
- * export function GET() {
- *   const body = generateSitemap('https://my-docs.dev', [
- *     { path: '/' },
- *     ...docs.map((d) => ({ path: d.path, lastmod: d.lastUpdated }))
- *   ]);
- *   return new Response(body, { headers: { 'content-type': 'application/xml' } });
- * }
- * ```
+ * Build a sitemap.xml body from a list of pages. Served by `sitemap()` in
+ * `svelte-docsmith/server`, which decides the pages.
  */
 export function generateSitemap(origin: string, entries: SitemapEntry[]): string {
 	const urls = entries

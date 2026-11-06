@@ -11,8 +11,8 @@ order: 13
 
 <Callout variant="warning" title="Experimental">
 
-Versioning sits outside the 1.0 stability promise. `DocsVersions`,
-`currentOnly`, the archive marker, and `archive-version` may change in a minor
+Versioning sits outside the 1.0 stability promise. `DocsVersions`, the
+archive marker, and `archive-version` may change in a minor
 release until authors have used them for real. An archive freezes prose, code
 samples and URLs — not what a page imports. Live examples on an archived page
 keep resolving to whatever the app currently has installed.
@@ -122,13 +122,13 @@ part of your current docs and refuses to accept it as a version.
 
 ## Wire it into the shell
 
-The plugin emits a `versions` manifest next to your content. Pass both to
-`DocsShell`.
+The plugin puts a `versions` manifest next to your pages, in the `content`
+export of `svelte-docsmith/content`. Pass that to `DocsShell` as you already do.
 
 ```svelte
 <!-- src/routes/docs/+layout.svelte -->
 <script>
-	import { docs, versions } from 'svelte-docsmith/content';
+	import { content } from 'svelte-docsmith/content';
 	import { DocsShell } from 'svelte-docsmith';
 	import { siteConfig } from '#lib/site-config.ts';
 
@@ -137,8 +137,7 @@ The plugin emits a `versions` manifest next to your content. Pass both to
 
 <DocsShell
 	config={siteConfig}
-	content={docs}
-	{versions}
+	{content}
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 >
 	{@render children()}
@@ -149,8 +148,8 @@ That is the whole wiring. No redirect, no route changes. `DocsShell` reads the
 active version from the URL and scopes the sidebar, search, prev/next, and
 breadcrumbs to it.
 
-If you use [`ErrorPage`](/docs/configuration#errorpage), pass it `versions` too.
-A 404 under an archived prefix then keeps that version's search scope and its
+Pass the same `content` to [`ErrorPage`](/docs/configuration#errorpage) and to
+any other page that uses `DocsShell`. A 404 under an archived prefix then keeps that version's search scope and its
 `noindex`, instead of falling back to the current version.
 
 ## What readers get
@@ -167,23 +166,9 @@ link, since the archive is frozen.
 
 Archived docs should not compete with the current release in search results, but
 they are real content people still look for. So archives stay indexable with a
-self-canonical, while `sitemap.xml` and `llms.txt` list the current version
-only. Scope those endpoints with `currentOnly`:
-
-```ts
-// src/routes/sitemap.xml/+server.ts
-import { docs, versions } from 'svelte-docsmith/content';
-import { generateSitemap, currentOnly } from 'svelte-docsmith';
-import { siteConfig } from '#lib/site-config.ts';
-
-export function GET() {
-	const body = generateSitemap(siteConfig.url ?? '', [
-		{ path: '/' },
-		...currentOnly(docs, versions).map((d) => ({ path: d.path, lastmod: d.lastUpdated }))
-	]);
-	return new Response(body, { headers: { 'content-type': 'application/xml' } });
-}
-```
+self-canonical, while `sitemap.xml`, `llms.txt` and `llms-full.txt` list the
+current version only. The route handlers from `svelte-docsmith/server` (see
+[SEO](/docs/seo)) do this for you, with no change to your routes.
 
 To keep a version out of search engines entirely, set `noindex: true` on it.
 

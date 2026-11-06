@@ -20,12 +20,12 @@ live table of contents. No per-page wiring, no content collection to configure.
 >
 > **What 1.0 will lock.** Authoring components, `DocsShell`, `ErrorPage`,
 > `defineConfig`, the preprocessor, the Vite plugin, the sitemap / llms / feed
-> generators, the search engine, and the theming contract — ordinary semver,
+> route handlers, the search engine, and the theming contract — ordinary semver,
 > breaking changes ride a major.
 >
-> **What stays experimental.** Versioning: `DocsVersions`, `currentOnly`, the
-> archive marker, and the `archive-version` command. Generated props tables:
-> `?props` imports and `PropsTable`'s `of`. The MCP server: `mcpHandler` and the
+> **What stays experimental.** Versioning: `DocsVersions`, the archive marker,
+> and the `archive-version` command. Generated props tables: `?props` imports
+> and `PropsTable`'s `of`. The MCP server: `mcpServer` and the
 > `mcp` config field. Agent markdown: the props tables and example code written
 > into `llms-full.txt` and `.md` pages. They may still change in a minor until
 > authors have used them for real.
@@ -116,7 +116,7 @@ configure:
 ```svelte
 <script lang="ts">
 	import { DocsShell, defineConfig } from 'svelte-docsmith';
-	import { docs } from 'svelte-docsmith/content';
+	import { content } from 'svelte-docsmith/content';
 
 	const config = defineConfig({
 		title: 'My Library',
@@ -125,7 +125,7 @@ configure:
 	const { children } = $props();
 </script>
 
-<DocsShell {config} content={docs}>
+<DocsShell {config} {content}>
 	{@render children()}
 </DocsShell>
 ```
@@ -212,19 +212,19 @@ outside the 1.0 promise for now.
 - **Error pages.** `ErrorPage` gives a styled 404 that keeps the site chrome;
   drop it into a SvelteKit `+error.svelte`.
 - **Versioned docs.** Declare `versions` on the Vite plugin, freeze a release
-  with `npx svelte-docsmith archive-version <id>`, and pass the generated
-  manifest to `DocsShell`. Scope sitemap / llms endpoints to the current
-  version with `currentOnly`.
+  with `npx svelte-docsmith archive-version <id>`, and `DocsShell` picks the
+  manifest up from the `content` it already takes. The sitemap and llms route
+  handlers keep to the current version.
 - **Changelog.** Point the plugin at your `CHANGELOG.md`; import the parsed
   releases from `svelte-docsmith/changelog`, render them with `Changelog`, and
-  wire `generateFeed` into an Atom endpoint.
+  serve an Atom feed with `changelogFeed()`.
 - **Mermaid.** A mermaid code fence is rendered client-side (optional `mermaid`
   peer dependency, loaded only on pages that need it).
 - **Landing sections.** `Hero`, `FeatureGrid`, `Feature`, `CTA`, and `Action`
   for the marketing page in front of your docs.
-- **Generators.** Framework-agnostic helpers for `sitemap.xml`, `llms.txt` /
-  `llms-full.txt`, and the changelog Atom feed — drop them into `+server.ts`
-  routes over the generated indexes.
+- **Route handlers.** `svelte-docsmith/server` serves `sitemap.xml`, `llms.txt`
+  / `llms-full.txt`, the `.md` page twins, the changelog Atom feed and the MCP
+  server, each one line in a `+server.ts` over your site config.
 - **Components.** `Callout`, `Tabs`, `Steps`, `Card`, `Accordion`, `Badge`,
   `Kbd`, `FileTree`, `PropsTable`, and more, authored right inside markdown.
 - Heading anchors, a scroll-spy table of contents, and one-click copy on every
@@ -246,19 +246,20 @@ override the tokens yourself.
 
 ## What's exported
 
-| Entry point                    | What it is                                                                                                                                                                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `svelte-docsmith`              | Components (`DocsShell`, `Changelog`, landing sections, `LiveExample`, `Callout`, …), `defineConfig`, `createSearchEngine`, `generateSitemap` / `generateLlmsTxt` / `generateLlmsFullTxt` / `generateFeed`, `mcpHandler`, `currentOnly`, and the types |
-| `svelte-docsmith/preprocess`   | `docsmith()`, the mdsvex/Shiki pipeline (Node, config time)                                                                                                                                                                                            |
-| `svelte-docsmith/vite`         | `docsmith()`, the content / search / llms / changelog indexes and `?source` / `?props` transforms (Node, build)                                                                                                                                        |
-| `svelte-docsmith/content`      | `docs` and `versions`, the generated sidebar content index and version manifest                                                                                                                                                                        |
-| `svelte-docsmith/search`       | `docs`, the generated full-text search index (lazy-load it)                                                                                                                                                                                            |
-| `svelte-docsmith/llms`         | `docs`, the generated agent markdown index (for `llms.txt` / `llms-full.txt` routes)                                                                                                                                                                   |
-| `svelte-docsmith/changelog`    | `releases`, the generated changelog index (parsed from `CHANGELOG.md`)                                                                                                                                                                                 |
-| `svelte-docsmith/mermaid`      | the Mermaid diagram component (lazy-loaded by the preprocessor when a mermaid fence is present)                                                                                                                                                        |
-| `svelte-docsmith/client`       | ambient types for `?source` and `?props` imports (reference it from `src/app.d.ts`)                                                                                                                                                                    |
-| `svelte-docsmith/theme.css`    | the base style contract                                                                                                                                                                                                                                |
-| `svelte-docsmith/themes/*.css` | the eleven theme presets                                                                                                                                                                                                                               |
+| Entry point                    | What it is                                                                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `svelte-docsmith`              | Components (`DocsShell`, `Changelog`, landing sections, `LiveExample`, `Callout`, …), `defineConfig`, `createSearchEngine`, and the types |
+| `svelte-docsmith/server`       | route handlers: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown`, `mcpServer` (server-only)                          |
+| `svelte-docsmith/preprocess`   | `docsmith()`, the mdsvex/Shiki pipeline (Node, config time)                                                                               |
+| `svelte-docsmith/vite`         | `docsmith()`, the content / search / llms / changelog indexes and `?source` / `?props` transforms (Node, build)                           |
+| `svelte-docsmith/content`      | `content` (`{ docs, versions }`) for `DocsShell`, the generated sidebar content index and version manifest                                |
+| `svelte-docsmith/search`       | `docs`, the generated full-text search index (lazy-load it)                                                                               |
+| `svelte-docsmith/llms`         | `docs`, the generated agent markdown index (read by the route handlers)                                                                   |
+| `svelte-docsmith/changelog`    | `releases`, the generated changelog index (parsed from `CHANGELOG.md`), and `changelogPath`                                               |
+| `svelte-docsmith/mermaid`      | the Mermaid diagram component (lazy-loaded by the preprocessor when a mermaid fence is present)                                           |
+| `svelte-docsmith/client`       | ambient types for `?source` and `?props` imports (reference it from `src/app.d.ts`)                                                       |
+| `svelte-docsmith/theme.css`    | the base style contract                                                                                                                   |
+| `svelte-docsmith/themes/*.css` | the eleven theme presets                                                                                                                  |
 
 The package also ships a CLI binary: `npx svelte-docsmith archive-version <id>`
 freezes the current docs into a versioned archive.

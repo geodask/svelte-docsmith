@@ -61,8 +61,9 @@ export type DocsmithConfig = {
 	/**
 	 * Path of the site's MCP server, e.g. `/mcp` (or an absolute URL). When set,
 	 * the copy-page menu offers "Connect to your editor" with the server's URL
-	 * and setup for Claude Code, Cursor and VS Code. The route itself is yours to
-	 * add, with `mcpHandler`.
+	 * and setup for Claude Code, Cursor and VS Code, and `llmsTxt()` lists it.
+	 * The route itself is yours to add, with `mcpServer()` from
+	 * `svelte-docsmith/server`.
 	 *
 	 * @experimental Outside the 1.0 stability promise. May change in a minor.
 	 */

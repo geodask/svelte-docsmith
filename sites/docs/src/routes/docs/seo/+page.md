@@ -74,24 +74,21 @@ frontmatter, so pass the `seo` prop to set or override the head:
 
 ## Sitemap
 
-`generateSitemap` builds a `sitemap.xml` from your content index. Add a
-`src/routes/sitemap.xml/+server.ts`:
+`sitemap()` from `svelte-docsmith/server` serves a `sitemap.xml` of every docs
+page. List the pages outside your docs, such as the landing page, in `extra`.
+Add a `src/routes/sitemap.xml/+server.ts`:
 
 ```ts title="src/routes/sitemap.xml/+server.ts"
-import { docs } from 'svelte-docsmith/content';
-import { generateSitemap } from 'svelte-docsmith';
+import { sitemap } from 'svelte-docsmith/server';
 import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-
-export function GET() {
-	const body = generateSitemap(siteConfig.url ?? '', [
-		{ path: '/' },
-		...docs.map((d) => ({ path: d.path, lastmod: d.lastUpdated }))
-	]);
-	return new Response(body, { headers: { 'content-type': 'application/xml' } });
-}
+export const GET = sitemap(siteConfig, { extra: [{ path: '/' }] });
 ```
+
+Links are absolute when your config sets `url`. On a
+[versioned](/docs/versioning) site only the current version's pages are listed,
+so archived releases don't compete with it in search results.
 
 Each entry gets a `<lastmod>` from the page's last git commit — or none, when
 the page has no date (no frontmatter `lastUpdated`, and git could not supply
@@ -114,50 +111,39 @@ Sitemap: https://your-docs.dev/sitemap.xml
 
 The [llms.txt](https://llmstxt.org) standard gives AI tools a clean, plain-text
 view of your docs. Svelte DocSmith generates the data at build time in the
-`svelte-docsmith/llms` module, and two helpers turn it into the two files the
-standard defines: `llms.txt` (a curated index of links) and `llms-full.txt`
-(the full text of every page).
+`svelte-docsmith/llms` module, and two route handlers from
+`svelte-docsmith/server` serve the two files the standard defines: `llms.txt`
+(a curated index of links) and `llms-full.txt` (the full text of every page).
 
 Add `src/routes/llms.txt/+server.ts`:
 
 ```ts title="src/routes/llms.txt/+server.ts"
-import { docs } from 'svelte-docsmith/llms';
-import { generateLlmsTxt } from 'svelte-docsmith';
+import { llmsTxt } from 'svelte-docsmith/server';
 import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-
-export function GET() {
-	const body = generateLlmsTxt(
-		{ title: siteConfig.title, description: siteConfig.description, origin: siteConfig.url },
-		docs
-	);
-	return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8' } });
-}
+export const GET = llmsTxt(siteConfig);
 ```
 
-And `src/routes/llms-full.txt/+server.ts`, identical but for `generateLlmsFullTxt`:
+And `src/routes/llms-full.txt/+server.ts`, identical but for `llmsFullTxt`:
 
 ```ts title="src/routes/llms-full.txt/+server.ts"
-import { docs } from 'svelte-docsmith/llms';
-import { generateLlmsFullTxt } from 'svelte-docsmith';
+import { llmsFullTxt } from 'svelte-docsmith/server';
 import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-
-export function GET() {
-	const body = generateLlmsFullTxt(
-		{ title: siteConfig.title, description: siteConfig.description, origin: siteConfig.url },
-		docs
-	);
-	return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8' } });
-}
+export const GET = llmsFullTxt(siteConfig);
 ```
+
+Both take the title, description and `url` from your config, and keep to the
+current version on a versioned site. When the config sets `mcp`, `llms.txt`
+also tells agents where your [MCP server](/docs/mcp-server) is.
 
 Both follow your sidebar reading order exactly: the same groups, sorted by
 `order` and then title. `llms.txt` can't nest, so a nested section gets its own
-heading, such as `Guides / Advanced`, right after its parent. Each page's title becomes an `h1`, and its `description` frontmatter
-annotates the link in the index.
+heading, such as `Guides / Advanced`, right after its parent. Each page's
+title becomes an `h1`, and its `description` frontmatter annotates the link in
+the index.
 
 Each page's text is its agent markdown: the page as a coding agent should read
 it. A generated props table is written out as a markdown table, under a heading
@@ -181,7 +167,7 @@ The same per-page markdown powers a "Copy page" button on every doc page. Turn
 it on with the `copyPage` prop on `DocsShell`:
 
 ```svelte
-<DocsShell {config} content={docs} copyPage>
+<DocsShell {config} {content} copyPage>
 	{@render children()}
 </DocsShell>
 ```
@@ -192,25 +178,15 @@ markdown, props tables and example code included. With an
 [MCP server](/docs/mcp-server) and `mcp` set in your config, the dropdown also
 offers "Connect to your editor". The button expects each page to be
 available at `<path>.md`, so add one catch-all endpoint,
-`src/routes/[...slug].md/+server.ts`:
+`src/routes/[...slug].md/+server.ts`. Export both: `entries` lists every page,
+archived versions included, so the twins prerender even when nothing links to
+them.
 
 ```ts title="src/routes/[...slug].md/+server.ts"
-import { docs } from 'svelte-docsmith/llms';
-import { error } from '@sveltejs/kit';
-import type { EntryGenerator, RequestHandler } from './$types';
+import { agentMarkdown } from 'svelte-docsmith/server';
 
 export const prerender = true;
-
-export const entries: EntryGenerator = () =>
-	docs.map((doc) => ({ slug: doc.path.replace(/^\//, '') }));
-
-export const GET: RequestHandler = ({ params }) => {
-	const doc = docs.find((d) => d.path === `/${params.slug}`);
-	if (!doc) error(404, 'Not found');
-	return new Response(doc.content, {
-		headers: { 'content-type': 'text/markdown; charset=utf-8' }
-	});
-};
+export const { GET, entries } = agentMarkdown();
 ```
 
 <Callout variant="tip">

@@ -11,7 +11,7 @@ order: 11
 
 <Callout variant="warning" title="Experimental">
 
-The MCP server sits outside the 1.0 stability promise. `mcpHandler`, its tools,
+The MCP server sits outside the 1.0 stability promise. `mcpServer`, its tools,
 and the `mcp` config field may change in a minor release until authors have
 used them for real.
 
@@ -29,25 +29,14 @@ with generated props tables written out as markdown tables and each
 
 ## Add the route
 
-Add `src/routes/mcp/+server.ts` and hand the generated indexes to `mcpHandler`:
+Add `src/routes/mcp/+server.ts` with `mcpServer` from `svelte-docsmith/server`:
 
 ```ts title="src/routes/mcp/+server.ts"
-import { docs } from 'svelte-docsmith/llms';
-import { docs as search } from 'svelte-docsmith/search';
-import { versions } from 'svelte-docsmith/content';
-import { mcpHandler } from 'svelte-docsmith';
+import { mcpServer } from 'svelte-docsmith/server';
 import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = false;
-
-export const POST = mcpHandler({
-	site: { title: siteConfig.title, description: siteConfig.description, origin: siteConfig.url },
-	docs,
-	search,
-	versions
-});
-
-export { POST as GET, POST as OPTIONS };
+export const { GET, POST, OPTIONS } = mcpServer(siteConfig);
 ```
 
 One handler answers all three methods. POST carries the agent's requests.
@@ -55,10 +44,10 @@ OPTIONS answers the CORS preflight, so browser-based agents can connect too. GET
 is for a person who opens the URL in a browser: they get a short plain-text note
 on adding the server to their editor.
 
-`title` and `description` tell the agent what the docs are about. `origin`
-makes the page links it gets back absolute. Pass the whole `docs` index, not
-`currentOnly(docs, versions)`: the server scopes to a version itself (see
-[Versions](#versions)).
+It reads the generated indexes itself. Your config's `title` and
+`description` tell the agent what the docs are about, and `url` makes the page
+links it gets back absolute. It sees every version and scopes to one itself
+(see [Versions](#versions)).
 
 The server needs no auth and adds no dependencies to your site.
 
@@ -91,20 +80,8 @@ Readers then find the server in two places:
   Cursor and VS Code. The menu needs `copyPage` on `DocsShell` (see
   [Copy page](/docs/seo#copy-page)).
 - **`llms.txt`** gains an `MCP server: <url>` line under the description, so an
-  agent that reads it learns it can connect. Pass the same field to
-  `generateLlmsTxt`:
-
-```ts title="src/routes/llms.txt/+server.ts"
-const body = generateLlmsTxt(
-	{
-		title: siteConfig.title,
-		description: siteConfig.description,
-		origin: siteConfig.url,
-		mcp: siteConfig.mcp
-	},
-	docs
-);
-```
+  agent that reads it learns it can connect. `llmsTxt()` reads it from the same
+  config (see [llms.txt](/docs/seo#llmstxt)).
 
 `mcp` takes a path on your site or a full URL. Leave it unset and neither the
 menu item nor the `llms.txt` line appears.
