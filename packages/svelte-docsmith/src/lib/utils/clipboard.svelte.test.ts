@@ -46,6 +46,13 @@ describe('useClipboard', () => {
 		expect(clip.copied).toBe(false);
 	});
 
+	it('copy(value) writes the given text instead of the stored one', () => {
+		const clip = useClipboard();
+		clip.readText({ innerText: 'stored' } as unknown as HTMLElement);
+		clip.copy('<Badge external />');
+		expect(writeText).toHaveBeenCalledWith('<Badge external />');
+	});
+
 	it('copy() is a no-op when there is no text', () => {
 		const clip = useClipboard();
 		clip.copy();

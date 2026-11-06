@@ -41,6 +41,30 @@ an element's native attributes, or every prop of another component's type. They
 are summarised by what they belong to, never listed as props.
 _Avoid_: rest props, passthrough props, HTML props, inherited props
 
+### Props playground
+
+**Props playground**:
+A live example with controls for the component's props, generated from the
+same props import as its props table. The reader changes a control and the
+example re-renders with the new value.
+_Avoid_: story, sandbox, knobs, live editor
+
+**Control**:
+The input a props playground shows for one prop, chosen from its type: a
+switch, a text or number field, or a choice of literal values. Props whose
+type allows none (snippets, callbacks, objects) have no control.
+_Avoid_: knob, arg control, field
+
+**Starting values**:
+The values a props playground begins with and resets to: the author's `args`,
+then each prop's literal default. A prop with neither starts unset.
+_Avoid_: initial args, defaults (those are the component's own)
+
+**Usage line**:
+The markup a props playground shows for its current values, listing only the
+props that differ from the component's defaults.
+_Avoid_: code preview, generated source
+
 ### Doc page frontmatter
 
 **Built-in field**:
