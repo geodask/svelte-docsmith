@@ -38,7 +38,7 @@ export default defineConfig({
 				'src/lib/buildtime/archive.ts',
 				'src/lib/buildtime/git.ts',
 				'src/lib/buildtime/preprocess.ts',
-				'src/lib/buildtime/highlight.ts',
+				'src/lib/buildtime/code-block.ts',
 				'src/lib/utils/clipboard.svelte.ts',
 				'src/lib/utils/url.ts',
 				'src/lib/search/create-search.ts',
