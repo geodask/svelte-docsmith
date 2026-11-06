@@ -440,3 +440,169 @@ describe('docsmith() content plugin', () => {
 		expect(server.ws.send).not.toHaveBeenCalled();
 	});
 });
+
+// --- agent markdown ------------------------------------------------------
+//
+// What an agent reads for a page: its llms index entry's `content`. Example
+// files are resolved through the plugin context, as Vite resolves the page's
+// own imports, so the fake `resolve` stands in for Vite's resolver (the app's
+// aliases included).
+
+const COUNTER =
+	'<script>\n\tlet count = $state(0);\n</script>\n\n<button onclick={() => count++}>{count}</button>\n';
+
+/** Write a file under the fixture routes root and return its absolute path. */
+function writeFile(rel: string, contents: string) {
+	const file = path.join(routesDir, rel);
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	fs.writeFileSync(file, contents);
+	return file;
+}
+
+/** A resolver like Vite's: relative to the importer, plus `#lib` and `$lib` aliases for `libDir`. */
+function fakeResolve(libDir: string) {
+	return vi.fn(async (specifier: string, importer?: string) => {
+		const alias = /^[#$]lib\//.exec(specifier);
+		const file = alias
+			? path.join(libDir, specifier.slice(alias[0].length))
+			: path.resolve(path.dirname(importer ?? ''), specifier);
+		return fs.existsSync(file) ? { id: file } : null;
+	});
+}
+
+/** Load the llms index with a full plugin context; each entry's content by path. */
+async function agentMarkdown() {
+	const plugin = pluginNamed('docsmith-content', {
+		content: path.join(routesDir, 'docs'),
+		routes: routesDir
+	});
+	const ctx = {
+		addWatchFile: vi.fn(),
+		warn: vi.fn(),
+		resolve: fakeResolve(path.join(routesDir, 'lib'))
+	};
+	const out = String(await (plugin.load as unknown as Load).call(ctx, '\0svelte-docsmith:llms'));
+	const docs = JSON.parse(out.replace(/^export const docs = /, '').replace(/;\n$/, '')) as {
+		path: string;
+		content: string;
+	}[];
+	return { content: Object.fromEntries(docs.map((d) => [d.path, d.content])), ctx };
+}
+
+describe('agent markdown', () => {
+	it('writes a LiveExample as a fenced svelte block of the example file', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writeFile('docs/examples/counter.svelte', COUNTER);
+		writePage(
+			'docs/examples',
+			'title: Examples',
+			"<script>\n\timport { LiveExample } from 'svelte-docsmith';\n\timport Counter from './counter.svelte';\n\timport counterSource from './counter.svelte?source';\n</script>\n\nClick it:\n\n<LiveExample source={counterSource}>\n\t<Counter />\n</LiveExample>\n\nAfter."
+		);
+
+		const { content } = await agentMarkdown();
+
+		expect(content['/docs/examples']).toBe(
+			'# Examples\n\nClick it:\n\n```svelte\n<script>\n\tlet count = $state(0);\n</script>\n\n<button onclick={() => count++}>{count}</button>\n```\n\nAfter.'
+		);
+	});
+
+	it("resolves source imports through the app's aliases, from the page", async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writeFile('lib/examples/hash.svelte', '<p>hash</p>\n');
+		writeFile('lib/dollar.svelte', '<p>dollar</p>\n');
+		const page = path.join(routesDir, 'docs', 'aliases', '+page.md');
+		writePage(
+			'docs/aliases',
+			'title: Aliases',
+			'<script>\n\timport hash from \'#lib/examples/hash.svelte?source\';\n\timport dollar from "$lib/dollar.svelte?source";\n</script>\n\n<LiveExample source={hash}><Hash /></LiveExample>\n\n<LiveExample source={dollar} />'
+		);
+
+		const { content, ctx } = await agentMarkdown();
+
+		expect(content['/docs/aliases']).toBe(
+			'# Aliases\n\n```svelte\n<p>hash</p>\n```\n\n```svelte\n<p>dollar</p>\n```'
+		);
+		expect(ctx.resolve).toHaveBeenCalledWith('#lib/examples/hash.svelte', page, { skipSelf: true });
+		expect(ctx.resolve).toHaveBeenCalledWith('$lib/dollar.svelte', page, { skipSelf: true });
+	});
+
+	it('keeps a LiveExample whose source import does not resolve, and warns', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const body =
+			"<script>\n\timport gone from '#lib/gone.svelte?source';\n</script>\n\n<LiveExample source={gone}>\n\t<Gone />\n</LiveExample>";
+		writePage('docs/broken', 'title: Broken', body);
+
+		const { content, ctx } = await agentMarkdown();
+
+		expect(content['/docs/broken']).toBe(
+			'# Broken\n\n<LiveExample source={gone}>\n\t<Gone />\n</LiveExample>'
+		);
+		expect(ctx.warn).toHaveBeenCalledTimes(1);
+		expect(ctx.warn).toHaveBeenCalledWith(
+			expect.stringMatching(/docs\/broken\/\+page\.md: .*`#lib\/gone\.svelte\?source`/)
+		);
+	});
+
+	it('leaves LiveExamples in code samples and without a source import as written', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writeFile('docs/samples/counter.svelte', COUNTER);
+		const body =
+			"<script>\n\timport counterSource from './counter.svelte?source';\n\tconst html = '<b>x</b>';\n</script>\n\n" +
+			'```svelte\n<LiveExample source={counterSource}>\n\t<Counter />\n</LiveExample>\n```\n\n' +
+			'<LiveExample source={html}>\n\t<b>x</b>\n</LiveExample>';
+		writePage('docs/samples', 'title: Samples', body);
+
+		const { content, ctx } = await agentMarkdown();
+
+		expect(content['/docs/samples']).toBe(
+			'# Samples\n\n```svelte\n<LiveExample source={counterSource}>\n\t<Counter />\n</LiveExample>\n```\n\n' +
+				'<LiveExample source={html}>\n\t<b>x</b>\n</LiveExample>'
+		);
+		expect(ctx.warn).not.toHaveBeenCalled();
+	});
+
+	it('fences example code that itself contains a fence', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writeFile('docs/nested/md.svelte', '<pre>```js\nx\n```</pre>\n');
+		writePage(
+			'docs/nested',
+			'title: Nested',
+			"<script>\n\timport md from './md.svelte?source';\n</script>\n\n- In a list:\n\n  <LiveExample source={md}>\n    <Md />\n  </LiveExample>"
+		);
+
+		const { content } = await agentMarkdown();
+
+		expect(content['/docs/nested']).toBe(
+			'# Nested\n\n- In a list:\n\n  ````svelte\n  <pre>```js\n  x\n  ```</pre>\n  ````'
+		);
+	});
+
+	it('watches each example file it read, so editing one rebuilds the index', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const example = writeFile('docs/examples/counter.svelte', COUNTER);
+		writePage(
+			'docs/examples',
+			'title: Examples',
+			"<script>\n\timport counterSource from './counter.svelte?source';\n</script>\n\n<LiveExample source={counterSource} />"
+		);
+
+		const { ctx } = await agentMarkdown();
+
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(example);
+	});
+
+	it('leaves the search index as it was', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writeFile('docs/examples/counter.svelte', COUNTER);
+		writePage(
+			'docs/examples',
+			'title: Examples',
+			"<script>\n\timport counterSource from './counter.svelte?source';\n</script>\n\nTry it.\n\n<LiveExample source={counterSource} />"
+		);
+
+		const search = await loadVirtual('\0svelte-docsmith:search');
+
+		expect(search).toContain('"text":"Try it."');
+		expect(search).not.toContain('count');
+	});
+});
