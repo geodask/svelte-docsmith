@@ -1,4 +1,5 @@
 import type { LlmsDoc } from '#lib/core/content.js';
+import { mcpUrl } from '#lib/mcp/connect.js';
 import { join } from '../utils/url.js';
 
 /** Site-level info for the LLM files: title, optional description, and origin. */
@@ -10,6 +11,13 @@ export type LlmsSite = {
 	 * Without it the links stay site-relative.
 	 */
 	origin?: string;
+	/**
+	 * The site's MCP server: its path, such as `/mcp`, or an absolute URL. When
+	 * set, llms.txt tells agents where to connect.
+	 *
+	 * @experimental Outside the 1.0 stability promise. May change in a minor.
+	 */
+	mcp?: string;
 };
 
 /**
@@ -56,6 +64,7 @@ export function generateLlmsTxt(site: LlmsSite, docs: LlmsDoc[]): string {
 	const origin = site.origin ?? '';
 	const out: string[] = [`# ${site.title}`];
 	if (site.description) out.push('', `> ${site.description}`);
+	if (site.mcp) out.push('', `MCP server: ${mcpUrl(site.mcp, origin)}`);
 
 	for (const [section, items] of bySection(docs)) {
 		out.push('', `## ${section}`, '');
