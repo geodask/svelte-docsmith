@@ -4,6 +4,7 @@
 	"description": "Monorepo for svelte-docsmith",
 	"main": "index.js",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"ci:version": "node scripts/sync-template-pin.mjs pre && changeset version && node scripts/sync-template-pin.mjs post",
 		"ci:publish": "turbo run build --filter=svelte-docsmith && changeset publish",
@@ -38,18 +39,18 @@
 		]
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.27.1",
-		"@eslint/compat": "^1.2.5",
-		"@eslint/js": "^9.18.0",
-		"@shikijs/twoslash": "3.23.0",
-		"eslint": "^9.18.0",
-		"eslint-config-prettier": "^10.0.1",
-		"eslint-plugin-svelte": "^3.0.0",
-		"globals": "^16.0.0",
-		"prettier": "^3.5.3",
-		"prettier-plugin-svelte": "^3.3.3",
-		"turbo": "^2.5.2",
+		"@changesets/cli": "^3.0.3",
+		"@eslint/compat": "^2.1.1",
+		"@eslint/js": "^10.0.1",
+		"@shikijs/twoslash": "4.6.0",
+		"eslint": "^10.14.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-svelte": "^3.24.0",
+		"globals": "^17.14.0",
+		"prettier": "^3.9.10",
+		"prettier-plugin-svelte": "^4.1.1",
+		"turbo": "^2.11.10",
 		"twoslash-svelte": "0.3.9",
-		"typescript-eslint": "^8.20.0"
+		"typescript-eslint": "^8.72.1"
 	}
 }

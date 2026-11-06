@@ -7,6 +7,7 @@
 	const search = useSearch();
 
 	// Resolve the modifier label client-side so SSR stays platform-neutral.
+	// eslint-disable-next-line svelte/prefer-writable-derived
 	let isMac = $state(false);
 	$effect(() => {
 		isMac = navigator.platform.toLowerCase().includes('mac');

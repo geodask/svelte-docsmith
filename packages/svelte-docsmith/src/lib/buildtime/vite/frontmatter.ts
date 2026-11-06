@@ -1,4 +1,4 @@
-import yaml from 'js-yaml';
+import { load as loadYaml } from 'js-yaml';
 import { splitFrontmatter } from '../markdown-source.js';
 
 /**
@@ -11,10 +11,12 @@ export function parseFrontmatter(source: string, file: string): Record<string, u
 	if (frontmatter === undefined) return {};
 	let data: unknown;
 	try {
-		data = yaml.load(frontmatter);
+		data = loadYaml(frontmatter);
 	} catch (err) {
 		const reason = err instanceof Error ? err.message : String(err);
-		throw new Error(`[svelte-docsmith] invalid YAML frontmatter in ${file}\n${reason}`);
+		throw new Error(`[svelte-docsmith] invalid YAML frontmatter in ${file}\n${reason}`, {
+			cause: err
+		});
 	}
 	return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 }
