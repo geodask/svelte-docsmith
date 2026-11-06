@@ -110,7 +110,7 @@ function fenced(code: string, lang: string, indent: string): string {
 
 /**
  * Build the agent markdown rewrite for one page: a function from the page's
- * llms content to its agent markdown. `undefined` when the page imports nothing
+ * markdown, setup blocks stripped, to its agent markdown. `undefined` when the page imports nothing
  * agent markdown expands, so most pages cost one scan of their script.
  */
 export async function agentMarkdownFor(
