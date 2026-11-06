@@ -1,5 +1,11 @@
 # svelte-docsmith
 
+## 0.16.0
+
+### Minor Changes
+
+- 93ffdd0: Serve your docs to coding agents with `mcpHandler()`, and write generated props tables and example code into agent markdown (experimental).
+
 ## 0.15.0
 
 ### Minor Changes
