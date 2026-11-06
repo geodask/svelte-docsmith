@@ -12,8 +12,8 @@ export interface ExtractedProps {
 	typeParameters: string[];
 	/** Declared props, in declaration order. */
 	props: ExtractedProp[];
-	/** Attributes or props the component also accepts by spreading the rest. */
-	inherited: InheritedProps[];
+	/** What the component also accepts by spreading its remaining props. */
+	inherited: InheritedAttributes[];
 }
 
 export interface ExtractedProp {
@@ -31,7 +31,7 @@ export interface ExtractedProp {
 	description?: string;
 }
 
-export interface InheritedProps {
+export interface InheritedAttributes {
 	/**
 	 * `element`: native attributes of an HTML element (`label` is the tag name).
 	 * `type`: every prop of some other type (`label` is that type, as written).

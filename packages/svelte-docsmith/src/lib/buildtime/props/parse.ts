@@ -1,7 +1,7 @@
 /**
  * The syntax half of props extraction: what can be read from a component's
  * source without TypeScript. That is the `$props()` destructuring (names,
- * default values, `$bindable()`, the rest element) and the `generics`
+ * default values, `$bindable()`) and the `generics`
  * attribute. Types, optionality and descriptions come from ./typescript.ts.
  */
 import { parse } from 'svelte/compiler';
@@ -21,8 +21,6 @@ export interface ParsedComponent {
 	typed: boolean;
 	/** Destructured props, in source order. Empty for `let props = $props()`. */
 	destructured: DestructuredProp[];
-	/** Name of the rest element (`...rest`), if any. */
-	rest?: string;
 	/** Type parameter names from `generics="…"`. */
 	typeParameters: string[];
 }
@@ -55,18 +53,14 @@ export function parseComponent(code: string, filename: string): ParsedComponent 
 	if (id.type !== 'ObjectPattern') return { ...empty, hasProps: true, typed };
 
 	const destructured: DestructuredProp[] = [];
-	let rest: string | undefined;
 	for (const property of id.properties as Node[]) {
-		if (property.type === 'RestElement') {
-			const arg = property.argument as Node;
-			if (arg.type === 'Identifier') rest = arg.name as string;
-			continue;
-		}
+		// `...rest` is read from the type instead (inherited attributes).
+		if (property.type === 'RestElement') continue;
 		const name = keyName(property.key as Node);
 		if (name === undefined) continue;
 		destructured.push({ name, ...defaultOf(property.value as Node, code) });
 	}
-	return { hasProps: true, typed, destructured, rest, typeParameters };
+	return { hasProps: true, typed, destructured, typeParameters };
 }
 
 function findPropsDeclarator(node: Node): Node | undefined {

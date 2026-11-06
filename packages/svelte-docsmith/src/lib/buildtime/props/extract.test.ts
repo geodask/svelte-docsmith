@@ -87,6 +87,14 @@ describe('createPropsExtractor', COLD, () => {
 		]);
 	});
 
+	it('keeps a library alias by name but expands a local one', async () => {
+		const { props } = await extract('library-types');
+		expect(props.props.map((p) => [p.name, p.type])).toEqual([
+			['class', 'ClassValue'],
+			['tone', "'neutral' | 'info' | 'danger'"]
+		]);
+	});
+
 	it('watches the files a component imports', async () => {
 		const { watchFiles } = await extract('notice');
 		expect(watchFiles).toEqual([
@@ -158,6 +166,27 @@ describe('createPropsExtractor without TypeScript', COLD, () => {
 		expect(props.props.find((p) => p.name === 'tone')).toEqual({
 			name: 'tone',
 			default: "'neutral'",
+			required: false,
+			bindable: false
+		});
+	});
+});
+
+describe('createPropsExtractor when TypeScript itself fails', COLD, () => {
+	it('warns and degrades instead of hanging the build', async () => {
+		vi.resetModules();
+		vi.doMock('./typescript.js', async (importOriginal) => ({
+			...(await importOriginal<typeof import('./typescript.js')>()),
+			createPropsTypeChecker: () => {
+				throw new Error('broken tsconfig');
+			}
+		}));
+		const { createPropsExtractor: fresh } = await import('./extract.js');
+		const { props, warnings } = await fresh({ root }).extract(fixture('notice'));
+		vi.doUnmock('./typescript.js');
+		expect(warnings).toEqual([expect.stringContaining('broken tsconfig')]);
+		expect(props.props.find((p) => p.name === 'title')).toEqual({
+			name: 'title',
 			required: false,
 			bindable: false
 		});

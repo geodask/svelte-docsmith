@@ -50,34 +50,25 @@
 	<div class="props-list">
 		{#if of}
 			{#each of.props as prop (prop.name)}
-				{#if prop.description || prop.deprecated}
-					<Prop
-						name={prop.name}
-						type={prop.type}
-						default={prop.default}
-						required={prop.required}
-						bindable={prop.bindable}
-						deprecated={prop.deprecated !== undefined}
-					>
-						<!-- Build-time HTML rendered from the component's own JSDoc. -->
-						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-						{#if prop.deprecated}<div>Deprecated: {@html prop.deprecated}</div>{/if}
-						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-						{#if prop.description}<div>{@html prop.description}</div>{/if}
-					</Prop>
-				{:else}
-					<Prop
-						name={prop.name}
-						type={prop.type}
-						default={prop.default}
-						required={prop.required}
-						bindable={prop.bindable}
-						deprecated={prop.deprecated !== undefined}
-					/>
-				{/if}
+				{#snippet description()}
+					<!-- Build-time HTML rendered from the component's own JSDoc. -->
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{#if prop.deprecated}<div>Deprecated: {@html prop.deprecated}</div>{/if}
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{#if prop.description}<div>{@html prop.description}</div>{/if}
+				{/snippet}
+				<Prop
+					name={prop.name}
+					type={prop.type}
+					default={prop.default}
+					required={prop.required}
+					bindable={prop.bindable}
+					deprecated={prop.deprecated !== undefined}
+					children={prop.description || prop.deprecated ? description : undefined}
+				/>
 			{/each}
 			{#each of.inherited as group (group.label)}
-				<div class="props-inherited">
+				<div class="props-note">
 					Also accepts every
 					{#if group.kind === 'element'}
 						<code>&lt;{group.label}&gt;</code> attribute.
@@ -87,7 +78,7 @@
 				</div>
 			{/each}
 			{#if of.props.length === 0 && of.inherited.length === 0}
-				<div class="props-inherited">No props.</div>
+				<div class="props-note">No props.</div>
 			{/if}
 		{:else}
 			{@render children?.()}
@@ -134,18 +125,18 @@
 		min-width: 0;
 	}
 
-	/* Summary lines (inherited attributes, an empty table) sit in the row
+	/* Notes (inherited attributes, an empty table) sit in the row
 	   rhythm but read as a footnote, not another prop. */
-	.props-inherited {
+	.props-note {
 		padding: 0.75rem 1rem;
 		border-top: 1px solid var(--border);
 		color: var(--muted-foreground);
 		font-size: 0.8125rem;
 	}
-	.props-inherited:first-child {
+	.props-note:first-child {
 		border-top: none;
 	}
-	.props-inherited code {
+	.props-note code {
 		font-family: var(--font-mono, ui-monospace, monospace);
 		font-size: 0.78rem;
 		color: var(--foreground);

@@ -56,7 +56,7 @@ describe('PropsTable', () => {
 		expect(screen.getByText('deprecated')).toBeInTheDocument();
 		expect(screen.getByText(/Deprecated:/).querySelector('code')?.textContent).toBe('value');
 
-		const inherited = [...container.querySelectorAll('.props-inherited')].map((n) =>
+		const inherited = [...container.querySelectorAll('.props-note')].map((n) =>
 			n.textContent?.replace(/\s+/g, ' ').trim()
 		);
 		expect(inherited).toEqual([

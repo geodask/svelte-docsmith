@@ -16,7 +16,9 @@ import type { ExtractedProp, ExtractedProps } from '../../core/extracted-props.j
 import { parseComponent } from './parse.js';
 import {
 	createPropsTypeChecker,
+	inNodeModules,
 	loadPeers,
+	mtimeOf,
 	MISSING_PEERS,
 	type PropsTypeChecker,
 	type TypedComponent
@@ -48,7 +50,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 		(checker ??= loadPeers().then(
 			(peers) =>
 				peers &&
-				createPropsTypeChecker(peers.ts, peers.svelte2tsx, peers.shims, {
+				createPropsTypeChecker(peers, {
 					...options,
 					svelteVersion: VERSION
 				})
@@ -61,10 +63,20 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 	const flush = async () => {
 		const items = batch;
 		batch = [];
-		const tsChecker = await getChecker();
-		const results: TypedResult[] = tsChecker
-			? tsChecker.read(items.map((item) => item.file))
-			: items.map(() => 'missing-peers');
+		let results: TypedResult[];
+		try {
+			const tsChecker = await getChecker();
+			results = tsChecker
+				? tsChecker.read(items.map((item) => item.file))
+				: items.map(() => 'missing-peers');
+		} catch (error) {
+			// Setting TypeScript up failed (a broken tsconfig, say). Report it on
+			// every waiting import rather than leaving them pending, and try again
+			// from scratch next time.
+			checker = undefined;
+			const failure = error instanceof Error ? error : new Error(String(error));
+			results = items.map(() => failure);
+		}
 		items.forEach((item, i) => item.done(results[i]));
 	};
 	const readTyped = (file: string) =>
@@ -76,13 +88,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 	// The client and server builds both import every props module, so the
 	// second build is served from here.
 	const cache = new Map<string, { stamps: [string, number][]; result: ExtractResult }>();
-	const stamp = (file: string) => {
-		try {
-			return fs.statSync(file).mtimeMs;
-		} catch {
-			return -1;
-		}
-	};
+	const stamp = mtimeOf;
 
 	return {
 		async extract(file) {
@@ -98,14 +104,14 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 		const warnings: string[] = [];
 		const rel = path.relative(options.root, file) || file;
 		const warn = (message: string) => warnings.push(`${rel}: ${message}`);
-		const props: ExtractedProps = {
+		const extracted: ExtractedProps = {
 			name: componentName(file),
 			typeParameters: [],
 			props: [],
 			inherited: []
 		};
 
-		if (file.includes(`${path.sep}node_modules${path.sep}`)) {
+		if (inNodeModules(file)) {
 			warn(
 				'reading a published package file. Published components usually have their ' +
 					'types stripped, so point the props import at the source instead.'
@@ -117,12 +123,12 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 			parsed = parseComponent(fs.readFileSync(file, 'utf-8'), file);
 		} catch (error) {
 			warn(`could not parse the component (${message(error)}).`);
-			return { props, warnings, watchFiles: [file] };
+			return { props: extracted, warnings, watchFiles: [file] };
 		}
-		props.typeParameters = parsed.typeParameters;
+		extracted.typeParameters = parsed.typeParameters;
 		if (!parsed.hasProps) {
 			warn('no `$props()` found, so the props table is empty.');
-			return { props, warnings, watchFiles: [file] };
+			return { props: extracted, warnings, watchFiles: [file] };
 		}
 
 		let typed: TypedComponent | undefined;
@@ -142,7 +148,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 				if (prop.internal) continue;
 				const destructured = defaults.get(prop.name);
 				const fallback = prop.defaultTag ?? destructured?.default;
-				props.props.push(
+				extracted.props.push(
 					clean({
 						name: prop.name,
 						type: prop.type,
@@ -154,17 +160,17 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 					})
 				);
 			}
-			props.inherited = typed.inherited;
+			extracted.inherited = typed.inherited;
 		} else {
 			for (const d of parsed.destructured) {
-				props.props.push(
+				extracted.props.push(
 					clean({ name: d.name, default: d.default, required: false, bindable: d.bindable })
 				);
 			}
 		}
 
 		return {
-			props,
+			props: extracted,
 			warnings,
 			watchFiles: [...new Set([file, ...(typed?.files ?? [])])]
 		};

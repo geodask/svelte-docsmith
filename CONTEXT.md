@@ -36,7 +36,7 @@ A props table whose rows the author writes on the doc page.
 _Avoid_: manual table, static table
 
 **Inherited attributes**:
-The native HTML attributes a component accepts by spreading its remaining props
-onto an element. They are summarised as the element they belong to, never
-listed as props.
-_Avoid_: rest props, passthrough props, HTML props
+What a component accepts by spreading its remaining props onto something else:
+an element's native attributes, or every prop of another component's type. They
+are summarised by what they belong to, never listed as props.
+_Avoid_: rest props, passthrough props, HTML props, inherited props

@@ -33,14 +33,14 @@ export interface TypedProp {
 	internal: boolean;
 }
 
-export interface TypedInherited {
+export interface TypedInheritedAttributes {
 	kind: 'element' | 'type';
 	label: string;
 }
 
 export interface TypedComponent {
 	props: TypedProp[];
-	inherited: TypedInherited[];
+	inherited: TypedInheritedAttributes[];
 	/** Project files the component imports, directly or not, for HMR. */
 	files: string[];
 }
@@ -59,12 +59,17 @@ export const MISSING_PEERS =
 	'Generated props tables need TypeScript. Install the optional peer ' +
 	'dependencies with: npm i -D typescript svelte2tsx';
 
-let loaded: Promise<{ ts: Ts; svelte2tsx: Svelte2tsx; shims: string[] } | undefined> | undefined;
+/** The optional peer dependencies, plus svelte2tsx's ambient shims. */
+export interface Peers {
+	ts: Ts;
+	svelte2tsx: Svelte2tsx;
+	shims: string[];
+}
+
+let loaded: Promise<Peers | undefined> | undefined;
 
 /** Load the optional peers once per process; `undefined` when not installed. */
-export function loadPeers(): Promise<
-	{ ts: Ts; svelte2tsx: Svelte2tsx; shims: string[] } | undefined
-> {
+export function loadPeers(): Promise<Peers | undefined> {
 	loaded ??= (async () => {
 		try {
 			const [tsModule, s2t] = await Promise.all([import('typescript'), import('svelte2tsx')]);
@@ -79,33 +84,40 @@ export function loadPeers(): Promise<
 	return loaded;
 }
 
-const FORMAT_FLAGS = (ts: Ts) =>
+/** A file's modification time, or `-1` when it can't be read. */
+export function mtimeOf(file: string): number {
+	try {
+		return fs.statSync(file).mtimeMs;
+	} catch {
+		return -1;
+	}
+}
+
+/** Whether a path lies inside a `node_modules` directory, on any platform. */
+export function inNodeModules(file: string): boolean {
+	return /[\\/]node_modules[\\/]/.test(file);
+}
+
+const formatFlags = (ts: Ts) =>
 	ts.TypeFormatFlags.NoTruncation |
 	ts.TypeFormatFlags.UseSingleQuotesForStringLiteralType |
 	ts.TypeFormatFlags.UseAliasDefinedOutsideCurrentScope;
 
 export function createPropsTypeChecker(
-	ts: Ts,
-	svelte2tsx: Svelte2tsx,
-	shims: string[],
+	{ ts, svelte2tsx, shims }: Peers,
 	options: { root: string; tsconfig?: string; svelteVersion: string }
 ): PropsTypeChecker {
 	const compilerOptions = readCompilerOptions(ts, options.root, options.tsconfig);
 	const roots = new Set<string>();
 	const generated = new Map<string, { mtime: number; code: string }>();
-
-	const mtime = (file: string) => {
-		try {
-			return fs.statSync(file).mtimeMs;
-		} catch {
-			return 0;
-		}
-	};
+	const mtime = mtimeOf;
 
 	// `X.svelte.ts` stands for `X.svelte` unless a real `X.svelte.ts` (a runes
 	// module) exists.
 	const isVirtual = (file: string) =>
 		file.endsWith('.svelte.ts') && !ts.sys.fileExists(file) && ts.sys.fileExists(file.slice(0, -3));
+	/** The file on disk a program file stands for. */
+	const onDisk = (file: string) => (isVirtual(file) ? file.slice(0, -3) : file);
 
 	const readVirtual = (file: string): string => {
 		const svelteFile = file.slice(0, -3);
@@ -136,7 +148,7 @@ export function createPropsTypeChecker(
 	const host: TS.LanguageServiceHost = {
 		getCompilationSettings: () => compilerOptions,
 		getScriptFileNames: () => [...shims, ...roots],
-		getScriptVersion: (file) => String(mtime(isVirtual(file) ? file.slice(0, -3) : file)),
+		getScriptVersion: (file) => String(mtime(onDisk(file))),
 		getScriptSnapshot: (file) => {
 			const text = readFile(file);
 			return text === undefined ? undefined : ts.ScriptSnapshot.fromString(text);
@@ -148,28 +160,31 @@ export function createPropsTypeChecker(
 		directoryExists: ts.sys.directoryExists,
 		getDirectories: ts.sys.getDirectories,
 		realpath: ts.sys.realpath,
-		// A `.svelte` specifier resolves like its `.svelte.js` twin, which every
-		// resolution mode maps onto the virtual `.svelte.ts`. That keeps
-		// relative imports, package `imports` (`#lib/…`) and tsconfig `paths` working.
 		resolveModuleNameLiterals(literals, containingFile, redirected, opts, containingSourceFile) {
-			return literals.map((literal) => {
-				const mode = ts.getModeForUsageLocation(containingSourceFile, literal, opts);
-				const resolve = (name: string) =>
-					ts.resolveModuleName(
-						name,
-						containingFile,
-						opts,
-						resolutionHost,
-						undefined,
-						redirected,
-						mode
-					);
-				const result = resolve(literal.text);
-				if (result.resolvedModule || !literal.text.endsWith('.svelte')) return result;
-				return resolve(literal.text + '.js');
-			});
+			return literals.map((literal) =>
+				resolveModule(literal.text, containingFile, opts, redirected, {
+					mode: ts.getModeForUsageLocation(containingSourceFile, literal, opts)
+				})
+			);
 		}
 	};
+
+	// A `.svelte` specifier resolves like its `.svelte.js` twin, which every
+	// resolution mode maps onto the virtual `.svelte.ts`. That keeps relative
+	// imports, package `imports` (`#lib/…`) and tsconfig `paths` working.
+	function resolveModule(
+		name: string,
+		containingFile: string,
+		opts: TS.CompilerOptions = compilerOptions,
+		redirected?: TS.ResolvedProjectReference,
+		{ mode }: { mode?: TS.ResolutionMode } = {}
+	): TS.ResolvedModuleWithFailedLookupLocations {
+		const resolve = (spec: string) =>
+			ts.resolveModuleName(spec, containingFile, opts, resolutionHost, undefined, redirected, mode);
+		const result = resolve(name);
+		if (result.resolvedModule || !name.endsWith('.svelte')) return result;
+		return resolve(name + '.js');
+	}
 
 	const service = ts.createLanguageService(host, ts.createDocumentRegistry());
 
@@ -181,20 +196,13 @@ export function createPropsTypeChecker(
 		for (let file = queue.shift(); file; file = queue.shift()) {
 			const text = program.getSourceFile(file)?.text ?? '';
 			for (const { fileName } of ts.preProcessFile(text, true, true).importedFiles) {
-				const resolved = ts.resolveModuleName(fileName, file, compilerOptions, resolutionHost)
-					.resolvedModule?.resolvedFileName;
-				const target =
-					resolved ??
-					(fileName.endsWith('.svelte')
-						? ts.resolveModuleName(fileName + '.js', file, compilerOptions, resolutionHost)
-								.resolvedModule?.resolvedFileName
-						: undefined);
-				if (!target || target.includes('/node_modules/') || seen.has(target)) continue;
+				const target = resolveModule(fileName, file).resolvedModule?.resolvedFileName;
+				if (!target || inNodeModules(target) || seen.has(target)) continue;
 				seen.add(target);
 				queue.push(target);
 			}
 		}
-		return [...seen].map((f) => (isVirtual(f) ? f.slice(0, -3) : f));
+		return [...seen].map(onDisk);
 	};
 
 	return {
@@ -252,15 +260,27 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
 	if (!typeNode) return undefined;
 
 	const checker = program.getTypeChecker();
-	const flags = FORMAT_FLAGS(ts);
+	const flags = formatFlags(ts);
 	const propsType = checker.getTypeFromTypeNode(typeNode);
 	const isExternal = (sf: TS.SourceFile) =>
 		program.isSourceFileFromExternalLibrary(sf) ||
 		program.isSourceFileDefaultLibrary(sf) ||
-		sf.fileName.includes('/node_modules/');
+		inNodeModules(sf.fileName);
 	const declaredOutside = (symbol: TS.Symbol) => {
 		const declarations = symbol.getDeclarations() ?? [];
 		return declarations.length > 0 && declarations.every((d) => isExternal(d.getSourceFile()));
+	};
+
+	// A prop typed with an alias from a library (`ClassValue`) keeps its name:
+	// expanding it would print the library's internals. Project aliases fall
+	// through to `printPropType`, which expands them.
+	const libraryAlias = (symbol: TS.Symbol): string | undefined => {
+		const declaration = symbol.valueDeclaration;
+		if (!declaration || !ts.isPropertySignature(declaration) || !declaration.type) return;
+		const declared = checker.getTypeFromTypeNode(declaration.type);
+		const alias = declared.aliasSymbol?.getDeclarations() ?? [];
+		if (alias.length === 0 || !alias.every((d) => isExternal(d.getSourceFile()))) return;
+		return checker.typeToString(declared, typeNode, flags);
 	};
 
 	const props: TypedProp[] = [];
@@ -279,7 +299,9 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
 		const description = ts.displayPartsToString(symbol.getDocumentationComment(checker)).trim();
 		props.push({
 			name: symbol.name,
-			type: printPropType(ts, checker, checker.getTypeOfSymbol(symbol), optional, typeNode, flags),
+			type:
+				libraryAlias(symbol) ??
+				printPropType(ts, checker, checker.getTypeOfSymbol(symbol), optional, typeNode, flags),
 			optional,
 			description: description || undefined,
 			deprecated: tag('deprecated'),
@@ -316,14 +338,14 @@ function findPropsTypeNode(ts: Ts, source: TS.SourceFile): TS.TypeNode | undefin
 	return found;
 }
 
+/** `Snippet<[]>` is how the checker spells a bare `Snippet`. */
+const bareSnippet = (type: string) => type.replace(/\bSnippet<\[\]>/g, 'Snippet');
+
 /**
  * A union prints member by member: an alias of literals (`BadgeVariant`)
  * expands to its values, and the `undefined` an optional prop picks up is
  * dropped. Any other type prints as written (`Snippet`, `Item[]`, `T`).
  */
-/** `Snippet<[]>` is how the checker spells a bare `Snippet`. */
-const tidy = (type: string) => type.replace(/\bSnippet<\[\]>/g, 'Snippet');
-
 function printPropType(
 	ts: Ts,
 	checker: TS.TypeChecker,
@@ -332,7 +354,7 @@ function printPropType(
 	enclosing: TS.Node,
 	flags: TS.TypeFormatFlags
 ): string {
-	if (!type.isUnion()) return tidy(checker.typeToString(type, enclosing, flags));
+	if (!type.isUnion()) return bareSnippet(checker.typeToString(type, enclosing, flags));
 	let members = type.types.filter((t) => !(optional && t.flags & ts.TypeFlags.Undefined));
 	const booleans = members.filter((t) => t.flags & ts.TypeFlags.BooleanLiteral);
 	const parts: string[] = [];
@@ -341,7 +363,8 @@ function printPropType(
 		members = members.filter((t) => !booleans.includes(t));
 		wroteBoolean = true;
 	}
-	for (const member of members) parts.push(tidy(checker.typeToString(member, enclosing, flags)));
+	for (const member of members)
+		parts.push(bareSnippet(checker.typeToString(member, enclosing, flags)));
 	if (wroteBoolean) parts.push('boolean');
 	if (parts.length === 1) return parts[0];
 	return parts.map((p) => (p.includes('=>') ? `(${p})` : p)).join(' | ');
@@ -360,7 +383,7 @@ function inheritedGroups(
 	declaredOutside: (s: TS.Symbol) => boolean,
 	enclosing: TS.Node,
 	flags: TS.TypeFormatFlags
-): TypedInherited[] {
+): TypedInheritedAttributes[] {
 	const parts: TS.Type[] = [];
 	const collect = (type: TS.Type) => {
 		if (type.isIntersection()) {
@@ -380,13 +403,13 @@ function inheritedGroups(
 	collect(propsType);
 
 	const tags = elementTags(program, checker);
-	const groups = parts.map((type): TypedInherited => {
+	const groups = parts.map((type): TypedInheritedAttributes => {
 		const tag = tags.get(type);
 		return tag
 			? { kind: 'element', label: tag }
 			: { kind: 'type', label: checker.typeToString(type, enclosing, flags) };
 	});
-	return groups.length > 0 ? groups : [{ kind: 'type', label: 'more inherited props' }];
+	return groups.length > 0 ? groups : [{ kind: 'type', label: 'more inherited attributes' }];
 }
 
 /**
