@@ -1,12 +1,6 @@
 <script lang="ts" module>
 	export type BadgeVariant =
-		| 'default'
-		| 'primary'
-		| 'secondary'
-		| 'success'
-		| 'warning'
-		| 'danger'
-		| 'outline';
+		'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'outline';
 </script>
 
 <script lang="ts">

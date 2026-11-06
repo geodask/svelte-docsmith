@@ -227,8 +227,8 @@ and it becomes a real route.</pre>
 				<p class="text-foreground mt-4 text-lg leading-relaxed text-pretty">
 					There is no navigation array to maintain. A Vite plugin reads each page's frontmatter at
 					build time; <span class="text-foreground font-mono text-sm">section</span> names the group
-					and <span class="text-foreground font-mono text-sm">order</span> sorts it. Add a page, and
-					it appears in the sidebar automatically, in the right place.
+					and <span class="text-foreground font-mono text-sm">order</span> sorts it. Add a page, and it
+					appears in the sidebar automatically, in the right place.
 				</p>
 			</div>
 
