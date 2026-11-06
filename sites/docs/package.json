@@ -26,7 +26,7 @@
 	},
 	"devDependencies": {
 		"@lucide/svelte": "^0.488.0",
-		"@shikijs/twoslash": "3.23.0",
+		"@shikijs/twoslash": "4.6.0",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-vercel": "^6.3.5",
 		"@sveltejs/kit": "^2.70.4",
