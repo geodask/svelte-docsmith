@@ -5,6 +5,15 @@ examples and API reference, all inside one real SvelteKit app.
 
 ## Language
 
+### Navigation
+
+**Reading order**:
+The order a reader meets pages in the sidebar: each page placed by its
+`section` path, then sorted by `order` and title, with a group sorted by the
+smallest `order` below it. The sidebar, the prev/next pager, `llms.txt`,
+`llms-full.txt` and the MCP server's `list_pages` all follow it.
+_Avoid_: sidebar order, nav order, sort order
+
 ### Component API reference
 
 **Prop**:

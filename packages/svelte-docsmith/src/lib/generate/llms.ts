@@ -1,4 +1,5 @@
 import type { LlmsDoc } from '#lib/core/content.js';
+import { readingSections, readingSequence } from '#lib/core/reading-order.js';
 import { mcpUrl } from '#lib/mcp/connect.js';
 import { join } from '../utils/url.js';
 
@@ -19,31 +20,6 @@ export type LlmsSite = {
 	 */
 	mcp?: string;
 };
-
-/**
- * Group docs by section and put both the sections and the docs within them in
- * sidebar reading order: items by their `order`, sections by the smallest
- * `order` they contain. Mirrors `navFromContent` so the LLM index matches the
- * on-page navigation instead of falling back to path-alphabetical order. The MCP
- * server's `list_pages` uses it too, so every agent surface agrees on the order.
- */
-export function bySection(docs: LlmsDoc[]): Array<[string, LlmsDoc[]]> {
-	const groups = new Map<string, { minOrder: number; items: LlmsDoc[] }>();
-	for (const doc of docs) {
-		const section = doc.section ?? 'Docs';
-		const order = doc.order ?? 0;
-		const group = groups.get(section) ?? { minOrder: Infinity, items: [] };
-		group.items.push(doc);
-		group.minOrder = Math.min(group.minOrder, order);
-		groups.set(section, group);
-	}
-	return [...groups.entries()]
-		.sort((a, b) => a[1].minOrder - b[1].minOrder)
-		.map(([section, group]): [string, LlmsDoc[]] => [
-			section,
-			group.items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-		]);
-}
 
 /**
  * Build an [llms.txt](https://llmstxt.org) index: the site title and
@@ -67,7 +43,7 @@ export function generateLlmsTxt(site: LlmsSite, docs: LlmsDoc[]): string {
 	if (site.description) out.push('', `> ${site.description}`);
 	if (site.mcp) out.push('', `MCP server: ${mcpUrl(site.mcp, origin)}`);
 
-	for (const [section, items] of bySection(docs)) {
+	for (const [section, items] of readingSections(docs)) {
 		out.push('', `## ${section}`, '');
 		for (const doc of items) {
 			const suffix = doc.description ? `: ${doc.description}` : '';
@@ -84,6 +60,6 @@ export function generateLlmsTxt(site: LlmsSite, docs: LlmsDoc[]): string {
  */
 export function generateLlmsFullTxt(site: LlmsSite, docs: LlmsDoc[]): string {
 	const header = site.description ? `# ${site.title}\n\n> ${site.description}` : `# ${site.title}`;
-	const ordered = bySection(docs).flatMap(([, items]) => items);
+	const ordered = readingSequence(docs);
 	return [header, ...ordered.map((doc) => doc.content.trim())].join('\n\n') + '\n';
 }

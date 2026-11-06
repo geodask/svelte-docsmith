@@ -104,7 +104,8 @@ export type SearchDoc = {
 export type LlmsDoc = {
 	path: string;
 	title: string;
-	section?: string;
+	/** Sidebar group, exactly as {@link DocsContentItem.section}. */
+	section?: string | string[];
 	/** Sidebar order within the section, so LLM output follows reading order. */
 	order?: number;
 	description?: string;
