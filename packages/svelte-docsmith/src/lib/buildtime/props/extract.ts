@@ -12,7 +12,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { marked } from 'marked';
 import { VERSION } from 'svelte/compiler';
-import type { ExtractedProp, ExtractedProps } from '../../core/extracted-props.js';
+import type {
+	ExtractedProp,
+	ExtractedProps,
+	PropControl,
+	PropValue
+} from '../../core/extracted-props.js';
 import { parseComponent } from './parse.js';
 import {
 	createPropsTypeChecker,
@@ -172,6 +177,9 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 				if (prop.internal) continue;
 				const destructured = defaults.get(prop.name);
 				const fallback = prop.defaultTag ?? destructured?.default;
+				// A deprecated prop stays out of the playground: it documents what
+				// not to use.
+				const control = prop.deprecated === undefined ? prop.control : undefined;
 				extracted.props.push(
 					clean({
 						name: prop.name,
@@ -180,7 +188,9 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 						required: !prop.optional && fallback === undefined,
 						bindable: destructured?.bindable ?? false,
 						deprecated: prop.deprecated,
-						description: prop.description
+						description: prop.description,
+						control,
+						initial: control && fitsControl(control, destructured?.literal)
 					})
 				);
 			}
@@ -205,6 +215,21 @@ export function componentName(file: string): string {
 		.filter(Boolean)
 		.map((word) => word[0].toUpperCase() + word.slice(1))
 		.join('');
+}
+
+/** A literal default as the control's starting value, when the control can hold it. */
+function fitsControl(control: PropControl, value: PropValue | undefined): PropValue | undefined {
+	if (value === undefined) return undefined;
+	switch (control.kind) {
+		case 'boolean':
+			return typeof value === 'boolean' ? value : undefined;
+		case 'text':
+			return typeof value === 'string' ? value : undefined;
+		case 'number':
+			return typeof value === 'number' ? value : undefined;
+		case 'options':
+			return typeof value !== 'boolean' && control.options.includes(value) ? value : undefined;
+	}
 }
 
 function renderMarkdown(text: string): string {

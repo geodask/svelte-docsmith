@@ -30,13 +30,49 @@ describe('createPropsExtractor', COLD, () => {
 			default: "'neutral'",
 			required: false,
 			bindable: false,
-			description: 'Visual intent. See <a href="/docs/tones">tones</a> and <code>Tone</code>.'
+			description: 'Visual intent. See <a href="/docs/tones">tones</a> and <code>Tone</code>.',
+			control: { kind: 'options', options: ['neutral', 'info', 'danger'] },
+			initial: 'neutral'
 		});
 		expect(byName.title).toMatchObject({ type: 'string', required: true });
 		expect(byName.items).toMatchObject({ type: 'Item[]', default: '[]', required: false });
 		expect(byName.dismissible).toMatchObject({ type: 'boolean', default: 'false' });
 		expect(byName.onclose.type).toBe("(reason: 'button' | 'timeout') => void");
 		expect(byName.children).toMatchObject({ type: 'Snippet', required: true });
+	});
+
+	it('derives a playground control and starting value from each type', async () => {
+		const { props, warnings } = await extract('controls');
+		expect(warnings).toEqual([]);
+		const pick = ({ control, initial }: { control?: unknown; initial?: unknown }) => ({
+			control,
+			initial
+		});
+		const byName = Object.fromEntries(props.props.map((p) => [p.name, pick(p)]));
+		expect(byName).toEqual({
+			tone: {
+				control: { kind: 'options', options: ['neutral', 'info', 'danger'] },
+				initial: 'info'
+			},
+			// A template literal without expressions is still a literal.
+			label: { control: { kind: 'text' }, initial: 'Hello' },
+			count: { control: { kind: 'number' }, initial: -1 },
+			step: { control: { kind: 'options', options: [1, 2, 3] }, initial: 2 },
+			// A $bindable() fallback is a default like any other.
+			open: { control: { kind: 'boolean' }, initial: false },
+			// A computed default leaves the component to apply it.
+			id: { control: { kind: 'text' }, initial: undefined },
+			// A cast is not a literal, so it starts unset too.
+			size: { control: { kind: 'options', options: ['sm', 'lg'] }, initial: undefined },
+			// `null` only makes it unsettable.
+			mode: { control: { kind: 'options', options: ['a', 'b'] }, initial: undefined },
+			value: { control: undefined, initial: undefined },
+			data: { control: undefined, initial: undefined },
+			onpick: { control: undefined, initial: undefined },
+			// Deprecated props stay out of the playground.
+			old: { control: undefined, initial: undefined },
+			children: { control: undefined, initial: undefined }
+		});
 	});
 
 	it('keeps declaration order and honours JSDoc tags', async () => {

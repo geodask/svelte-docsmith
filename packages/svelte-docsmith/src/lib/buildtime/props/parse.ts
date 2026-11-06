@@ -11,6 +11,8 @@ export interface DestructuredProp {
 	name: string;
 	/** Source text of the default value. */
 	default?: string;
+	/** The default as a value, when it is a string, number or boolean literal. */
+	literal?: string | number | boolean;
 	bindable: boolean;
 }
 
@@ -108,9 +110,30 @@ function defaultOf(value: Node, code: string): Omit<DestructuredProp, 'name'> {
 	const right = value.right as Node;
 	if (isCall(right, '$bindable')) {
 		const [fallback] = right.arguments as Node[];
-		return { bindable: true, default: fallback ? source(fallback, code) : undefined };
+		return fallback
+			? { bindable: true, default: source(fallback, code), literal: literalOf(fallback) }
+			: { bindable: true };
 	}
-	return { bindable: false, default: source(right, code) };
+	return { bindable: false, default: source(right, code), literal: literalOf(right) };
+}
+
+/** `'a'`, `3`, `-1`, `true` as values; anything computed is `undefined`. */
+function literalOf(node: Node): string | number | boolean | undefined {
+	if (node.type === 'Literal') {
+		const value = node.value;
+		return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+			? value
+			: undefined;
+	}
+	if (node.type === 'TemplateLiteral' && (node.expressions as Node[]).length === 0) {
+		const [quasi] = node.quasis as Node[];
+		return (quasi.value as { cooked?: string }).cooked;
+	}
+	if (node.type === 'UnaryExpression' && node.operator === '-') {
+		const value = literalOf(node.argument as Node);
+		return typeof value === 'number' ? -value : undefined;
+	}
+	return undefined;
 }
 
 function source(node: Node, code: string): string {

@@ -29,7 +29,28 @@ export interface ExtractedProp {
 	deprecated?: string;
 	/** JSDoc description rendered to inline HTML. */
 	description?: string;
+	/**
+	 * How a props playground edits this prop, from its type. Absent when the
+	 * type has no control (snippets, callbacks, objects, generics) or the prop
+	 * is deprecated.
+	 */
+	control?: PropControl;
+	/** The default as a value, when its source text is a literal (`'a'`, `false`, `-1`). */
+	initial?: PropValue;
 }
+
+/** A value a props playground control can hold. */
+export type PropValue = string | number | boolean;
+
+/**
+ * The control a props playground shows for a prop: a switch for `boolean`,
+ * inputs for `string` and `number`, a choice for a union of literals.
+ */
+export type PropControl =
+	| { kind: 'boolean' }
+	| { kind: 'text' }
+	| { kind: 'number' }
+	| { kind: 'options'; options: (string | number)[] };
 
 export interface InheritedAttributes {
 	/**
