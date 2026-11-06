@@ -41,6 +41,7 @@ pnpm-debug.log*
 
 # Local planning / agent working files (not part of the published project)
 PLAN.md
+.scratch/
 .agents/
 .claude/
 skills-lock.json
