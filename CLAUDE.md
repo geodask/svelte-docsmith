@@ -4,7 +4,7 @@
 
 ### Issue tracker
 
-Issues live in this repo's GitHub Issues (`geodask/svelte-docsmith`), managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Public GitHub Issues (`gh` CLI) for intake and triage; specs, tickets and wayfinder maps stay private as local markdown in the gitignored `.scratch/`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
