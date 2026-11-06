@@ -1,5 +1,15 @@
 # create-svelte-docsmith
 
+## 0.4.0
+
+### Minor Changes
+
+- 22b2241: Support SvelteKit 3. `svelte-docsmith` now accepts `@sveltejs/kit` `^2.16.0 || ^3.0.0` as its peer, so existing SvelteKit 2 sites keep working unchanged. New projects from `create-svelte-docsmith` start on SvelteKit 3: configuration lives in `vite.config.ts` (`sveltekit({ extensions, preprocess, adapter })`) and your own files are imported from `#lib`. The archive notice now also lists `#lib` imports.
+
+### Patch Changes
+
+- Pin the starter template to `svelte-docsmith@^0.14.0` so freshly scaffolded projects install the current release.
+
 ## 0.3.4
 
 ### Patch Changes
