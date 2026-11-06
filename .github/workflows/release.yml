@@ -4,6 +4,23 @@ on:
   push:
     branches:
       - master
+    # Same filter as CI: these can't change what gets versioned or published.
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - "docs/**"
+      - ".github/*.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/assets/**"
+
+# Never run two releases at once, and never cancel one mid-publish. A newer
+# push waits for the running release, then acts on the latest master.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   # Gate: publishing must not happen unless typecheck/test/lint/build pass.
@@ -19,37 +36,85 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      # npm trusted publishing: npm swaps this OIDC token for a short-lived
+      # publish token, so no NPM_TOKEN secret is needed (or used).
+      id-token: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      docs-only: ${{ steps.docs-only.outputs.deploy }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup PNPM
         # Version is read from the root package.json "packageManager" field.
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          # Trusted publishing needs npm >= 11.5.1, which ships with Node 24.
+          # (pnpm publish hands the upload to the npm on PATH.)
+          node-version: "24"
           cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # A push that only edits the docs site goes live right away, but only
+      # while master's library matches npm: no pending changesets and the
+      # current version is published. Otherwise the deployed site would
+      # describe features nobody can install yet; those docs go live with
+      # the next release instead. Runs before changesets, which can switch
+      # branches.
+      - name: Check for a docs-only change
+        id: docs-only
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          deploy=false
+          if ! changed=$(git diff --name-only "$BEFORE" HEAD); then
+            echo "Can't diff against the previous master commit."
+          elif ! grep -q '^sites/docs/' <<<"$changed"; then
+            echo "No docs site changes."
+          elif other=$(grep -vE '^(sites/docs/|docs/|\.github/ISSUE_TEMPLATE/|\.github/assets/)|^(\.github/)?[^/]+\.md$|^LICENSE$' <<<"$changed"); then
+            echo "Not docs-only, also changed:"; echo "$other"
+          elif [ -n "$(find .changeset -maxdepth 1 -name '*.md' ! -name README.md)" ]; then
+            echo "Pending changesets: the docs go live with the next release."
+          else
+            version=$(node -p "require('./packages/svelte-docsmith/package.json').version")
+            if [ -n "$(npm view "svelte-docsmith@$version" version 2>/dev/null)" ]; then
+              echo "Docs-only change and svelte-docsmith@$version is on npm: deploying."
+              deploy=true
+            else
+              echo "svelte-docsmith@$version isn't on npm yet: the docs go live with the release."
+            fi
+          fi
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+
       - name: Create Release PR or Publish
+        id: changesets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         uses: changesets/action@v1
         with:
           # ci:version wraps `changeset version` to keep the CLI template's
           # svelte-docsmith pin in range (scripts/sync-template-pin.mjs).
           version: pnpm ci:version
           publish: pnpm ci:publish
-          # The following ensures the PR created can't be merged
-          # until it passes the test workflow
           title: "chore: version packages"
           commit: "chore: version packages"
+
+  # The docs site reads the library version from the workspace, so it is
+  # redeployed once that version is actually on npm, or for a docs-only push
+  # while master's library matches npm (see "Check for a docs-only change").
+  deploy-docs:
+    name: Deploy docs
+    needs: release
+    if: needs.release.outputs.published == 'true' || needs.release.outputs.docs-only == 'true'
+    uses: ./.github/workflows/deploy-docs.yml
+    secrets:
+      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}

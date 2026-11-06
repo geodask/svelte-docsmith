@@ -1,0 +1,32 @@
+name: Deploy docs
+
+# Production deploys of the docs site happen here, not on every push:
+# vercel.json turns off automatic deploys for master so the site never shows
+# features that aren't on npm yet. The Release workflow calls this after a
+# successful publish, and the "Run workflow" button covers manual redeploys.
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      VERCEL_DEPLOY_HOOK_URL:
+        required: false
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Trigger Vercel production deploy
+    runs-on: ubuntu-latest
+    steps:
+      # The hook (Vercel → Project Settings → Git → Deploy Hooks, branch master)
+      # builds the latest master commit. Deploy hooks still work with
+      # git.deploymentEnabled off; only github.enabled = false blocks them.
+      - name: Call the deploy hook
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::Set the VERCEL_DEPLOY_HOOK_URL repository secret to a Vercel deploy hook for master."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error --retry 3 -X POST "$HOOK"
