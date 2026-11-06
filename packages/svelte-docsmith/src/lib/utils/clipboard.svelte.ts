@@ -6,13 +6,15 @@ export function useClipboard(timeout: number = 1500) {
 		text = node.innerText.trim();
 	}
 
-	async function copy() {
-		if (!text) return;
+	/** Copy `value`, or the text read from the node when none is given. */
+	async function copy(value?: string) {
+		const content = value ?? text;
+		if (!content) return;
 		// `navigator.clipboard` is undefined in insecure (non-HTTPS) contexts, and
 		// writeText can reject when the page lacks clipboard permission. Fail quietly
 		// so a copy button never throws an unhandled rejection.
 		try {
-			await navigator.clipboard.writeText(text);
+			await navigator.clipboard.writeText(content);
 			copied = true;
 			setTimeout(() => {
 				copied = false;

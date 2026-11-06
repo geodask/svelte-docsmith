@@ -2,11 +2,16 @@
 	import { useClipboard } from '#lib/utils/clipboard.svelte.js';
 	import { Button } from '../shadcn/button/index.js';
 	import CopyButton from '../chrome/copy-button.svelte';
+	import PropsControls from './props-controls.svelte';
 	import Code from '@lucide/svelte/icons/code';
 	import type { Snippet } from 'svelte';
+	import type { ExtractedProps } from '../../core/extracted-props.js';
+	import { definedValues, startingValues, type PlaygroundValues } from '../../core/playground.js';
 
 	const {
 		source,
+		controls,
+		args,
 		children
 	}: {
 		/**
@@ -14,9 +19,29 @@
 		 * import of the same file.
 		 */
 		source?: string;
-		/** The live, rendered component. */
-		children: Snippet;
+		/**
+		 * A props import (`import props from './badge.svelte?props'`): shows a
+		 * control for each prop whose type allows one, and passes the current
+		 * values to `children`.
+		 * @experimental
+		 */
+		controls?: ExtractedProps;
+		/**
+		 * Starting values for the controls, over the component's own defaults.
+		 * Fills a required prop, or starts the example in a chosen state.
+		 * @experimental
+		 */
+		args?: PlaygroundValues;
+		/**
+		 * The live, rendered example. With `controls` it receives the current
+		 * values: `{#snippet children(props)}<Badge {...props} />{/snippet}`.
+		 */
+		children: Snippet<[PlaygroundValues]>;
 	} = $props();
+
+	const starting = () => (controls ? startingValues(controls, args) : {});
+	let values = $state(starting());
+	const current = $derived(definedValues(values));
 
 	let showSource = $state(false);
 	const clipboard = useClipboard();
@@ -24,8 +49,12 @@
 
 <div class="not-prose my-6 overflow-hidden rounded-lg border border-border">
 	<div class="flex justify-center bg-muted/30 p-8">
-		{@render children()}
+		{@render children(current)}
 	</div>
+
+	{#if controls}
+		<PropsControls of={controls} bind:values onreset={() => (values = starting())} />
+	{/if}
 
 	{#if source}
 		<div class="flex items-center border-t border-border bg-muted/50 px-2 py-1">

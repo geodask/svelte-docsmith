@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type TS from 'typescript';
+import type { PropControl } from '../../core/extracted-props.js';
 
 type Ts = typeof TS;
 type Svelte2tsx = typeof import('svelte2tsx').svelte2tsx;
@@ -31,6 +32,8 @@ export interface TypedProp {
 	defaultTag?: string;
 	/** Tagged `@internal`: left out of the table. */
 	internal: boolean;
+	/** The props playground control its type allows, if any. */
+	control?: PropControl;
 }
 
 export interface TypedInheritedAttributes {
@@ -297,16 +300,16 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
 			return found ? ts.displayPartsToString(found.text ?? []).trim() : undefined;
 		};
 		const description = ts.displayPartsToString(symbol.getDocumentationComment(checker)).trim();
+		const type = checker.getTypeOfSymbol(symbol);
 		props.push({
 			name: symbol.name,
-			type:
-				libraryAlias(symbol) ??
-				printPropType(ts, checker, checker.getTypeOfSymbol(symbol), optional, typeNode, flags),
+			type: libraryAlias(symbol) ?? printPropType(ts, checker, type, optional, typeNode, flags),
 			optional,
 			description: description || undefined,
 			deprecated: tag('deprecated'),
 			defaultTag: tag('default'),
-			internal: tag('internal') !== undefined
+			internal: tag('internal') !== undefined,
+			control: controlFor(ts, type)
 		});
 	}
 
@@ -315,6 +318,32 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
 		: [];
 
 	return { props, inherited, files: [] };
+}
+
+/**
+ * The playground control a prop's type allows: `boolean`, `string` and
+ * `number` get their own, and a union of string or number literals (enum
+ * members included) a choice between them. `undefined` and `null` in a union
+ * only make the prop unsettable, which the playground offers anyway. Every
+ * other type (snippets, callbacks, objects, type parameters, mixed unions)
+ * gets none.
+ */
+function controlFor(ts: Ts, type: TS.Type): PropControl | undefined {
+	const members = (type.isUnion() ? type.types : [type]).filter(
+		(t) => !(t.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null))
+	);
+	if (members.length === 0) return undefined;
+	const every = (flag: TS.TypeFlags) => members.every((t) => t.flags & flag);
+	if (every(ts.TypeFlags.BooleanLike)) return { kind: 'boolean' };
+	if (members.length === 1 && members[0].flags & ts.TypeFlags.String) return { kind: 'text' };
+	if (members.length === 1 && members[0].flags & ts.TypeFlags.Number) return { kind: 'number' };
+	if (every(ts.TypeFlags.StringLiteral | ts.TypeFlags.NumberLiteral)) {
+		return {
+			kind: 'options',
+			options: members.map((t) => (t as TS.LiteralType).value as string | number)
+		};
+	}
+	return undefined;
 }
 
 /** The type annotation on the `$props()` declaration in the svelte2tsx output. */

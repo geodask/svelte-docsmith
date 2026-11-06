@@ -6,7 +6,7 @@ order: 9
 ---
 
 <script>
-	import { Callout, PropsTable } from 'svelte-docsmith';
+	import { Callout, LiveExample, PropsTable } from 'svelte-docsmith';
 	import calloutProps from '$docsmith/components/docs/callout.svelte?props';
 </script>
 
@@ -57,6 +57,16 @@ inside, including `code` and [links](/docs/theming).
 
 </Callout>
 ```
+
+## Try it
+
+<LiveExample controls={calloutProps}>
+	{#snippet children(props)}
+		<div class="w-full max-w-md">
+			<Callout {...props}>The body stays on the page's normal text color.</Callout>
+		</div>
+	{/snippet}
+</LiveExample>
 
 ## API reference
 

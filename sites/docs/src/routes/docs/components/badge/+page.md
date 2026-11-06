@@ -6,7 +6,7 @@ order: 14
 ---
 
 <script>
-	import { Badge, PropsTable } from 'svelte-docsmith';
+	import { Badge, LiveExample, PropsTable } from 'svelte-docsmith';
 	import badgeProps from '$docsmith/components/docs/badge.svelte?props';
 </script>
 
@@ -38,6 +38,17 @@ badge into a link.
 <Badge variant="warning">Beta</Badge>
 <Badge variant="primary" href="/docs/introduction">New</Badge>
 ```
+
+## Try it
+
+Every prop with a control below comes from `Badge`'s own types, the same ones
+the API reference is built from.
+
+<LiveExample controls={badgeProps}>
+	{#snippet children(props)}
+		<Badge {...props}>Badge</Badge>
+	{/snippet}
+</LiveExample>
 
 ## API reference
 
