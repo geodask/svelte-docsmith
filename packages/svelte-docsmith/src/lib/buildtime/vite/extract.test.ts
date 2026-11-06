@@ -97,4 +97,12 @@ describe('extractLlmsContent', () => {
 			extractLlmsContent('---\ntitle: X\n---\n\n<style>\n\ta {}\n</style>\n\nBody.', 'X')
 		).toBe('# X\n\nBody.');
 	});
+
+	it('drops a script block whose code has a fence-like line, and keeps script blocks in samples', () => {
+		const sample = '```svelte\n<script>\n\tlet a = 1;\n</script>\n```';
+		const page =
+			'---\ntitle: X\n---\n\n<script>\n\tconst fence = `\n```\n`;\n</script>\n\n' +
+			`Body.\n\n${sample}\n\nAfter.`;
+		expect(extractLlmsContent(page, 'X')).toBe(`# X\n\nBody.\n\n${sample}\n\nAfter.`);
+	});
 });
