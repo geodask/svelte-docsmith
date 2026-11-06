@@ -206,13 +206,16 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 	// passes it in as `host`; props come from the shared extractor, so pages
 	// without a props import never load TypeScript.
 	const buildLlmsIndex = async (pages: SourcePage[], host: AgentMarkdownHost) => {
-		const rewrites = new Map<string, (content: string) => string>();
 		// Only the pages the index keeps (`llmsIndex` drops untitled ones), so a
-		// dropped page can't warn or load TypeScript.
-		for (const page of pages.filter((page) => titleOf(page) !== undefined)) {
-			const rewrite = await agentMarkdownFor(page, host);
+		// dropped page can't warn or load TypeScript. All at once, so the props
+		// extractor batches every page's components into one TypeScript update.
+		const indexed = pages.filter((page) => titleOf(page) !== undefined);
+		const built = await Promise.all(indexed.map((page) => agentMarkdownFor(page, host)));
+		const rewrites = new Map<string, (content: string) => string>();
+		indexed.forEach((page, i) => {
+			const rewrite = built[i];
 			if (rewrite) rewrites.set(page.file, rewrite);
-		}
+		});
 		return llmsIndex(
 			pages,
 			indexOptions,

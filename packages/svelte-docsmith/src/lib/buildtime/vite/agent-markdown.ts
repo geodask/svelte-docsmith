@@ -109,18 +109,21 @@ export async function agentMarkdownFor(
 	const imports = await docImports(page, host.resolve);
 	if (imports.size === 0) return undefined;
 
-	// Read up front, so the rewrite itself is synchronous.
+	// Read up front, so the rewrite itself is synchronous. Props extractions all
+	// start together, so the extractor batches them into one TypeScript update.
 	const sources = new Map<string, string | undefined>();
 	const tables = new Map<string, ExtractedProps | undefined>();
-	for (const [local, entry] of imports) {
-		// Watched even when it can't be read, so creating or fixing it rebuilds.
-		if (entry.file !== undefined) host.watch(entry.file);
-		if (entry.kind === 'source') {
-			sources.set(local, entry.file === undefined ? undefined : readExample(entry.file));
-		} else {
-			tables.set(local, entry.file === undefined ? undefined : await host.props(entry.file));
-		}
-	}
+	await Promise.all(
+		[...imports].map(async ([local, entry]) => {
+			// Watched even when it can't be read, so creating or fixing it rebuilds.
+			if (entry.file !== undefined) host.watch(entry.file);
+			if (entry.kind === 'source') {
+				sources.set(local, entry.file === undefined ? undefined : readExample(entry.file));
+			} else {
+				tables.set(local, entry.file === undefined ? undefined : await host.props(entry.file));
+			}
+		})
+	);
 
 	const keepTag = (tag: string, local: string, attribute: string) => {
 		host.warn(
