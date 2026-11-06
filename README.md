@@ -25,8 +25,10 @@ live table of contents. No per-page wiring, no content collection to configure.
 >
 > **What stays experimental.** Versioning: `DocsVersions`, `currentOnly`, the
 > archive marker, and the `archive-version` command. Generated props tables:
-> `?props` imports and `PropsTable`'s `of`. They may still change in a minor
-> until authors have used them for real.
+> `?props` imports and `PropsTable`'s `of`. The MCP server: `mcpHandler` and the
+> `mcp` config field. Agent markdown: the props tables and example code written
+> into `llms-full.txt` and `.md` pages. They may still change in a minor until
+> authors have used them for real.
 
 ## Install
 

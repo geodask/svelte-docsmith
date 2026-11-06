@@ -2,7 +2,7 @@
 title: Versioning
 description: Keep the docs for older releases live, with a version switcher and version-scoped navigation.
 section: Core Concepts
-order: 12
+order: 13
 ---
 
 <script>

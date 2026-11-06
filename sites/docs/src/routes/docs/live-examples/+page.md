@@ -38,6 +38,10 @@ so it can never decay into a screenshot of something that used to work.
 
 See [Writing pages](/docs/writing-pages) for the import pattern to copy.
 
+Coding agents see the same code. In a page's agent markdown, which feeds
+[`llms-full.txt` and the `.md` pages](/docs/seo#llmstxt), each `LiveExample` is
+written out as its source file in a `svelte` code block.
+
 ## API reference
 
 <PropsTable of={liveExampleProps} />

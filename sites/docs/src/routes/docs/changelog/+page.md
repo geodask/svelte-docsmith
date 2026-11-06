@@ -2,7 +2,7 @@
 title: Changelog
 description: Publish your releases as a page and a feed, from the changelog you already have.
 section: Core Concepts
-order: 11
+order: 12
 ---
 
 Every release you ship already produces release notes. DocSmith reads them and
