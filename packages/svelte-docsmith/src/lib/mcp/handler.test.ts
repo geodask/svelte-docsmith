@@ -757,3 +757,286 @@ describe('mcpHandler: HTTP', () => {
 		expect(await res.json()).toEqual({ jsonrpc: '2.0', id: 1, result: {} });
 	});
 });
+
+// MCP 2026-07-28: no handshake. A request is "modern" when its params carry the
+// per-request `_meta` protocol version, and it is answered statelessly by that
+// revision's rules (basic/versioning, Backward Compatibility).
+const MODERN = '2026-07-28';
+const META = {
+	'io.modelcontextprotocol/protocolVersion': MODERN,
+	'io.modelcontextprotocol/clientInfo': { name: 'test', version: '1.0.0' },
+	'io.modelcontextprotocol/clientCapabilities': {}
+};
+
+/**
+ * A well-formed modern request: `_meta` in the body, mirrored headers on the
+ * POST. A header given as `undefined` is left off.
+ */
+function modernRequest(
+	method: string,
+	params: Record<string, unknown> = {},
+	headers: Record<string, string | undefined> = {}
+): Request {
+	const all: Record<string, string | undefined> = {
+		'mcp-protocol-version': MODERN,
+		'mcp-method': method,
+		...(typeof params.name === 'string' ? { 'mcp-name': params.name } : {}),
+		...headers
+	};
+	const sent = Object.fromEntries(
+		Object.entries(all).filter((entry): entry is [string, string] => entry[1] !== undefined)
+	);
+	return post({ jsonrpc: '2.0', id: 1, method, params: { _meta: META, ...params } }, sent);
+}
+
+async function modern(
+	method: string,
+	params?: Record<string, unknown>,
+	headers?: Record<string, string | undefined>
+) {
+	const res = await handler()(modernRequest(method, params, headers));
+	return { res, body: await res.json() };
+}
+
+describe('mcpHandler: 2026-07-28 server/discover', () => {
+	it('advertises every version it speaks, its tools capability, identity and instructions', async () => {
+		const { res, body } = await modern('server/discover');
+		expect(res.status).toBe(200);
+		expect(body.id).toBe(1);
+		expect(body.result).toMatchObject({
+			resultType: 'complete',
+			supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26'],
+			capabilities: { tools: {} },
+			cacheScope: 'public'
+		});
+		expect(body.result.ttlMs).toBeGreaterThan(0);
+		expect(body.result._meta['io.modelcontextprotocol/serverInfo']).toMatchObject({
+			name: 'svelte-docsmith',
+			title: 'My Docs docs'
+		});
+		expect(body.result.instructions).toContain('search_docs');
+	});
+});
+
+describe('mcpHandler: 2026-07-28 tools', () => {
+	it('lists the same tools as the handshake revisions, with resultType, caching hints and serverInfo', async () => {
+		const { body: legacy } = await rpc('tools/list');
+		const { res, body } = await modern('tools/list');
+		expect(res.status).toBe(200);
+		expect(body.result.tools).toEqual(legacy.result.tools);
+		expect(body.result.resultType).toBe('complete');
+		expect(body.result.cacheScope).toBe('public');
+		expect(Number.isInteger(body.result.ttlMs) && body.result.ttlMs >= 0).toBe(true);
+		expect(body.result._meta['io.modelcontextprotocol/serverInfo'].name).toBe('svelte-docsmith');
+	});
+
+	it('calls a tool, marking the result complete', async () => {
+		const { res, body } = await modern('tools/call', {
+			name: 'get_page',
+			arguments: { path: '/docs/intro' }
+		});
+		expect(res.status).toBe(200);
+		expect(body.result.resultType).toBe('complete');
+		expect(body.result.isError).toBeFalsy();
+		expect(body.result.content[0].text).toContain('Welcome to the docs.');
+		expect(body.result._meta['io.modelcontextprotocol/serverInfo'].name).toBe('svelte-docsmith');
+		expect(body.result.ttlMs).toBeUndefined();
+	});
+
+	it('marks a tool error complete too: it is a result, not a protocol error', async () => {
+		const { body } = await modern('tools/call', { name: 'get_page', arguments: {} });
+		expect(body.result).toMatchObject({ resultType: 'complete', isError: true });
+	});
+
+	it('answers an unknown tool with invalid-params', async () => {
+		const { body } = await modern('tools/call', { name: 'delete_everything', arguments: {} });
+		expect(body.error.code).toBe(-32602);
+	});
+});
+
+describe('mcpHandler: 2026-07-28 version negotiation', () => {
+	// A dual-era client probes with a modern request. A recognized modern error
+	// keeps it modern and lets it pick from `supported`, legacy versions included
+	// (a legacy pick means it falls back to initialize).
+	it('answers a version it does not speak with 400 UnsupportedProtocolVersion, listing every version', async () => {
+		const res = await handler()(
+			post(
+				{
+					jsonrpc: '2.0',
+					id: 7,
+					method: 'tools/list',
+					params: { _meta: { ...META, 'io.modelcontextprotocol/protocolVersion': '2027-01-01' } }
+				},
+				{ 'mcp-protocol-version': '2027-01-01', 'mcp-method': 'tools/list' }
+			)
+		);
+		expect(res.status).toBe(400);
+		const body = await res.json();
+		expect(body.id).toBe(7);
+		expect(body.result).toBeUndefined();
+		expect(body.error.code).toBe(-32022);
+		expect(body.error.data).toEqual({
+			supported: ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26'],
+			requested: '2027-01-01'
+		});
+	});
+
+	it('checks the version before the headers, whose rules belong to a version', async () => {
+		const res = await handler()(
+			post({
+				jsonrpc: '2.0',
+				id: 1,
+				method: 'tools/list',
+				params: { _meta: { ...META, 'io.modelcontextprotocol/protocolVersion': '2027-01-01' } }
+			})
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).error.code).toBe(-32022);
+	});
+
+	it('serves a request stamped with a handshake version as a handshake-era request', async () => {
+		const res = await handler()(
+			post(
+				{
+					jsonrpc: '2.0',
+					id: 1,
+					method: 'ping',
+					params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2025-11-25' } }
+				},
+				{ 'mcp-protocol-version': '2025-11-25' }
+			)
+		);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ jsonrpc: '2.0', id: 1, result: {} });
+	});
+});
+
+describe('mcpHandler: 2026-07-28 request validation', () => {
+	// basic/index, `_meta`: a request missing a required field is malformed,
+	// -32602 with a 400.
+	it.each([
+		[
+			'a protocol version that is not a string',
+			{ 'io.modelcontextprotocol/protocolVersion': 2026 }
+		],
+		[
+			'no client capabilities',
+			{
+				'io.modelcontextprotocol/protocolVersion': MODERN,
+				'io.modelcontextprotocol/clientInfo': {}
+			}
+		]
+	])('answers %s in _meta with 400 invalid-params', async (_, meta) => {
+		const res = await handler()(
+			post(
+				{ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: meta } },
+				{ 'mcp-protocol-version': MODERN, 'mcp-method': 'tools/list' }
+			)
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).error.code).toBe(-32602);
+	});
+
+	// transports/streamable-http, Server Validation: headers that are missing or
+	// disagree with the body get 400 HeaderMismatch.
+	it.each([
+		['no MCP-Protocol-Version header', 'tools/list', {}, { 'mcp-protocol-version': undefined }],
+		[
+			'an MCP-Protocol-Version unlike _meta',
+			'tools/list',
+			{},
+			{ 'mcp-protocol-version': '2025-11-25' }
+		],
+		['no Mcp-Method header', 'tools/list', {}, { 'mcp-method': undefined }],
+		['an Mcp-Method unlike the method', 'tools/list', {}, { 'mcp-method': 'tools/call' }],
+		[
+			'a tools/call without Mcp-Name',
+			'tools/call',
+			{ name: 'get_page', arguments: { path: '/docs/intro' } },
+			{ 'mcp-name': undefined }
+		],
+		[
+			'an Mcp-Name unlike the tool name',
+			'tools/call',
+			{ name: 'get_page', arguments: { path: '/docs/intro' } },
+			{ 'mcp-name': 'list_pages' }
+		],
+		[
+			'an Mcp-Name in a malformed Base64 sentinel',
+			'tools/call',
+			{ name: 'get_page', arguments: { path: '/docs/intro' } },
+			{ 'mcp-name': '=?base64?***?=' }
+		]
+	])('answers %s with 400 HeaderMismatch', async (_, method, params, headers) => {
+		const { res, body } = await modern(method, params, headers);
+		expect(res.status).toBe(400);
+		expect(body.id).toBe(1);
+		expect(body.error.code).toBe(-32020);
+		expect(body.result).toBeUndefined();
+	});
+
+	it('decodes a Base64 Mcp-Name before comparing it to the body', async () => {
+		const { res, body } = await modern(
+			'tools/call',
+			{ name: 'get_page', arguments: { path: '/docs/intro' } },
+			{ 'mcp-name': `=?base64?${btoa('get_page')}?=` }
+		);
+		expect(res.status).toBe(200);
+		expect(body.result.resultType).toBe('complete');
+	});
+
+	it('reads header names case-insensitively', async () => {
+		const { res } = await modern(
+			'tools/list',
+			{},
+			{
+				'mcp-protocol-version': undefined,
+				'mcp-method': undefined,
+				'MCP-Protocol-Version': MODERN,
+				'Mcp-Method': 'tools/list'
+			}
+		);
+		expect(res.status).toBe(200);
+	});
+
+	// transports/streamable-http, Protocol Version Header: an unknown method is
+	// a 404 with -32601. The handshake methods are gone in this revision.
+	it.each(['resources/list', 'initialize', 'ping'])(
+		'answers %s with 404 method-not-found',
+		async (method) => {
+			const { res, body } = await modern(method);
+			expect(res.status).toBe(404);
+			expect(body.error.code).toBe(-32601);
+			expect(body.error.message).toContain(method);
+		}
+	);
+
+	it('answers a message with _meta but no method with 400 invalid-request', async () => {
+		const res = await handler()(
+			post({ jsonrpc: '2.0', id: 1, params: { _meta: META } }, { 'mcp-protocol-version': MODERN })
+		);
+		expect(res.status).toBe(400);
+		expect((await res.json()).error.code).toBe(-32600);
+	});
+
+	it('accepts a notification with 202 and no body', async () => {
+		const res = await handler()(
+			post(
+				{ jsonrpc: '2.0', method: 'notifications/whatever', params: { _meta: META } },
+				{ 'mcp-protocol-version': MODERN }
+			)
+		);
+		expect(res.status).toBe(202);
+		expect(await res.text()).toBe('');
+	});
+
+	it('answers the 2026-07-28 header on a request without _meta with 400 invalid-params', async () => {
+		const res = await handler()(
+			post({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, { 'mcp-protocol-version': MODERN })
+		);
+		expect(res.status).toBe(400);
+		const body = await res.json();
+		expect(body.error.code).toBe(-32602);
+		expect(body.error.message).toContain('_meta');
+	});
+});
