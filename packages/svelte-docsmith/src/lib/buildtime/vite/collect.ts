@@ -131,15 +131,22 @@ export function searchIndex(pages: SourcePage[], options: IndexOptions): SearchD
  * The LLM index: title, section, description, and the full markdown content.
  * Served as the `svelte-docsmith/llms` virtual module and consumed server-side
  * by `llms.txt` / `llms-full.txt` routes, so it never ships to the client.
+ *
+ * `rewrite` turns a page's markdown into agent markdown (see
+ * `./agent-markdown.js`); without it, the content is the page as written.
  */
-export function llmsIndex(pages: SourcePage[], options: IndexOptions): LlmsDoc[] {
+export function llmsIndex(
+	pages: SourcePage[],
+	options: IndexOptions,
+	rewrite: (content: string, page: SourcePage) => string = (content) => content
+): LlmsDoc[] {
 	return indexedPages(pages, options).map((page) => ({
 		path: page.url,
 		title: page.title,
 		section: sectionKey(page.frontmatter),
 		order: readField(page.frontmatter, 'order'),
 		description: readField(page.frontmatter, 'description'),
-		content: extractLlmsContent(page.source, page.title),
+		content: rewrite(extractLlmsContent(page.source, page.title), page),
 		version: page.version
 	}));
 }

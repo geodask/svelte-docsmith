@@ -29,6 +29,7 @@ import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
 import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
 import { contentIndex, llmsIndex, searchIndex } from './collect.js';
+import { agentMarkdownFor, type AgentMarkdownHost } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
 import { createPropsExtractor, type PropsExtractor } from '../props/extract.js';
@@ -199,10 +200,21 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 			);
 		}));
 
-	// What agents read. Async so agent markdown can await props extraction
-	// (from `extractor`, the one the `?props` transform uses) and file reads
-	// for each page; today it is the pages' markdown as written.
-	const buildLlmsIndex = async (pages: SourcePage[]) => llmsIndex(pages, indexOptions);
+	// What agents read: each page as agent markdown, with its `LiveExample`s
+	// written out as code. Resolving a page's imports needs the plugin context,
+	// so the load hook passes it in as `host`.
+	const buildLlmsIndex = async (pages: SourcePage[], host: AgentMarkdownHost) => {
+		const rewrites = new Map<string, (content: string) => string>();
+		for (const page of pages) {
+			const rewrite = await agentMarkdownFor(page, host);
+			if (rewrite) rewrites.set(page.file, rewrite);
+		}
+		return llmsIndex(
+			pages,
+			indexOptions,
+			(content, page) => rewrites.get(page.file)?.(content) ?? content
+		);
+	};
 
 	return {
 		name: 'docsmith-content',
@@ -258,7 +270,13 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 			if (id === VIRTUAL_LLMS_ID) {
 				const { pages } = readSourcePages(contentDir);
 				watch(pages);
-				return `export const docs = ${JSON.stringify(await buildLlmsIndex(pages))};\n`;
+				const docs = await buildLlmsIndex(pages, {
+					resolve: async (specifier, importer) =>
+						(await this.resolve(specifier, importer, { skipSelf: true }))?.id,
+					watch: (file) => this.addWatchFile(file),
+					warn: (message) => this.warn(message)
+				});
+				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
 			if (id === VIRTUAL_CHANGELOG_ID) {
 				if (!changelogFile) return `export const releases = [];\n`;

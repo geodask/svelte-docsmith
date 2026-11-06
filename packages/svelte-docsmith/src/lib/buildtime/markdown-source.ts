@@ -97,6 +97,31 @@ export function outsideCodeFences(text: string, transform: (line: string) => str
 		.join('\n');
 }
 
+/**
+ * Apply `transform` to each run of consecutive prose lines, leaving fenced code
+ * and its markers untouched. For rewrites that span lines, such as a component
+ * tag with children, which {@link outsideCodeFences} would see a line at a time.
+ */
+export function outsideCodeFenceRuns(text: string, transform: (prose: string) => string): string {
+	const isProse = fenceScanner();
+	const out: string[] = [];
+	let run: string[] = [];
+	const flush = () => {
+		if (run.length) out.push(transform(run.join('\n')));
+		run = [];
+	};
+	for (const line of text.split('\n')) {
+		if (isProse(line)) {
+			run.push(line);
+		} else {
+			flush();
+			out.push(line);
+		}
+	}
+	flush();
+	return out.join('\n');
+}
+
 /** A page's prose lines, in order, with fenced code and its markers dropped. */
 export function* proseLines(text: string): Generator<string> {
 	const isProse = fenceScanner();
