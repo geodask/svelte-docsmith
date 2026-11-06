@@ -220,6 +220,21 @@ describe('docsmith() content plugin', () => {
 		);
 	});
 
+	it('keeps setup blocks inside code samples in each llms entry', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const sample =
+			"```svelte\n<script>\n\timport { Badge } from 'svelte-docsmith';\n</script>\n\n<Badge>New</Badge>\n\n<style>\n\tp { color: red; }\n</style>\n```";
+		writePage(
+			'docs/sample',
+			'title: Sample',
+			`<script>\n\timport X from "./x.svelte";\n</script>\n\nUse it:\n\n${sample}\n\n<style>\n\tp { color: blue; }\n</style>`
+		);
+
+		const { content } = await agentMarkdown();
+
+		expect(content['/docs/sample']).toBe(`# Sample\n\nUse it:\n\n${sample}`);
+	});
+
 	it('never loads TypeScript for a site without props imports', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: Intro', 'No props tables here.');
