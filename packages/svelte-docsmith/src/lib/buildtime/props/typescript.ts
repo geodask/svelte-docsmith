@@ -328,7 +328,7 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
  * other type (snippets, callbacks, objects, type parameters, mixed unions)
  * gets none.
  */
-export function controlFor(ts: Ts, type: TS.Type): PropControl | undefined {
+function controlFor(ts: Ts, type: TS.Type): PropControl | undefined {
 	const members = (type.isUnion() ? type.types : [type]).filter(
 		(t) => !(t.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null))
 	);

@@ -36,7 +36,7 @@ export interface ExtractedProp {
 	 */
 	control?: PropControl;
 	/** The default as a value, when its source text is a literal (`'a'`, `false`, `-1`). */
-	initial?: PropValue;
+	literalDefault?: PropValue;
 }
 
 /** A value a props playground control can hold. */

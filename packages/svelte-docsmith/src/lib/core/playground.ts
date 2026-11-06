@@ -26,7 +26,7 @@ export function startingValues(
 ): PlaygroundValues {
 	const values: PlaygroundValues = {};
 	for (const prop of controlledProps(props)) {
-		if (prop.initial !== undefined) values[prop.name] = prop.initial;
+		if (prop.literalDefault !== undefined) values[prop.name] = prop.literalDefault;
 	}
 	for (const [name, value] of Object.entries(args)) {
 		if (value !== undefined) values[name] = value;
@@ -40,7 +40,7 @@ export function definedValues(values: PlaygroundValues): PlaygroundValues {
 }
 
 /** Past this length the usage line puts one prop per line. */
-const ONE_LINE = 72;
+const MAX_LINE_LENGTH = 72;
 
 /**
  * How the component is used with the current values, e.g.
@@ -50,18 +50,18 @@ const ONE_LINE = 72;
  * with a `children` prop gets `…` as its content.
  */
 export function usageLine(props: ExtractedProps, values: PlaygroundValues): string {
-	const defaults = new Map(props.props.map((prop) => [prop.name, prop.initial]));
-	const attributes: string[] = [];
+	const defaults = new Map(props.props.map((prop) => [prop.name, prop.literalDefault]));
+	const markup: string[] = [];
 	for (const [name, value] of Object.entries(values)) {
 		if (!isPropValue(value) || defaults.get(name) === value) continue;
-		attributes.push(attribute(name, value));
+		markup.push(propMarkup(name, value));
 	}
 	const hasChildren = props.props.some((prop) => prop.name === 'children');
 	const close = hasChildren ? `>…</${props.name}>` : ' />';
-	const inline = `<${props.name}${attributes.map((a) => ' ' + a).join('')}${close}`;
-	if (inline.length <= ONE_LINE || attributes.length < 2) return inline;
+	const inline = `<${props.name}${markup.map((m) => ' ' + m).join('')}${close}`;
+	if (inline.length <= MAX_LINE_LENGTH || markup.length < 2) return inline;
 	const end = hasChildren ? `\n>\n\t…\n</${props.name}>` : '\n/>';
-	return `<${props.name}\n${attributes.map((a) => '\t' + a).join('\n')}${end}`;
+	return `<${props.name}\n${markup.map((m) => '\t' + m).join('\n')}${end}`;
 }
 
 function isPropValue(value: unknown): value is PropValue {
@@ -73,7 +73,7 @@ function isPropValue(value: unknown): value is PropValue {
 }
 
 /** One prop as Svelte markup: `a="x"`, `a`, `a={false}`, `a={3}`. */
-function attribute(name: string, value: PropValue): string {
+function propMarkup(name: string, value: PropValue): string {
 	if (value === true) return name;
 	if (typeof value === 'string') {
 		return /["{}]/.test(value) ? `${name}={${JSON.stringify(value)}}` : `${name}="${value}"`;

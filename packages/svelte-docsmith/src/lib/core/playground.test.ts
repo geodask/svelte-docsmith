@@ -14,7 +14,7 @@ const badge: ExtractedProps = {
 			required: false,
 			bindable: false,
 			control: { kind: 'options', options: ['default', 'success'] },
-			initial: 'default'
+			literalDefault: 'default'
 		},
 		{
 			name: 'href',
@@ -30,7 +30,7 @@ const badge: ExtractedProps = {
 			required: false,
 			bindable: false,
 			control: { kind: 'boolean' },
-			initial: false
+			literalDefault: false
 		},
 		{ name: 'children', type: 'Snippet', required: true, bindable: false }
 	]
@@ -64,10 +64,16 @@ describe('definedValues', () => {
 });
 
 describe('usageLine', () => {
-	it('shows only what differs from the defaults', () => {
+	it("shows only what differs from the component's defaults", () => {
 		expect(usageLine(badge, { variant: 'default', external: false })).toBe('<Badge>…</Badge>');
 		expect(usageLine(badge, { variant: 'success', external: true })).toBe(
 			'<Badge variant="success" external>…</Badge>'
+		);
+	});
+
+	it('writes args that differ from the defaults too, since they are part of the usage', () => {
+		expect(usageLine(badge, startingValues(badge, { variant: 'success' }))).toBe(
+			'<Badge variant="success">…</Badge>'
 		);
 	});
 

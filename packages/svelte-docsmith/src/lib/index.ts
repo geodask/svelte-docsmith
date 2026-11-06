@@ -31,6 +31,9 @@ export { default as Prop } from './components/docs/prop.svelte';
 // `docsmith()` vite plugin) yields `ExtractedProps` for `<PropsTable of={props}>`.
 // The shape is internal to `PropsTable` and may change in a minor.
 export type { ExtractedProps } from './core/extracted-props.js';
+// What a props playground (`<LiveExample controls={props}>`) passes to its
+// `children` snippet and takes as `args` (experimental, like the above).
+export type { PlaygroundValues } from './core/playground.js';
 
 // Landing page sections (for the marketing page in front of your docs)
 export { default as Hero } from './components/landing/hero.svelte';

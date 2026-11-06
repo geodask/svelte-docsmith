@@ -26,13 +26,26 @@
 	/** Up to this many options show as buttons; more become a select. */
 	const MAX_SEGMENTS = 4;
 
-	/** An optional prop with no default of its own can be left to the component. */
-	const unsettable = (prop: ExtractedProp) => !prop.required && prop.initial === undefined;
+	/**
+	 * A prop with no literal default can be left unset, so the component
+	 * applies its own fallback (a computed default, say). A required one that
+	 * starts unset shows it, rather than a choice it doesn't have.
+	 */
+	const unsettable = (prop: ExtractedProp) => prop.literalDefault === undefined;
 
-	/** The JSDoc description as plain text, for a tooltip. */
-	const plain = (html: string | undefined) => html?.replace(/<[^>]+>/g, '');
+	const ENTITIES: Record<string, string> = {
+		'&amp;': '&',
+		'&lt;': '<',
+		'&gt;': '>',
+		'&quot;': '"',
+		'&#39;': "'"
+	};
 
-	const set = (name: string, value: unknown) => {
+	/** The JSDoc description, rendered to HTML at build time, as plain text for a tooltip. */
+	const descriptionText = (html: string | undefined) =>
+		html?.replace(/<[^>]+>/g, '').replace(/&(?:amp|lt|gt|quot|#39);/g, (e) => ENTITIES[e]);
+
+	const setValue = (name: string, value: unknown) => {
 		values[name] = value;
 	};
 </script>
@@ -50,7 +63,7 @@
 		{#each controlled as prop (prop.name)}
 			{@const control = prop.control!}
 			{@const value = values[prop.name]}
-			<code class="control-name" title={plain(prop.description)}>{prop.name}</code>
+			<code class="control-name" title={descriptionText(prop.description)}>{prop.name}</code>
 			<div class="control-input">
 				{#if control.kind === 'boolean'}
 					<button
@@ -59,7 +72,7 @@
 						aria-checked={value === true}
 						aria-label={prop.name}
 						class="switch"
-						onclick={() => set(prop.name, value !== true)}
+						onclick={() => setValue(prop.name, value !== true)}
 					>
 						<span class="switch-thumb"></span>
 					</button>
@@ -67,13 +80,13 @@
 					{@const choices = unsettable(prop) ? [undefined, ...control.options] : control.options}
 					{#if choices.length <= MAX_SEGMENTS}
 						<div class="segments" role="group" aria-label={prop.name}>
-							{#each choices as choice (choice ?? '')}
+							{#each choices as choice, i (i)}
 								<button
 									type="button"
 									class="segment"
 									class:segment-unset={choice === undefined}
 									aria-pressed={value === choice}
-									onclick={() => set(prop.name, choice)}
+									onclick={() => setValue(prop.name, choice)}
 								>
 									{choice ?? 'unset'}
 								</button>
@@ -84,9 +97,9 @@
 							class="field"
 							aria-label={prop.name}
 							value={String(choices.indexOf(value as string | number | undefined))}
-							onchange={(e) => set(prop.name, choices[Number(e.currentTarget.value)])}
+							onchange={(e) => setValue(prop.name, choices[Number(e.currentTarget.value)])}
 						>
-							{#each choices as choice, i (choice ?? '')}
+							{#each choices as choice, i (i)}
 								<option value={String(i)}>{choice ?? 'unset'}</option>
 							{/each}
 						</select>
@@ -100,7 +113,7 @@
 						value={typeof value === 'string' ? value : ''}
 						oninput={(e) => {
 							const text = e.currentTarget.value;
-							set(prop.name, text === '' && !prop.required ? undefined : text);
+							setValue(prop.name, text === '' && !prop.required ? undefined : text);
 						}}
 					/>
 				{:else if control.kind === 'number'}
@@ -112,7 +125,7 @@
 						value={typeof value === 'number' ? value : ''}
 						oninput={(e) => {
 							const n = e.currentTarget.valueAsNumber;
-							set(prop.name, Number.isNaN(n) ? undefined : n);
+							setValue(prop.name, Number.isNaN(n) ? undefined : n);
 						}}
 					/>
 				{/if}
@@ -139,7 +152,7 @@
 		gap: 0.5rem 1rem;
 	}
 	.control-name {
-		font-family: var(--font-mono, ui-monospace, monospace);
+		font-family: var(--font-mono);
 		font-size: 0.8125rem;
 		color: var(--foreground);
 		overflow-wrap: anywhere;
@@ -152,8 +165,8 @@
 		height: 2rem;
 		width: 100%;
 		max-width: 18rem;
-		border-radius: calc(var(--radius, 0.5rem) - 2px);
-		border: 1px solid var(--input, var(--border));
+		border-radius: calc(var(--radius) - 2px);
+		border: 1px solid var(--input);
 		background: var(--background);
 		padding-inline: 0.5rem;
 		font-size: 0.8125rem;
@@ -170,14 +183,14 @@
 		display: inline-flex;
 		flex-wrap: wrap;
 		gap: 0.125rem;
-		border-radius: calc(var(--radius, 0.5rem) - 2px);
+		border-radius: calc(var(--radius) - 2px);
 		background: var(--muted);
 		padding: 0.125rem;
 	}
 	.segment {
-		border-radius: calc(var(--radius, 0.5rem) - 4px);
+		border-radius: calc(var(--radius) - 4px);
 		padding: 0.125rem 0.5rem;
-		font-family: var(--font-mono, ui-monospace, monospace);
+		font-family: var(--font-mono);
 		font-size: 0.75rem;
 		color: var(--muted-foreground);
 		cursor: pointer;
@@ -202,7 +215,7 @@
 		width: 2.25rem;
 		flex-shrink: 0;
 		border-radius: 9999px;
-		background: var(--input, var(--muted));
+		background: var(--input);
 		transition: background-color 150ms;
 		cursor: pointer;
 	}

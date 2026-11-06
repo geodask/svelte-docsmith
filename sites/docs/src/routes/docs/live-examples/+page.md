@@ -80,7 +80,7 @@ The controls come from each prop's TypeScript type:
 | anything else (snippets, callbacks, …) | no control                                      |
 
 A prop starts at its default when that default is a literal like `'primary'`,
-`false` or `3`. An optional prop with no default can be left unset, so the
+`false` or `3`. A prop without a literal default can be left unset, so the
 component applies its own fallback. `@deprecated` props get no control.
 
 Use `args` to start somewhere else, or to fill a required prop that has no

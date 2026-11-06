@@ -15,7 +15,7 @@ const props: ExtractedProps = {
 			required: false,
 			bindable: false,
 			control: { kind: 'options', options: ['default', 'success'] },
-			initial: 'default'
+			literalDefault: 'default'
 		},
 		{
 			name: 'tone',
@@ -23,14 +23,26 @@ const props: ExtractedProps = {
 			bindable: false,
 			control: { kind: 'options', options: ['a', 'b', 'c', 'd', 'e'] }
 		},
-		{ name: 'href', required: false, bindable: false, control: { kind: 'text' } },
+		{
+			name: 'href',
+			required: false,
+			bindable: false,
+			control: { kind: 'text' },
+			description: 'Adds <code>rel=&quot;noopener&quot;</code> &amp; more.'
+		},
+		{
+			name: 'gap',
+			required: false,
+			bindable: false,
+			control: { kind: 'options', options: ['', 'x'] }
+		},
 		{ name: 'count', required: false, bindable: false, control: { kind: 'number' } },
 		{
 			name: 'external',
 			required: false,
 			bindable: false,
 			control: { kind: 'boolean' },
-			initial: false
+			literalDefault: false
 		},
 		{ name: 'children', required: true, bindable: false }
 	]
@@ -85,6 +97,19 @@ describe('LiveExample', () => {
 		});
 		expect(usage()).toContain('variant="success"');
 		expect(usage()).toContain('count={3}');
+	});
+
+	it('shows a description as plain text and keys options apart from "unset"', async () => {
+		render(Fixture, { props: { controls: props } });
+		expect(screen.getByText('href', { selector: 'code' })).toHaveAttribute(
+			'title',
+			'Adds rel="noopener" & more.'
+		);
+		// `''` and "unset" are different choices.
+		const gap = screen.getByRole('group', { name: 'gap' });
+		expect(gap.querySelectorAll('button')).toHaveLength(3);
+		await fireEvent.click(gap.querySelectorAll('button')[1]);
+		expect(rendered()).toMatchObject({ gap: '' });
 	});
 
 	it('clears an optional text prop back to unset', async () => {

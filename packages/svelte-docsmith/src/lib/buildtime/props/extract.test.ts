@@ -32,7 +32,7 @@ describe('createPropsExtractor', COLD, () => {
 			bindable: false,
 			description: 'Visual intent. See <a href="/docs/tones">tones</a> and <code>Tone</code>.',
 			control: { kind: 'options', options: ['neutral', 'info', 'danger'] },
-			initial: 'neutral'
+			literalDefault: 'neutral'
 		});
 		expect(byName.title).toMatchObject({ type: 'string', required: true });
 		expect(byName.items).toMatchObject({ type: 'Item[]', default: '[]', required: false });
@@ -44,34 +44,40 @@ describe('createPropsExtractor', COLD, () => {
 	it('derives a playground control and starting value from each type', async () => {
 		const { props, warnings } = await extract('controls');
 		expect(warnings).toEqual([]);
-		const pick = ({ control, initial }: { control?: unknown; initial?: unknown }) => ({
+		const pick = ({
 			control,
-			initial
+			literalDefault
+		}: {
+			control?: unknown;
+			literalDefault?: unknown;
+		}) => ({
+			control,
+			literalDefault
 		});
 		const byName = Object.fromEntries(props.props.map((p) => [p.name, pick(p)]));
 		expect(byName).toEqual({
 			tone: {
 				control: { kind: 'options', options: ['neutral', 'info', 'danger'] },
-				initial: 'info'
+				literalDefault: 'info'
 			},
 			// A template literal without expressions is still a literal.
-			label: { control: { kind: 'text' }, initial: 'Hello' },
-			count: { control: { kind: 'number' }, initial: -1 },
-			step: { control: { kind: 'options', options: [1, 2, 3] }, initial: 2 },
+			label: { control: { kind: 'text' }, literalDefault: 'Hello' },
+			count: { control: { kind: 'number' }, literalDefault: -1 },
+			step: { control: { kind: 'options', options: [1, 2, 3] }, literalDefault: 2 },
 			// A $bindable() fallback is a default like any other.
-			open: { control: { kind: 'boolean' }, initial: false },
+			open: { control: { kind: 'boolean' }, literalDefault: false },
 			// A computed default leaves the component to apply it.
-			id: { control: { kind: 'text' }, initial: undefined },
+			id: { control: { kind: 'text' }, literalDefault: undefined },
 			// A cast is not a literal, so it starts unset too.
-			size: { control: { kind: 'options', options: ['sm', 'lg'] }, initial: undefined },
+			size: { control: { kind: 'options', options: ['sm', 'lg'] }, literalDefault: undefined },
 			// `null` only makes it unsettable.
-			mode: { control: { kind: 'options', options: ['a', 'b'] }, initial: undefined },
-			value: { control: undefined, initial: undefined },
-			data: { control: undefined, initial: undefined },
-			onpick: { control: undefined, initial: undefined },
+			mode: { control: { kind: 'options', options: ['a', 'b'] }, literalDefault: undefined },
+			value: { control: undefined, literalDefault: undefined },
+			data: { control: undefined, literalDefault: undefined },
+			onpick: { control: undefined, literalDefault: undefined },
 			// Deprecated props stay out of the playground.
-			old: { control: undefined, initial: undefined },
-			children: { control: undefined, initial: undefined }
+			old: { control: undefined, literalDefault: undefined },
+			children: { control: undefined, literalDefault: undefined }
 		});
 	});
 

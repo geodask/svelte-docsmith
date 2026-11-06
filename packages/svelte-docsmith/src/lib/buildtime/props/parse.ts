@@ -5,6 +5,7 @@
  * attribute. Types, optionality and descriptions come from ./typescript.ts.
  */
 import { parse } from 'svelte/compiler';
+import type { PropValue } from '../../core/extracted-props.js';
 import { splitTopLevel } from '../../utils/type-text.js';
 
 export interface DestructuredProp {
@@ -12,7 +13,7 @@ export interface DestructuredProp {
 	/** Source text of the default value. */
 	default?: string;
 	/** The default as a value, when it is a string, number or boolean literal. */
-	literal?: string | number | boolean;
+	literal?: PropValue;
 	bindable: boolean;
 }
 
@@ -118,7 +119,7 @@ function defaultOf(value: Node, code: string): Omit<DestructuredProp, 'name'> {
 }
 
 /** `'a'`, `3`, `-1`, `true` as values; anything computed is `undefined`. */
-function literalOf(node: Node): string | number | boolean | undefined {
+function literalOf(node: Node): PropValue | undefined {
 	if (node.type === 'Literal') {
 		const value = node.value;
 		return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'

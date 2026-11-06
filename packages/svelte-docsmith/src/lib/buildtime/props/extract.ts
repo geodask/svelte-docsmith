@@ -190,7 +190,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 						deprecated: prop.deprecated,
 						description: prop.description,
 						control,
-						initial: control && fitsControl(control, destructured?.literal)
+						literalDefault: control && asControlValue(control, destructured?.literal)
 					})
 				);
 			}
@@ -217,8 +217,8 @@ export function componentName(file: string): string {
 		.join('');
 }
 
-/** A literal default as the control's starting value, when the control can hold it. */
-function fitsControl(control: PropControl, value: PropValue | undefined): PropValue | undefined {
+/** A literal default as a value the control can hold, or `undefined` when it can't. */
+function asControlValue(control: PropControl, value: PropValue | undefined): PropValue | undefined {
 	if (value === undefined) return undefined;
 	switch (control.kind) {
 		case 'boolean':
