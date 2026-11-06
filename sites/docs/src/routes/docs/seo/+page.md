@@ -158,6 +158,15 @@ Both follow your sidebar reading order, grouping pages by `section` and sorting
 by `order`. Each page's title becomes an `h1`, and its `description` frontmatter
 annotates the link in the index.
 
+Each page's text is its agent markdown: the page as a coding agent should read
+it. A generated props table is written out as a markdown table, under a heading
+with the component's name. Each `LiveExample` is written out as its source, in a
+`svelte` code block. Hand-written props tables stay as you wrote them. This is
+experimental, like [generated props tables](/docs/components/props-table).
+
+To let agents search your docs and read one page at a time instead of the whole
+file, add an [MCP server](/docs/mcp-server).
+
 <Callout variant="tip">
 
 You are reading these docs through this exact pipeline. Open
@@ -177,7 +186,10 @@ it on with the `copyPage` prop on `DocsShell`:
 ```
 
 The split button copies the page as Markdown, and its dropdown links to the raw
-`.md`, or opens the page in ChatGPT or Claude. It expects each page to be
+`.md`, or opens the page in ChatGPT or Claude. All of them use the page's agent
+markdown, props tables and example code included. With an
+[MCP server](/docs/mcp-server) and `mcp` set in your config, the dropdown also
+offers "Connect to your editor". The button expects each page to be
 available at `<path>.md`, so add one catch-all endpoint,
 `src/routes/[...slug].md/+server.ts`:
 

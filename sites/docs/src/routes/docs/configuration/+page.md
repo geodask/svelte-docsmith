@@ -16,12 +16,12 @@ their own pages in the [Components](/docs/components/callout) section.
 
 ## Package exports
 
-- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, `generateFeed`, `generateLlmsTxt`, `generateLlmsFullTxt`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
+- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, `generateFeed`, `generateLlmsTxt`, `generateLlmsFullTxt`, `mcpHandler` (see [MCP server](/docs/mcp-server)), and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
 - **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor, passed to `sveltekit({ preprocess })` in `vite.config.ts` (or `svelte.config.js` on SvelteKit 2).
 - **`svelte-docsmith/vite`**: the Vite plugin (content, search, llms and changelog indexes, plus the `?source` and `?props` transforms).
 - **`svelte-docsmith/content`**: the generated sidebar index, exported as `docs`.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
-- **`svelte-docsmith/llms`**: the generated per-page markdown index, exported as `docs` (see [SEO](/docs/seo)).
+- **`svelte-docsmith/llms`**: the generated per-page agent markdown index, with props tables and example code written out, exported as `docs` (see [SEO](/docs/seo)).
 - **`svelte-docsmith/changelog`**: the generated release index, exported as `releases` (see [Changelog](/docs/changelog)).
 - **`svelte-docsmith/mermaid`**: the diagram component, imported for you by a ` ```mermaid ` fence. You never import it directly.
 - **`svelte-docsmith/theme.css`**: the base style contract.
@@ -59,6 +59,10 @@ const config = defineConfig({
 		Base URL for the per-page “Edit this page” link, e.g.
 		<code>https://github.com/you/repo/edit/main/apps/docs</code>. Each page's source
 		path is appended. (“Last updated” is added from git automatically.)
+	</Prop>
+	<Prop name="mcp" type="string">
+		Path of your <a href="/docs/mcp-server">MCP server</a>, e.g. <code>/mcp</code>, or a
+		full URL. Adds “Connect to your editor” to the copy-page menu. Experimental.
 	</Prop>
 	<Prop name="github" type="string">
 		GitHub URL; renders a link in the header when set.
@@ -222,7 +226,8 @@ contents.
 	<Prop name="copyPage" type="boolean" default="false">
 		Show the "Copy page" split button on doc pages (copy as Markdown, view the
 		raw <code>.md</code>, or open in ChatGPT / Claude). Needs the <code>.md</code>
-		endpoint. See <a href="/docs/seo">SEO</a>.
+		endpoint. See <a href="/docs/seo">SEO</a>. With <code>config.mcp</code> set, it also
+		offers “Connect to your editor”.
 	</Prop>
 	<Prop name="readingTime" type="boolean" default="true">
 		Show the estimated reading time on doc pages (computed at build time from
@@ -306,6 +311,7 @@ theme). Drop it into a SvelteKit `+error.svelte`:
   entry and the shape returned by [`createSearchEngine`](/docs/search).
 - **`ResolvedVersion`**: one entry of the generated version manifest. See
   [Versioning](/docs/versioning).
+- **`McpOptions`**: what `mcpHandler` takes. See [MCP server](/docs/mcp-server).
 - **`CalloutVariant`** / **`BadgeVariant`**: the intent unions for `Callout` and `Badge`.
 
 The vendored shadcn primitives and internal helpers (the TOC engine, the
