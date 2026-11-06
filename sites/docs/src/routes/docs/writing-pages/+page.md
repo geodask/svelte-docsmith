@@ -80,16 +80,53 @@ typo into a build error.
 
 </Callout>
 
+### Custom fields
+
+Any other key you put in frontmatter is yours. It reaches the content index as
+`data` on that page's entry, so the sidebar, a custom layout, or your own
+listing page can use it:
+
+```md
+---
+title: Middleware
+section: Guides
+draft: true
+badge: New
+---
+```
+
+```ts
+import { docs } from 'svelte-docsmith/content';
+
+const published = docs.filter((doc) => !doc.data?.draft);
+```
+
+`data` is untyped until you declare your fields, once, in `src/app.d.ts`:
+
+```ts
+// src/app.d.ts
+declare module 'svelte-docsmith' {
+	interface DocsFrontmatter {
+		draft?: boolean;
+		badge?: string;
+	}
+}
+```
+
+The content index loads on every page, so keep custom fields small: a flag or a
+label, not a paragraph. Search and `llms.txt` don't include them.
+
 ### Validating frontmatter
 
-The fields above are always type-checked: `order: "2"` or a `title` that YAML
+The built-in fields are always type-checked: `order: "2"` or a `title` that YAML
 reads as a number fails the build with the page's path, instead of quietly
 dropping the page from where you expected it.
 
-To check your own fields, or to reject keys you never defined, pass a `schema`
-to the [`docsmith()` Vite plugin](/docs/configuration#docsmith-vite-plugin). Any
+Declaring a custom field types it but doesn't check it. To check your fields, or
+to reject keys you never defined, pass a `schema` to the
+[`docsmith()` Vite plugin](/docs/configuration#docsmith-vite-plugin). Any
 [Standard Schema](https://standardschema.dev) works: Zod, Valibot, ArkType and
-others. A strict object catches a typo like `ordr: 2`:
+others. A strict object also catches a typo like `ordr: 2`:
 
 ```ts
 // vite.config.ts
@@ -102,7 +139,8 @@ docsmith({
 		section: z.union([z.string(), z.array(z.string())]).optional(),
 		order: z.number().optional(),
 		lastUpdated: z.string().optional(),
-		draft: z.boolean().optional()
+		draft: z.boolean().optional(),
+		badge: z.string().optional()
 	})
 });
 ```
@@ -110,7 +148,7 @@ docsmith({
 Every page with a frontmatter block is checked, and one error lists every
 problem on every page. A strict schema has to list the built-in fields too. The
 schema only validates: transforms and defaults in it don't change what the page
-or the sidebar sees.
+or the content index sees.
 
 ## Headings
 

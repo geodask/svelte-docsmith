@@ -81,7 +81,8 @@ export interface DocsmithViteOptions {
 	 * A schema every page's frontmatter must pass: any Standard Schema, such as
 	 * Zod, Valibot or ArkType. Use it to require your own fields, or make it
 	 * strict so a typo'd key like `ordr` fails the build. It only validates: its
-	 * output, transforms and defaults are not used. The fields docsmith reads
+	 * output, transforms and defaults are not used, so custom fields reach each
+	 * content entry's `data` as written. The fields docsmith reads
 	 * (`title`, `section`, `order`, …) are type-checked with or without one.
 	 */
 	schema?: StandardSchemaV1;

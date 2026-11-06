@@ -6,6 +6,27 @@
  */
 
 /**
+ * The custom fields in a page's frontmatter: every key besides the ones
+ * svelte-docsmith reads itself (`title`, `description`, `section`, `order`,
+ * `lastUpdated`). Untyped until you declare your fields, once, in `src/app.d.ts`:
+ *
+ * ```ts
+ * declare module 'svelte-docsmith' {
+ * 	interface DocsFrontmatter {
+ * 		draft?: boolean;
+ * 		badge?: string;
+ * 	}
+ * }
+ * ```
+ *
+ * Declaring a field types it; it does not check it. Pair it with a `schema` in
+ * `docsmith()` so a page that disagrees fails the build.
+ */
+export interface DocsFrontmatter {
+	[key: string]: unknown;
+}
+
+/**
  * The minimal shape `DocsShell` needs from each content entry to build the
  * sidebar. The generated `svelte-docsmith/content` module produces these from
  * your pages' frontmatter; any source with matching title/path/section/order
@@ -46,6 +67,12 @@ export type DocsContentItem = {
 	 * versions (`docsmith({ versions })`). `undefined` on unversioned sites.
 	 */
 	version?: string;
+	/**
+	 * The page's custom frontmatter fields (see {@link DocsFrontmatter}), exactly
+	 * as written. Absent when the page has none. It ships in the content index
+	 * every page loads, so keep it to small values.
+	 */
+	data?: DocsFrontmatter;
 };
 
 /**

@@ -1,7 +1,7 @@
 /**
  * Checking each page's frontmatter before any index is built from it. The
- * indexes drop a field of the wrong type rather than carry it, and an unknown
- * key is never read at all, so without this a typo like `ordr: 2` or
+ * indexes drop a built-in field of the wrong type rather than carry it, and an
+ * unknown key is just a custom field, so without this a typo like `ordr: 2` or
  * `order: "2"` builds fine and only shows up as a page in the wrong place.
  *
  * Two layers, both reported together so one build lists every problem:
@@ -64,6 +64,9 @@ const BUILTIN_FIELDS: [key: string, ok: (value: unknown) => boolean, expected: s
 	['order', (v) => typeof v === 'number' && Number.isFinite(v), 'a number'],
 	['lastUpdated', (v) => isString(v) && DAY.test(v), 'a YYYY-MM-DD date']
 ];
+
+/** The frontmatter keys svelte-docsmith reads itself; every other key is the author's own. */
+export const BUILTIN_KEYS: ReadonlySet<string> = new Set(BUILTIN_FIELDS.map(([key]) => key));
 
 function builtinIssues(frontmatter: Record<string, unknown>): Issue[] {
 	const issues: Issue[] = [];

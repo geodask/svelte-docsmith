@@ -12,6 +12,7 @@ import { firstSegmentUnder } from '#lib/utils/url.js';
 import { docsBaseFrom, urlFor } from '../paths.js';
 import { titleOf, type SourcePage } from './pages.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
+import { BUILTIN_KEYS } from './frontmatter-schema.js';
 
 /** Where the pages sit, which is what turns a page's file into a URL and a version. */
 export type IndexOptions = {
@@ -107,6 +108,16 @@ function numberField(front: Record<string, unknown>, key: string): number | unde
 }
 
 /**
+ * The author's own frontmatter: every key svelte-docsmith does not read itself,
+ * as written. `undefined` when there are none, so a page without custom fields
+ * adds nothing to the eagerly-loaded content index.
+ */
+function customFields(front: Record<string, unknown>): Record<string, unknown> | undefined {
+	const entries = Object.entries(front).filter(([key]) => !BUILTIN_KEYS.has(key));
+	return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
+/**
  * The sidebar's index: the frontmatter fields navigation needs, plus the heading
  * list for a server-rendered TOC and an estimated reading time. Served as the
  * eagerly-imported `svelte-docsmith/content` virtual module.
@@ -125,7 +136,8 @@ export function contentIndex(pages: SourcePage[], options: IndexOptions): DocsCo
 		lastUpdated: page.lastUpdated,
 		readingTime: readingMinutes(extractSearchText(page.source)),
 		toc: extractToc(page.source),
-		version: page.version
+		version: page.version,
+		data: customFields(page.frontmatter)
 	}));
 }
 

@@ -298,7 +298,9 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 
 - **`DocsmithConfig`**: the config object above.
 - **`DocsContentItem`**: a content-index entry with `title`, `path`, and optional
-  `section`, `order`, `description`, `toc`.
+  `section`, `order`, `description`, `toc`, and `data`.
+- **`DocsFrontmatter`**: the type of `data`, a page's custom frontmatter fields.
+  Extend it to type yours. See [Custom fields](/docs/writing-pages#custom-fields).
 - **`SearchDoc`** / **`SearchResult`** / **`SearchEngine`**: the search index
   entry and the shape returned by [`createSearchEngine`](/docs/search).
 - **`ResolvedVersion`**: one entry of the generated version manifest. See
