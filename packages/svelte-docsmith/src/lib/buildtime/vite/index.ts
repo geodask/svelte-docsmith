@@ -27,7 +27,7 @@ import { DEFAULT_THEMES, lazyHighlighter } from '../highlight.js';
 import { checkVersions, resolveVersions, type DocsVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
-import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
+import { isPageFile, readSourcePages, titleOf, withCommitDates, type SourcePage } from './pages.js';
 import { contentIndex, llmsIndex, searchIndex } from './collect.js';
 import { agentMarkdownFor, type AgentMarkdownHost } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
@@ -207,7 +207,9 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 	// without a props import never load TypeScript.
 	const buildLlmsIndex = async (pages: SourcePage[], host: AgentMarkdownHost) => {
 		const rewrites = new Map<string, (content: string) => string>();
-		for (const page of pages) {
+		// Only the pages the index keeps (`llmsIndex` drops untitled ones), so a
+		// dropped page can't warn or load TypeScript.
+		for (const page of pages.filter((page) => titleOf(page) !== undefined)) {
 			const rewrite = await agentMarkdownFor(page, host);
 			if (rewrite) rewrites.set(page.file, rewrite);
 		}

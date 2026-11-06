@@ -622,6 +622,21 @@ describe('agent markdown', () => {
 		expect(ctx.addWatchFile).toHaveBeenCalledWith(unreadable);
 	});
 
+	it('builds no agent markdown for a page left out of the index', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage(
+			'docs/untitled',
+			'description: No title, so not indexed.',
+			"<script>\n\timport gone from '#lib/gone.svelte?source';\n</script>\n\n<LiveExample source={gone} />"
+		);
+
+		const { content, ctx } = await agentMarkdown();
+
+		expect(content).toEqual({});
+		expect(ctx.resolve).not.toHaveBeenCalled();
+		expect(ctx.warn).not.toHaveBeenCalled();
+	});
+
 	it('leaves the search index as it was', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writeFile('docs/examples/counter.svelte', COUNTER);
