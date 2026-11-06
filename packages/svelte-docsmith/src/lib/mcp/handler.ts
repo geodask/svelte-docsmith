@@ -10,8 +10,9 @@
 import type { LlmsDoc, SearchDoc } from '#lib/core/content.js';
 import type { ResolvedVersion } from '#lib/core/version.js';
 import type { LlmsSite } from '#lib/generate/llms.js';
+import { createSearchEngine, type SearchEngine } from '#lib/search/create-search.js';
 import { editorSetups } from './connect.js';
-import { checkArguments, tools, type ToolContext } from './tools.js';
+import { checkArguments, text, tools, type ToolContext } from './tools.js';
 
 /**
  * What the MCP server answers from: the same indexes that feed llms.txt and
@@ -101,6 +102,11 @@ const isId = (value: unknown): value is Id =>
  * @experimental Outside the 1.0 stability promise. May change in a minor.
  */
 export function mcpHandler(options: McpOptions) {
+	// Indexing is the costly part of search, so do it once, and only when an
+	// agent first searches: a serverless instance may never be asked to.
+	let engine: SearchEngine | undefined;
+	const searchEngine = () => (engine ??= createSearchEngine(options.search));
+
 	const methods: Record<string, Method> = {
 		initialize: (params) => ({
 			protocolVersion: negotiate(params.protocolVersion),
@@ -136,8 +142,10 @@ export function mcpHandler(options: McpOptions) {
 			if (!isObject(args)) {
 				throw new RpcError(INVALID_PARAMS, `${tool.name}: arguments must be an object`);
 			}
+			// A bad argument is a tool error, not a protocol error, so the model
+			// sees what was wrong and can retry (MCP 2025-11-25, server/tools).
 			const problem = checkArguments(tool.inputSchema, args);
-			if (problem) throw new RpcError(INVALID_PARAMS, `${tool.name}: ${problem}`);
+			if (problem) return text(`${tool.name}: ${problem}`, true);
 			return tool.call(args, context);
 		}
 	};
@@ -205,7 +213,7 @@ export function mcpHandler(options: McpOptions) {
 		return answer(message, request.headers.get('mcp-protocol-version'), {
 			site: options.site,
 			docs: options.docs,
-			search: options.search,
+			searchEngine,
 			versions: options.versions ?? [],
 			endpoint: new URL(request.url)
 		});

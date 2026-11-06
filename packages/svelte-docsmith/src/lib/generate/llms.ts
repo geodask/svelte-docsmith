@@ -24,9 +24,10 @@ export type LlmsSite = {
  * Group docs by section and put both the sections and the docs within them in
  * sidebar reading order: items by their `order`, sections by the smallest
  * `order` they contain. Mirrors `navFromContent` so the LLM index matches the
- * on-page navigation instead of falling back to path-alphabetical order.
+ * on-page navigation instead of falling back to path-alphabetical order. The MCP
+ * server's `list_pages` uses it too, so every agent surface agrees on the order.
  */
-function bySection(docs: LlmsDoc[]): Array<[string, LlmsDoc[]]> {
+export function bySection(docs: LlmsDoc[]): Array<[string, LlmsDoc[]]> {
 	const groups = new Map<string, { minOrder: number; items: LlmsDoc[] }>();
 	for (const doc of docs) {
 		const section = doc.section ?? 'Docs';
