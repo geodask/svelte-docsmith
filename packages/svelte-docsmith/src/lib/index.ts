@@ -81,3 +81,9 @@ export { generateLlmsTxt, generateLlmsFullTxt, type LlmsSite } from './generate/
 export { default as Changelog } from './components/changelog/changelog.svelte';
 export type { ChangelogRelease, ChangelogGroup } from './core/changelog.js';
 export { generateFeed, type FeedSite } from './generate/feed.js';
+
+// MCP server (experimental — outside the 1.0 stability promise). Wire it into
+// `src/routes/mcp/+server.ts` over the generated `svelte-docsmith/llms`,
+// `/search` and `/content` indexes, with `prerender = false`: it needs a server
+// runtime.
+export { mcpHandler, type McpOptions } from './mcp/handler.js';

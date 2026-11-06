@@ -46,6 +46,8 @@ export default defineConfig({
 				'src/lib/generate/llms.ts',
 				'src/lib/generate/feed.ts',
 				'src/lib/generate/xml.ts',
+				'src/lib/mcp/handler.ts',
+				'src/lib/mcp/tools.ts',
 				'src/lib/buildtime/paths.ts',
 				'src/lib/toc/from-content.ts',
 				'src/lib/toc/toc.svelte.ts',
