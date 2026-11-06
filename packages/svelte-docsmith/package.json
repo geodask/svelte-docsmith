@@ -115,7 +115,7 @@
 		"svelte-check": "^4.7.8",
 		"tailwindcss": "^4.3.4",
 		"twoslash-svelte": "0.3.9",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"vite": "^8.3.6",
 		"vitest": "^5.1.0"
 	},

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import { BROWSER } from 'esm-env';
 	import { Button } from '$lib/components/shadcn/button/index.js';
 	import * as DropdownMenu from '$lib/components/shadcn/dropdown-menu/index.js';
 	import Check from '@lucide/svelte/icons/check';
@@ -24,7 +24,7 @@
 	const mdHref = $derived(`${path}.md`);
 	// Before hydration with no configured origin there is nothing to prefix, and
 	// `join` leaves the link site-relative rather than mangling it.
-	const absoluteMd = $derived(join(origin || (browser ? location.origin : ''), mdHref));
+	const absoluteMd = $derived(join(origin || (BROWSER ? location.origin : ''), mdHref));
 	const prompt = $derived(`Read ${absoluteMd} so I can ask questions about this page.`);
 	const chatgptHref = $derived(`https://chatgpt.com/?hints=search&q=${encodeURIComponent(prompt)}`);
 	const claudeHref = $derived(`https://claude.ai/new?q=${encodeURIComponent(prompt)}`);
