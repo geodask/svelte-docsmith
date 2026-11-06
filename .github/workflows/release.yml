@@ -97,16 +97,18 @@ jobs:
 
       - name: Create Release PR or Publish
         id: changesets
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        uses: changesets/action@v1
+        # v2 is the line for @changesets/cli 3: it reads what was published
+        # from the CLI's CHANGESETS_OUTPUT report. v1 looked for "New tag:"
+        # lines that CLI 3 no longer prints, so it never saw a publish: no
+        # git tags, no GitHub releases and `published` stayed false.
+        uses: changesets/action@v2
         with:
           # ci:version wraps `changeset version` to keep the CLI template's
           # svelte-docsmith pin in range (scripts/sync-template-pin.mjs).
-          version: pnpm ci:version
-          publish: pnpm ci:publish
-          title: "chore: version packages"
-          commit: "chore: version packages"
+          version-script: pnpm ci:version
+          publish-script: pnpm ci:publish
+          pr-title: "chore: version packages"
+          commit-message: "chore: version packages"
 
   # The docs site reads the library version from the workspace, so it is
   # redeployed once that version is actually on npm, or for a docs-only push
