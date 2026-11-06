@@ -96,8 +96,10 @@ don't need one.
 
 On master, the Release workflow collects pending changesets into a
 `chore: version packages` PR. Merging that PR publishes to npm (trusted
-publishing, no token) and then redeploys the docs site, which is otherwise only
-deployed by hand from the **Deploy docs** workflow.
+publishing, no token) and then redeploys the docs site. A push that only edits
+the docs site (`sites/docs`) redeploys it too, unless changesets are pending:
+then those docs go live with the next release. The **Deploy docs** workflow
+redeploys by hand.
 
 ### Commit messages
 
