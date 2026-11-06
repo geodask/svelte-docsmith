@@ -25,7 +25,13 @@ import {
 } from './typescript.js';
 
 export interface ExtractResult {
+	/** What `<PropsTable of={…}>` renders: descriptions as inline HTML. */
 	props: ExtractedProps;
+	/**
+	 * The same props with descriptions and deprecation notes as the JSDoc's own
+	 * markdown, for agent markdown.
+	 */
+	markdown: ExtractedProps;
 	warnings: string[];
 	/** Files whose changes should re-extract this component. */
 	watchFiles: string[];
@@ -118,17 +124,35 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 			);
 		}
 
+		// Rows are built once, with JSDoc as markdown; the rendered table's copy
+		// differs only in turning that markdown into HTML.
+		const done = (watchFiles: string[]): ExtractResult => ({
+			props: {
+				...extracted,
+				props: extracted.props.map((prop) =>
+					clean({
+						...prop,
+						deprecated: prop.deprecated === undefined ? undefined : renderMarkdown(prop.deprecated),
+						description: prop.description ? renderMarkdown(prop.description) : undefined
+					})
+				)
+			},
+			markdown: extracted,
+			warnings,
+			watchFiles
+		});
+
 		let parsed;
 		try {
 			parsed = parseComponent(fs.readFileSync(file, 'utf-8'), file);
 		} catch (error) {
 			warn(`could not parse the component (${message(error)}).`);
-			return { props: extracted, warnings, watchFiles: [file] };
+			return done([file]);
 		}
 		extracted.typeParameters = parsed.typeParameters;
 		if (!parsed.hasProps) {
 			warn('no `$props()` found, so the props table is empty.');
-			return { props: extracted, warnings, watchFiles: [file] };
+			return done([file]);
 		}
 
 		let typed: TypedComponent | undefined;
@@ -155,8 +179,8 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 						default: fallback,
 						required: !prop.optional && fallback === undefined,
 						bindable: destructured?.bindable ?? false,
-						deprecated: prop.deprecated === undefined ? undefined : renderMarkdown(prop.deprecated),
-						description: prop.description ? renderMarkdown(prop.description) : undefined
+						deprecated: prop.deprecated,
+						description: prop.description
 					})
 				);
 			}
@@ -169,11 +193,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 			}
 		}
 
-		return {
-			props: extracted,
-			warnings,
-			watchFiles: [...new Set([file, ...(typed?.files ?? [])])]
-		};
+		return done([...new Set([file, ...(typed?.files ?? [])])]);
 	}
 }
 

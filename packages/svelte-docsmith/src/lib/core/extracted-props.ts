@@ -39,3 +39,12 @@ export interface InheritedAttributes {
 	kind: 'element' | 'type';
 	label: string;
 }
+
+/**
+ * A generated props table's caption when the author gives no `title`: the
+ * component's name, with its type parameters for a generic (`Select<T, U>`).
+ */
+export function propsCaption(props: ExtractedProps): string {
+	const params = props.typeParameters;
+	return props.name + (params.length ? `<${params.join(', ')}>` : '');
+}
