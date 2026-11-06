@@ -1,11 +1,16 @@
 import GithubSlugger from 'github-slugger';
-import { proseLines, splitFrontmatter } from '../markdown-source.js';
+import { outsideCodeFenceRuns, proseLines, splitFrontmatter } from '../markdown-source.js';
 
 export type TocEntry = { id: string; title: string; depth: 2 | 3 };
 
-/** Drop a page's `<script>`/`<style>` blocks: component setup, not content. */
+/**
+ * Drop a page's `<script>`/`<style>` blocks: component setup, not content. One
+ * inside a fenced code sample is part of the sample, and stays.
+ */
 function withoutSetupBlocks(body: string): string {
-	return body.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+	return outsideCodeFenceRuns(body, (prose) =>
+		prose.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '')
+	);
 }
 
 /** Strip inline markdown so a heading's TOC label is plain text. */

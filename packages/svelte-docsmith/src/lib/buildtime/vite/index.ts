@@ -32,7 +32,7 @@ import { contentIndex, llmsIndex, searchIndex } from './collect.js';
 import { agentMarkdownFor, type AgentMarkdownHost } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
-import { createPropsExtractor, type PropsExtractor } from '../props/extract.js';
+import { createPropsExtractor, type ExtractResult, type PropsExtractor } from '../props/extract.js';
 import { checkFrontmatter, type StandardSchemaV1 } from './frontmatter-schema.js';
 
 export interface DocsmithViteOptions {
@@ -201,8 +201,10 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 		}));
 
 	// What agents read: each page as agent markdown, with its `LiveExample`s
-	// written out as code. Resolving a page's imports needs the plugin context,
-	// so the load hook passes it in as `host`.
+	// written out as code and its generated props tables as markdown tables.
+	// Resolving a page's imports needs the plugin context, so the load hook
+	// passes it in as `host`; props come from the shared extractor, so pages
+	// without a props import never load TypeScript.
 	const buildLlmsIndex = async (pages: SourcePage[], host: AgentMarkdownHost) => {
 		const rewrites = new Map<string, (content: string) => string>();
 		for (const page of pages) {
@@ -274,7 +276,8 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 					resolve: async (specifier, importer) =>
 						(await this.resolve(specifier, importer, { skipSelf: true }))?.id,
 					watch: (file) => this.addWatchFile(file),
-					warn: (message) => this.warn(message)
+					warn: (message) => this.warn(message),
+					props: async (file) => (await extractProps(extractor, file, this)).markdown
 				});
 				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
@@ -357,8 +360,24 @@ const PROPS_EXT = '.docsmith-props';
 const PROPS_SUFFIX = '?props';
 
 // A cached result comes back as the same object; warn about it once, not once
-// per build.
+// per build (or once per props import and again for the llms index).
 const warned = new WeakSet<object>();
+
+/**
+ * Extract one component's props from a plugin hook: watch the files they were
+ * read from, so editing one re-runs the hook, and pass on the warnings.
+ */
+async function extractProps(
+	extractor: SharedPropsExtractor,
+	file: string,
+	ctx: { addWatchFile(file: string): void; warn(message: string): void }
+): Promise<ExtractResult> {
+	const result = await extractor.get().extract(file);
+	for (const watched of result.watchFiles) ctx.addWatchFile(watched);
+	if (!warned.has(result)) for (const warning of result.warnings) ctx.warn(warning);
+	warned.add(result);
+	return result;
+}
 
 function propsPlugin(extractor: SharedPropsExtractor): Plugin {
 	return {
@@ -379,11 +398,7 @@ function propsPlugin(extractor: SharedPropsExtractor): Plugin {
 		async load(id) {
 			if (!id.startsWith(PROPS_PREFIX)) return;
 			const file = id.slice(PROPS_PREFIX.length, -PROPS_EXT.length);
-			const result = await extractor.get().extract(file);
-			const { props, warnings, watchFiles } = result;
-			for (const watched of watchFiles) this.addWatchFile(watched);
-			if (!warned.has(result)) for (const warning of warnings) this.warn(warning);
-			warned.add(result);
+			const { props } = await extractProps(extractor, file, this);
 			return `export default ${JSON.stringify(props)};`;
 		}
 	};
