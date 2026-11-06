@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { DocsShell, LiveExample, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
-	import CodeWindow from '$lib/components/landing/code-window.svelte';
-	import EarlyReleaseAlert from '$lib/components/early-release-alert.svelte';
-	import { reveal } from '$lib/actions/reveal';
+	import { siteConfig } from '#lib/site-config.ts';
+	import CodeWindow from '#lib/components/landing/code-window.svelte';
+	import EarlyReleaseAlert from '#lib/components/early-release-alert.svelte';
+	import { reveal } from '#lib/actions/reveal.ts';
 
-	import HeroDemo from '$lib/examples/hero-demo.svelte';
-	import Counter from '$lib/examples/counter.svelte';
-	import { heroSource, counterSource } from '$lib/examples/sources';
+	import HeroDemo from '#lib/examples/hero-demo.svelte';
+	import Counter from '#lib/examples/counter.svelte';
+	import { heroSource, counterSource } from '#lib/examples/sources.ts';
 
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import Check from '@lucide/svelte/icons/check';

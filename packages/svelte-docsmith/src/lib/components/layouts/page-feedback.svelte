@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/shadcn/button/index.js';
+	import { Button } from '#lib/components/shadcn/button/index.js';
 	import ThumbsUp from '@lucide/svelte/icons/thumbs-up';
 	import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
 	import SquarePen from '@lucide/svelte/icons/square-pen';

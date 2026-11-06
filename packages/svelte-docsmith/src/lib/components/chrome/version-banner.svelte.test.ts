@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
-import type { ResolvedVersion } from '$lib/core/index.js';
+import type { ResolvedVersion } from '#lib/core/index.js';
 import VersionBanner from './version-banner.svelte';
 
 // The current version is unprefixed at the docs root; only archives carry a

@@ -27,9 +27,9 @@
 	"devDependencies": {
 		"@lucide/svelte": "^1.70.0",
 		"@shikijs/twoslash": "4.6.0",
-		"@sveltejs/adapter-auto": "^7.0.1",
-		"@sveltejs/adapter-vercel": "^6.3.5",
-		"@sveltejs/kit": "^2.70.4",
+		"@sveltejs/adapter-auto": "^8.0.0",
+		"@sveltejs/adapter-vercel": "^7.0.0",
+		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.4",
 		"mermaid": "^12.3.0",
@@ -41,5 +41,9 @@
 		"twoslash-svelte": "0.3.9",
 		"typescript": "^6.0.3",
 		"vite": "^8.3.6"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
 	}
 }

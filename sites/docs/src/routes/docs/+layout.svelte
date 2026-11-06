@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { docs, versions } from 'svelte-docsmith/content';
 	import { DocsShell } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
+	import { siteConfig } from '#lib/site-config.ts';
 	import type { Snippet } from 'svelte';
 
 	const { children }: { children: Snippet } = $props();

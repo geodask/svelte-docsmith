@@ -6,7 +6,7 @@
  * is only the fallback that runs when the plugin is missing — see
  * {@link missingPluginError}.
  */
-import type { SearchDoc } from '$lib/core/content.js';
+import type { SearchDoc } from '#lib/core/content.js';
 import { missingPluginError } from './missing-plugin.js';
 
 export const docs: SearchDoc[] = [];

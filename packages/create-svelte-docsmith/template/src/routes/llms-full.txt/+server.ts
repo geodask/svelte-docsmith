@@ -1,7 +1,7 @@
 import { docs } from 'svelte-docsmith/llms';
 import { versions } from 'svelte-docsmith/content';
 import { generateLlmsFullTxt, currentOnly } from 'svelte-docsmith';
-import { siteConfig } from '$lib/site-config';
+import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
-import { resolveVersions, type DocsContentItem, type SearchDoc } from '$lib/core/index.js';
+import { resolveVersions, type DocsContentItem, type SearchDoc } from '#lib/core/index.js';
 
 // The error page mounts the whole shell, and jsdom has no SvelteKit router: a
 // 404 under an archived prefix is the case that matters here.

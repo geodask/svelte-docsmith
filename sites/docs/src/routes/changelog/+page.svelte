@@ -2,7 +2,7 @@
 	import { docs } from 'svelte-docsmith/content';
 	import { releases } from 'svelte-docsmith/changelog';
 	import { DocsShell, Changelog } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
+	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
 <DocsShell

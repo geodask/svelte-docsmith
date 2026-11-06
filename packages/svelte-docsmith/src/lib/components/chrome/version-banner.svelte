@@ -1,7 +1,7 @@
 <script lang="ts">
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import type { ResolvedVersion } from '$lib/core/index.js';
+	import type { ResolvedVersion } from '#lib/core/index.js';
 
 	// Rendered by DocsShell only on an archived version, to warn a reader who
 	// landed there (usually from a search engine) and give them a one-click path

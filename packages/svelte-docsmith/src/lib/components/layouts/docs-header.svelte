@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { Badge } from '$lib/components/shadcn/badge/index.js';
-	import { Button } from '$lib/components/shadcn/button/index.js';
-	import { Separator } from '$lib/components/shadcn/separator/index.js';
-	import GithubIcon from '$lib/components/icons/github.svelte';
+	import { Badge } from '#lib/components/shadcn/badge/index.js';
+	import { Button } from '#lib/components/shadcn/button/index.js';
+	import { Separator } from '#lib/components/shadcn/separator/index.js';
+	import GithubIcon from '#lib/components/icons/github.svelte';
 	import SearchTrigger from '../chrome/search-trigger.svelte';
-	import { useSearch } from '$lib/search/context.svelte.js';
+	import { useSearch } from '#lib/search/context.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
-	import type { DocsmithConfig, DocsmithLink } from '$lib/core/index.js';
+	import type { DocsmithConfig, DocsmithLink } from '#lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/utils/cn.js';
-	import { firstSegmentUnder, join, normalizePath, under } from '$lib/utils/url.js';
+	import { cn } from '#lib/utils/cn.js';
+	import { firstSegmentUnder, join, normalizePath, under } from '#lib/utils/url.js';
 	import { useDocsPage } from '../docs-page-context.js';
 
 	const {

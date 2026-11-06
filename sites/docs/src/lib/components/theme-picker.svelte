@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { mode } from 'mode-watcher';
 	import Check from '@lucide/svelte/icons/check';
-	import type { Theme } from '$lib/themes-data';
+	import type { Theme } from '#lib/themes-data.ts';
 
 	// Presentational theme chooser shared by the /themes page (applies site-wide)
 	// and the in-docs gallery (scoped preview). It owns no state — the parent

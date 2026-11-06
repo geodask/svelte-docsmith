@@ -19,7 +19,7 @@
 </script>
 
 <script lang="ts">
-	import * as AccordionPrimitive from '$lib/components/shadcn/accordion/index.js';
+	import * as AccordionPrimitive from '#lib/components/shadcn/accordion/index.js';
 	import type { Snippet } from 'svelte';
 
 	const {

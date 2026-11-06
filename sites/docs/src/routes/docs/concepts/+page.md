@@ -38,8 +38,8 @@ they run as part of the same app.
 DocSmith ships two things both called `docsmith()`, imported from two entry
 points. They do different jobs:
 
-- `svelte-docsmith/preprocess` is a **Svelte preprocessor**, added in
-  `svelte.config.js`. It runs at compile time and turns each `.md` file into a
+- `svelte-docsmith/preprocess` is a **Svelte preprocessor**, passed to
+  `sveltekit({ preprocess })` in `vite.config.ts`. It runs at compile time and turns each `.md` file into a
   styled, highlighted page (mdsvex, Shiki, heading anchors, the page layout).
 - `svelte-docsmith/vite` is a **Vite plugin**, added in `vite.config.ts`. It
   runs at build time and generates the content index (below) plus the `?source`

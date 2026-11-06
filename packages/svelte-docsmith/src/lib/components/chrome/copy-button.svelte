@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/shadcn/button/index.js';
+	import { Button } from '#lib/components/shadcn/button/index.js';
 	import Check from '@lucide/svelte/icons/check';
 	import Copy from '@lucide/svelte/icons/copy';
 	import { fade } from 'svelte/transition';

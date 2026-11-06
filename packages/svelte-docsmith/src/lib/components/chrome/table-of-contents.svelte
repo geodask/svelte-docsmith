@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/cn.js';
-	import type { TocItem } from '$lib/toc/index.js';
+	import { cn } from '#lib/utils/cn.js';
+	import type { TocItem } from '#lib/toc/index.js';
 	import List from '@lucide/svelte/icons/list';
 
 	const {

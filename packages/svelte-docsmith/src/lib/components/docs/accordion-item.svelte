@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as AccordionPrimitive from '$lib/components/shadcn/accordion/index.js';
+	import * as AccordionPrimitive from '#lib/components/shadcn/accordion/index.js';
 	import { nextAccordionValue } from './accordion.svelte';
 	import type { Snippet } from 'svelte';
 

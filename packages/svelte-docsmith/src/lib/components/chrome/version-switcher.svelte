@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/shadcn/button/index.js';
-	import * as DropdownMenu from '$lib/components/shadcn/dropdown-menu/index.js';
+	import { Button } from '#lib/components/shadcn/button/index.js';
+	import * as DropdownMenu from '#lib/components/shadcn/dropdown-menu/index.js';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
-	import type { VersionLink } from '$lib/core/index.js';
+	import type { VersionLink } from '#lib/core/index.js';
 
 	// Purely presentational: where each version leads is resolved once, with the
 	// rest of the page view, in `core/docs-page.ts`.

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
 	import { DocsShell, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
+	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
 <!--

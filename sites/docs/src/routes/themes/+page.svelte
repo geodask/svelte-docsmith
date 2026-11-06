@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { DocsShell } from 'svelte-docsmith';
 	import { mode, toggleMode } from 'mode-watcher';
-	import { siteConfig } from '$lib/site-config';
-	import { themes, defaultThemeSlug } from '$lib/themes-data';
-	import { themeStore } from '$lib/theme-store.svelte';
-	import ThemePicker from '$lib/components/theme-picker.svelte';
-	import ThemeShowcase from '$lib/components/theme-showcase.svelte';
+	import { siteConfig } from '#lib/site-config.ts';
+	import { themes, defaultThemeSlug } from '#lib/themes-data.ts';
+	import { themeStore } from '#lib/theme-store.svelte.ts';
+	import ThemePicker from '#lib/components/theme-picker.svelte';
+	import ThemeShowcase from '#lib/components/theme-showcase.svelte';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';

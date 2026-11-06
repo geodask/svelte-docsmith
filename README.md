@@ -42,50 +42,54 @@ To add DocSmith to an existing SvelteKit app, install the package instead:
 npm install svelte-docsmith
 ```
 
-Peer dependencies: Svelte 5, SvelteKit 2, and Tailwind v4, set up the standard
-way in your app.
+Peer dependencies: Svelte 5, SvelteKit 2 or 3, and Tailwind v4, set up the
+standard way in your app.
 
 ## Setup
 
-Three small pieces, once.
+Two small pieces, once.
 
-**1. The markdown pipeline.** In `svelte.config.js`, one call bundles mdsvex,
-Shiki highlighting (dual light/dark themes, a generous language set, plain-text
-fallback for unknown languages), heading anchors, and the packaged page layout:
+**1. Vite.** Everything goes in `vite.config.ts`. DocSmith has two halves, both
+called `docsmith()`:
 
-```js
-// svelte.config.js
-import adapter from '@sveltejs/adapter-auto';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { docsmith } from 'svelte-docsmith/preprocess';
-
-export default {
-	extensions: ['.svelte', '.md'],
-	preprocess: [vitePreprocess(), docsmith()],
-	kit: { adapter: adapter() }
-};
-```
-
-**2. The Vite plugin.** In `vite.config.ts`, it scans your doc pages' frontmatter
-into the `svelte-docsmith/content` module (so the sidebar is derived from
-content, never hand-written), builds the search index, and powers `LiveExample`:
+- The **Vite plugin** (`svelte-docsmith/vite`) scans your doc pages' frontmatter
+  into the `svelte-docsmith/content` module (so the sidebar is derived from
+  content, never hand-written), builds the search index, and powers
+  `LiveExample`. It goes before `sveltekit()`.
+- The **markdown pipeline** (`svelte-docsmith/preprocess`) bundles mdsvex, Shiki
+  highlighting (dual light/dark themes, a generous language set, plain-text
+  fallback for unknown languages), heading anchors, and the packaged page layout.
 
 ```ts
 // vite.config.ts
+import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { docsmith } from 'svelte-docsmith/vite';
+import { docsmith as markdown } from 'svelte-docsmith/preprocess';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [docsmith(), tailwindcss(), sveltekit()]
+	plugins: [
+		docsmith(),
+		tailwindcss(),
+		sveltekit({
+			extensions: ['.svelte', '.md'],
+			preprocess: [vitePreprocess(), markdown()],
+			adapter: adapter()
+		})
+	]
 });
 ```
+
+On SvelteKit 2, `extensions` and `preprocess` go in `svelte.config.js` instead,
+and `sveltekit()` takes no options.
 
 By default it scans `src/routes/docs`; pass `docsmith({ content: 'src/routes/guide' })`
 to point elsewhere.
 
-**3. The stylesheet.** In your root `app.css`, once Tailwind v4 is set up the
+**2. The stylesheet.** In your root `app.css`, once Tailwind v4 is set up the
 standard way (`tailwindcss` + the `@tailwindcss/vite` plugin, stylesheet imported
 in the root layout), the whole style contract is one import:
 
@@ -157,8 +161,8 @@ plugin you already added:
 ```svelte
 <script>
 	import { LiveExample } from 'svelte-docsmith';
-	import Counter from '$lib/examples/counter.svelte';
-	import counterSource from '$lib/examples/counter.svelte?source';
+	import Counter from '#lib/examples/counter.svelte';
+	import counterSource from '#lib/examples/counter.svelte?source';
 </script>
 
 <LiveExample source={counterSource}>

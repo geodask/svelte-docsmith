@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { DocsmithConfig, NavGroup } from '$lib/core/index.js';
-	import type { TocItem } from '$lib/toc/index.js';
+	import type { DocsmithConfig, NavGroup } from '#lib/core/index.js';
+	import type { TocItem } from '#lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
-	import { Button } from '$lib/components/shadcn/button/index.js';
-	import * as Popover from '$lib/components/shadcn/popover/index.js';
-	import { ScrollArea } from '$lib/components/shadcn/scroll-area/index.js';
-	import { Separator } from '$lib/components/shadcn/separator/index.js';
-	import * as Sheet from '$lib/components/shadcn/sheet/index.js';
-	import { useSearch } from '$lib/search/context.svelte.js';
+	import { Button } from '#lib/components/shadcn/button/index.js';
+	import * as Popover from '#lib/components/shadcn/popover/index.js';
+	import { ScrollArea } from '#lib/components/shadcn/scroll-area/index.js';
+	import { Separator } from '#lib/components/shadcn/separator/index.js';
+	import * as Sheet from '#lib/components/shadcn/sheet/index.js';
+	import { useSearch } from '#lib/search/context.svelte.js';
 	import { useDocsPage } from '../docs-page-context.js';
-	import GithubIcon from '$lib/components/icons/github.svelte';
+	import GithubIcon from '#lib/components/icons/github.svelte';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import List from '@lucide/svelte/icons/list';
 	import Menu from '@lucide/svelte/icons/menu';

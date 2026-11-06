@@ -27,7 +27,7 @@ contents and gives the sections the full width of the viewport.
 <script>
 	import { docs } from 'svelte-docsmith/content';
 	import { DocsShell, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
+	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
 <DocsShell config={siteConfig} content={docs} layout="page" pattern>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ChangelogRelease } from '$lib/core/changelog.js';
+	import type { ChangelogRelease } from '#lib/core/changelog.js';
 
 	const { release }: { release: ChangelogRelease } = $props();
 

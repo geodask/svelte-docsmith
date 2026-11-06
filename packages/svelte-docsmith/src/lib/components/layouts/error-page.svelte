@@ -5,7 +5,7 @@
 		DocsmithConfig,
 		ResolvedVersion,
 		SearchDoc
-	} from '$lib/core/index.js';
+	} from '#lib/core/index.js';
 	import DocsShell from './docs-shell.svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import type { Snippet } from 'svelte';

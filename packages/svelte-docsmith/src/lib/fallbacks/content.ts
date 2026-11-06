@@ -6,8 +6,8 @@
  * only the fallback that runs when the plugin is missing — see
  * {@link missingPluginError}.
  */
-import type { DocsContentItem } from '$lib/core/content.js';
-import type { ResolvedVersion } from '$lib/core/version.js';
+import type { DocsContentItem } from '#lib/core/content.js';
+import type { ResolvedVersion } from '#lib/core/version.js';
 import { missingPluginError } from './missing-plugin.js';
 
 export const docs: DocsContentItem[] = [];

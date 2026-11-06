@@ -23,7 +23,7 @@ your initial load:
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
 	import { DocsShell } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
+	import { siteConfig } from '#lib/site-config.ts';
 
 	const { children } = $props();
 </script>

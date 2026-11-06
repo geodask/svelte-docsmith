@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
-import type { NavGroup } from '$lib/core/index.js';
+import type { NavGroup } from '#lib/core/index.js';
 
 // The sidebar reads the active route from $app/state; a plain page stand-in is
 // enough since we render one fixed location per test.
