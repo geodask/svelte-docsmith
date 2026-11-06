@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { docs } from 'svelte-docsmith/content';
+	import { content } from 'svelte-docsmith/content';
 	import { releases } from 'svelte-docsmith/changelog';
 	import { DocsShell, Changelog } from 'svelte-docsmith';
 	import { siteConfig } from '#lib/site-config.ts';
@@ -8,7 +8,7 @@
 <DocsShell
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 	config={siteConfig}
-	content={docs}
+	{content}
 	layout="page"
 	pattern
 	seo={{ title: 'Changelog', description: 'What shipped in each release of Svelte DocSmith.' }}

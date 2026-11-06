@@ -1,3 +1,5 @@
+import type { ResolvedVersion } from './version.js';
+
 /**
  * The record types for the generated content indexes. The `docsmith()` Vite
  * plugin emits these at build time as the `svelte-docsmith/content`,
@@ -77,6 +79,19 @@ export type DocsContentItem = {
 };
 
 /**
+ * Everything the docs shell needs to place pages and versions, as the
+ * `content` export of the generated `svelte-docsmith/content` module. Pass it
+ * whole (`<DocsShell {content}>`) so the pages and the version manifest can
+ * never be passed apart.
+ */
+export type DocsContent = {
+	/** Every page's sidebar entry, across all versions. */
+	docs: DocsContentItem[];
+	/** The resolved version manifest; empty on an unversioned site. */
+	versions: ResolvedVersion[];
+};
+
+/**
  * One page's searchable record, emitted at build time by the `docsmith()` vite
  * plugin as the `svelte-docsmith/search` virtual module. `text` is the page's
  * prose and headings reduced to plain text (frontmatter, `<script>` blocks,
@@ -99,7 +114,8 @@ export type SearchDoc = {
 /**
  * One page's record for LLM-facing output, emitted at build time by the
  * `docsmith()` vite plugin as the `svelte-docsmith/llms` virtual module. Feeds
- * `generateLlmsTxt` (an index) and `generateLlmsFullTxt` (the full corpus).
+ * llms.txt (an index), llms-full.txt (the full corpus), the `.md` page twins
+ * and the MCP server, all served from `svelte-docsmith/server`.
  */
 export type LlmsDoc = {
 	path: string;

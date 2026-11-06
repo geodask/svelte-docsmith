@@ -71,7 +71,7 @@ from the generated content index, so there is no nav array to maintain:
 
 ```svelte title="src/routes/docs/+layout.svelte"
 <script lang="ts">
-	import { docs } from 'svelte-docsmith/content';
+	import { content } from 'svelte-docsmith/content';
 	import { DocsShell, defineConfig } from 'svelte-docsmith';
 
 	const config = defineConfig({
@@ -81,7 +81,7 @@ from the generated content index, so there is no nav array to maintain:
 	const { children } = $props();
 </script>
 
-<DocsShell {config} content={docs}>
+<DocsShell {config} {content}>
 	{@render children()}
 </DocsShell>
 ```

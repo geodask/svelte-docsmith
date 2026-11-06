@@ -258,9 +258,6 @@ export function currentVersion(versions: ResolvedVersion[]): ResolvedVersion | u
  * Keep only the current version's pages, for `sitemap.xml` and `llms.txt`, so
  * search engines and LLMs index one canonical set. A no-op when the site
  * declares no versions. Works over any record carrying `version`.
- *
- * @experimental Outside the 1.0 stability promise. May change in a minor until
- * authors have used versioning for real.
  */
 export function currentOnly<T extends { version?: string }>(
 	items: T[],

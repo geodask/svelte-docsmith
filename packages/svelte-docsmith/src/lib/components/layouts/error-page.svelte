@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import type {
+		DocsContent,
 		DocsContentItem,
 		DocsmithConfig,
 		ResolvedVersion,
@@ -24,13 +25,13 @@
 		children
 	}: {
 		config: DocsmithConfig;
-		/** Content index, so the error page keeps the same header/footer as the site. */
-		content?: DocsContentItem[];
 		/**
-		 * The resolved version manifest (same as `DocsShell`). Pass it on a
-		 * versioned site so an error under an archived prefix keeps that version's
-		 * search scope, switcher, and `noindex`.
+		 * The `content` export of `svelte-docsmith/content`, as for `DocsShell`, so
+		 * the error page keeps the site's header and footer, and an error under an
+		 * archived prefix keeps that version's search scope, switcher and `noindex`.
 		 */
+		content?: DocsContent | DocsContentItem[];
+		/** @deprecated Pass the `content` export instead, as for `DocsShell`. */
 		versions?: ResolvedVersion[];
 		/** Enable the ⌘K search palette on the error page (same loader as DocsShell). */
 		search?: (versionId?: string) => Promise<SearchDoc[]>;

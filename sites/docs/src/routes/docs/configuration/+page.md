@@ -16,13 +16,14 @@ their own pages in the [Components](/docs/components/callout) section.
 
 ## Package exports
 
-- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, `generateFeed`, `generateLlmsTxt`, `generateLlmsFullTxt`, `mcpHandler` (see [MCP server](/docs/mcp-server)), and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
+- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
+- **`svelte-docsmith/server`**: ready route handlers for the files a site serves besides its pages: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown` (the `.md` page twins) and `mcpServer`. Each is one line in a `+server.ts` over your site config (see [SEO](/docs/seo), [Changelog](/docs/changelog) and [MCP server](/docs/mcp-server)). Server-only.
 - **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor, passed to `sveltekit({ preprocess })` in `vite.config.ts` (or `svelte.config.js` on SvelteKit 2).
 - **`svelte-docsmith/vite`**: the Vite plugin (content, search, llms and changelog indexes, plus the `?source` and `?props` transforms).
-- **`svelte-docsmith/content`**: the generated sidebar index, exported as `docs`.
+- **`svelte-docsmith/content`**: the generated sidebar index. Its `content` export (the pages as `docs` plus the version manifest as `versions`) is what `DocsShell` and `ErrorPage` take.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
 - **`svelte-docsmith/llms`**: the generated per-page agent markdown index, with props tables and example code written out, exported as `docs` (see [SEO](/docs/seo)).
-- **`svelte-docsmith/changelog`**: the generated release index, exported as `releases` (see [Changelog](/docs/changelog)).
+- **`svelte-docsmith/changelog`**: the generated release index, exported as `releases`, with the route it is served at as `changelogPath` (see [Changelog](/docs/changelog)).
 - **`svelte-docsmith/mermaid`**: the diagram component, imported for you by a ` ```mermaid ` fence. You never import it directly.
 - **`svelte-docsmith/theme.css`**: the base style contract.
 - **`svelte-docsmith/themes/*.css`**: the pre-installed theme presets (see [Theming](/docs/theming)).
@@ -160,8 +161,8 @@ generated [Props Tables](/docs/components/props-table).
 		you publish, or <code>false</code> to skip it.
 	</Prop>
 	<Prop name="changelogPath" type="string" default="'/changelog'">
-		Route the changelog is served at. Used to build feed links and to find
-		hand-written per-release pages.
+		Route the changelog is served at. The feed from <code>changelogFeed()</code> links
+		there, and hand-written per-release pages are found under it.
 	</Prop>
 	<Prop name="tsconfig" type="string" default="'tsconfig.json'">
 		The tsconfig used to read prop types for <code>?props</code> imports, relative to
@@ -181,7 +182,7 @@ The full documentation shell: header, sidebar, content area, and table of
 contents.
 
 ```svelte
-<DocsShell {config} content={docs}>
+<DocsShell {config} {content}>
 	{@render children()}
 </DocsShell>
 ```
@@ -190,16 +191,18 @@ contents.
 	<Prop name="config" type="DocsmithConfig" required>
 		The site config (see <code>defineConfig</code> above).
 	</Prop>
-	<Prop name="content" type="DocsContentItem[]" required>
-		The content index; the sidebar nav is derived from it.
+	<Prop name="content" type="DocsContent" required>
+		The <code>content</code> export of <code>svelte-docsmith/content</code>: every page,
+		which the sidebar is derived from, and the version manifest, which scopes the
+		sidebar, search, prev/next and breadcrumbs to the version being read (see
+		<a href="/docs/versioning">Versioning</a>). A bare <code>docs</code> array still works.
 	</Prop>
 	<Prop name="children" type="Snippet" required>
 		The rendered page.
 	</Prop>
-	<Prop name="versions" type="ResolvedVersion[]" default="[]">
-		The generated version manifest. Pass it to scope the sidebar, search,
-		prev/next, and breadcrumbs to the version being read. See
-		<a href="/docs/versioning">Versioning</a>.
+	<Prop name="versions" type="ResolvedVersion[]" default="[]" deprecated>
+		Only read when <code>content</code> is a bare <code>docs</code> array. Pass the
+		<code>content</code> export instead, which carries the versions.
 	</Prop>
 	<Prop name="search" type="(versionId?: string) => Promise<SearchDoc[]>">
 		Enable the ⌘K search palette by lazily providing the generated index, e.g.
@@ -260,20 +263,22 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 
 ```svelte title="src/routes/+error.svelte"
 <script lang="ts">
-	import { docs } from 'svelte-docsmith/content';
+	import { content } from 'svelte-docsmith/content';
 	import { ErrorPage } from 'svelte-docsmith';
 	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
-<ErrorPage config={siteConfig} content={docs} home="/docs" homeLabel="Back to the docs" />
+<ErrorPage config={siteConfig} {content} home="/docs" homeLabel="Back to the docs" />
 ```
 
 <PropsTable>
 	<Prop name="config" type="DocsmithConfig" required>
 		Same config as <code>DocsShell</code>, so the chrome matches.
 	</Prop>
-	<Prop name="content" type="DocsContentItem[]" default="[]">
-		Content index, so the header/footer nav still work.
+	<Prop name="content" type="DocsContent">
+		Same <code>content</code> as <code>DocsShell</code>, so the header and footer nav
+		still work, and an error under an archived prefix keeps that version's search
+		scope and <code>noindex</code>.
 	</Prop>
 	<Prop name="status" type="number" default="page.status">
 		HTTP status. Defaults to the current page's status.
@@ -290,10 +295,9 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 	<Prop name="homeLabel" type="string" default="'Back to home'">
 		Label of the primary action.
 	</Prop>
-	<Prop name="versions" type="ResolvedVersion[]" default="[]">
-		The version manifest, same as <code>DocsShell</code>. Pass it so an error
-		under an archived prefix keeps that version's search scope and
-		<code>noindex</code>.
+	<Prop name="versions" type="ResolvedVersion[]" default="[]" deprecated>
+		Only read when <code>content</code> is a bare <code>docs</code> array, as for
+		<code>DocsShell</code>.
 	</Prop>
 	<Prop name="search" type="(versionId?: string) => Promise<SearchDoc[]>">
 		Enable the ⌘K palette on the error page (same loader as <code>DocsShell</code>).
@@ -311,7 +315,10 @@ theme). Drop it into a SvelteKit `+error.svelte`:
   entry and the shape returned by [`createSearchEngine`](/docs/search).
 - **`ResolvedVersion`**: one entry of the generated version manifest. See
   [Versioning](/docs/versioning).
-- **`McpOptions`**: what `mcpHandler` takes. See [MCP server](/docs/mcp-server).
+- **`DocsContent`**: the `content` export, `{ docs, versions }`, that `DocsShell`
+  and `ErrorPage` take.
+- **`RouteSite`** / **`SitemapOptions`** / **`SitemapEntry`**: what the route
+  handlers in `svelte-docsmith/server` take.
 - **`CalloutVariant`** / **`BadgeVariant`**: the intent unions for `Callout` and `Badge`.
 
 The vendored shadcn primitives and internal helpers (the TOC engine, the

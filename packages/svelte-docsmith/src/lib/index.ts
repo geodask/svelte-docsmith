@@ -46,6 +46,7 @@ export { default as Action } from './components/landing/action.svelte';
 export {
 	defineConfig,
 	type DocsmithConfig,
+	type DocsContent,
 	type DocsContentItem,
 	type DocsCustomFields,
 	type SearchDoc,
@@ -53,17 +54,12 @@ export {
 } from './core/index.js';
 
 // Versioned docs (experimental — outside the 1.0 stability promise). Declare
-// `versions` in the `docsmith()` vite plugin; the resolved manifest is exported
-// from `svelte-docsmith/content` and passed to `DocsShell`. `currentOnly`
-// scopes sitemap.xml / llms.txt to the current version, so archived releases
-// don't compete with it in search results. An archive freezes content, not
+// `versions` in the `docsmith()` vite plugin; the resolved manifest travels in
+// the `content` export of `svelte-docsmith/content`, which `DocsShell` takes
+// whole. The route handlers in `svelte-docsmith/server` keep sitemap.xml and
+// llms.txt to the current version. An archive freezes content, not
 // dependencies.
-export {
-	currentOnly,
-	type DocsVersion,
-	type DocsVersions,
-	type ResolvedVersion
-} from './core/index.js';
+export type { DocsVersion, DocsVersions, ResolvedVersion } from './core/index.js';
 
 // Search engine (framework-agnostic; for building a custom search UI over the
 // generated `svelte-docsmith/search` index)
@@ -73,20 +69,8 @@ export {
 	type SearchResult
 } from './search/create-search.js';
 
-// Sitemap (framework-agnostic; wire into a `sitemap.xml/+server.ts`)
-export { generateSitemap, type SitemapEntry } from './generate/sitemap.js';
-
-// llms.txt (framework-agnostic; wire into `llms.txt/+server.ts` and
-// `llms-full.txt/+server.ts` over the generated `svelte-docsmith/llms` index)
-export { generateLlmsTxt, generateLlmsFullTxt, type LlmsSite } from './generate/llms.js';
-
-// Changelog (the generated `svelte-docsmith/changelog` index, plus its feed)
+// Changelog page (the generated `svelte-docsmith/changelog` index). Its feed,
+// the sitemap, llms.txt, llms-full.txt, the `.md` page twins and the MCP server
+// are route handlers in `svelte-docsmith/server`.
 export { default as Changelog } from './components/changelog/changelog.svelte';
 export type { ChangelogRelease, ChangelogGroup } from './core/changelog.js';
-export { generateFeed, type FeedSite } from './generate/feed.js';
-
-// MCP server (experimental — outside the 1.0 stability promise). Wire it into
-// `src/routes/mcp/+server.ts` over the generated `svelte-docsmith/llms`,
-// `/search` and `/content` indexes, with `prerender = false`: it needs a server
-// runtime.
-export { mcpHandler, type McpOptions } from './mcp/handler.js';

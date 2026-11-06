@@ -32,7 +32,7 @@ import {
  * @experimental Outside the 1.0 stability promise. May change in a minor.
  */
 export type McpOptions = {
-	/** Site title, description and origin, as for `generateLlmsTxt`. */
+	/** Site title, description and origin, as for llms.txt. */
 	site: LlmsSite;
 	/** The generated `svelte-docsmith/llms` index. */
 	docs: LlmsDoc[];
@@ -120,20 +120,9 @@ const isId = (value: unknown): value is Id =>
  * request handler over web-standard `Request`/`Response`: pass it a `Request`,
  * or use it directly as a SvelteKit `RequestHandler`, which receives
  * `{ request }`. It answers POST (MCP messages), OPTIONS (CORS preflight) and
- * GET (a plain-text note on adding the server to an editor), so export it under
- * all three. The route needs a server runtime, so opt it out of prerendering.
- *
- * ```ts
- * // src/routes/mcp/+server.ts
- * import { docs } from 'svelte-docsmith/llms';
- * import { docs as search } from 'svelte-docsmith/search';
- * import { versions } from 'svelte-docsmith/content';
- * import { mcpHandler } from 'svelte-docsmith';
- *
- * export const prerender = false;
- * export const POST = mcpHandler({ site: { title: 'My Docs' }, docs, search, versions });
- * export { POST as GET, POST as OPTIONS };
- * ```
+ * GET (a plain-text note on adding the server to an editor). Sites get it
+ * through `mcpServer()` in `svelte-docsmith/server`, which passes it the
+ * generated indexes.
  *
  * @experimental Outside the 1.0 stability promise. May change in a minor.
  */

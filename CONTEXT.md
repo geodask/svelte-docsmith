@@ -101,6 +101,14 @@ page.
 _Avoid_: LLM content, raw markdown, page markdown (that is the `+page.md` the
 author writes)
 
+**Route handler**:
+A ready request handler from `svelte-docsmith/server` for one file a docs site
+serves besides its pages: the sitemap, the changelog feed, `llms.txt`,
+`llms-full.txt`, a page's agent markdown at `<path>.md`, or the MCP server. It
+reads the generated indexes itself and keeps to the current version where that
+applies, so the author's route is one line over the site config.
+_Avoid_: generator, endpoint helper, server route
+
 **MCP server**:
 An endpoint the author adds to their docs site that lets a reader's coding agent
 list, search and read the docs' pages as agent markdown. Optional, and only

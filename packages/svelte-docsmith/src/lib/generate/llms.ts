@@ -23,19 +23,9 @@ export type LlmsSite = {
 
 /**
  * Build an [llms.txt](https://llmstxt.org) index: the site title and
- * description, then a sectioned list of links to each page. Wire it into a
- * `src/routes/llms.txt/+server.ts` over the `svelte-docsmith/llms` module.
- *
- * ```ts
- * import { docs } from 'svelte-docsmith/llms';
- * import { generateLlmsTxt } from 'svelte-docsmith';
- *
- * export const prerender = true;
- * export function GET() {
- *   const body = generateLlmsTxt({ title: 'My Docs', origin: 'https://my-docs.dev' }, docs);
- *   return new Response(body, { headers: { 'content-type': 'text/plain; charset=utf-8' } });
- * }
- * ```
+ * description, then a sectioned list of links to each page. Served by
+ * `llmsTxt()` in `svelte-docsmith/server`, which scopes it to the current
+ * version.
  */
 export function generateLlmsTxt(site: LlmsSite, docs: LlmsDoc[]): string {
 	const origin = site.origin ?? '';
@@ -55,8 +45,8 @@ export function generateLlmsTxt(site: LlmsSite, docs: LlmsDoc[]): string {
 
 /**
  * Build `llms-full.txt`: the site header followed by the full markdown of every
- * page, so an LLM can ingest the entire documentation in one request. Same
- * wiring as {@link generateLlmsTxt}, at `src/routes/llms-full.txt/+server.ts`.
+ * page, so an LLM can ingest the entire documentation in one request. Served by
+ * `llmsFullTxt()` in `svelte-docsmith/server`.
  */
 export function generateLlmsFullTxt(site: LlmsSite, docs: LlmsDoc[]): string {
 	const header = site.description ? `# ${site.title}\n\n> ${site.description}` : `# ${site.title}`;

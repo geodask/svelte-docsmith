@@ -51,6 +51,10 @@
 			"types": "./dist/buildtime/vite/index.d.ts",
 			"default": "./dist/buildtime/vite/index.js"
 		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"default": "./dist/server/index.js"
+		},
 		"./content": {
 			"types": "./dist/fallbacks/content.d.ts",
 			"default": "./dist/fallbacks/content.js"

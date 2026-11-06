@@ -1,16 +1,5 @@
-import { docs, versions } from 'svelte-docsmith/content';
-import { generateSitemap, currentOnly } from 'svelte-docsmith';
+import { sitemap } from 'svelte-docsmith/server';
 import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-
-export function GET() {
-	const body = generateSitemap(siteConfig.url ?? '', [
-		{ path: '/' },
-		{ path: '/themes' },
-		...currentOnly(docs, versions).map((d) => ({ path: d.path, lastmod: d.lastUpdated }))
-	]);
-	return new Response(body, {
-		headers: { 'content-type': 'application/xml' }
-	});
-}
+export const GET = sitemap(siteConfig, { extra: [{ path: '/' }, { path: '/themes' }] });

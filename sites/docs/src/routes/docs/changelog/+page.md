@@ -31,13 +31,13 @@ docsmith({ changelog: '../../packages/my-lib/CHANGELOG.md' });
 
 ```svelte title="src/routes/changelog/+page.svelte"
 <script>
-	import { docs } from 'svelte-docsmith/content';
+	import { content } from 'svelte-docsmith/content';
 	import { releases } from 'svelte-docsmith/changelog';
 	import { DocsShell, Changelog } from 'svelte-docsmith';
 	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
-<DocsShell config={siteConfig} content={docs} layout="page">
+<DocsShell config={siteConfig} {content} layout="page">
 	<Changelog {releases} description="What shipped in each release." />
 </DocsShell>
 ```
@@ -48,22 +48,15 @@ An Atom feed makes each release something readers can subscribe to rather than
 something they have to check for.
 
 ```ts title="src/routes/changelog.xml/+server.ts"
-import { releases } from 'svelte-docsmith/changelog';
-import { generateFeed } from 'svelte-docsmith';
+import { changelogFeed } from 'svelte-docsmith/server';
 import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-
-export function GET() {
-	const body = generateFeed(releases, {
-		url: siteConfig.url,
-		title: siteConfig.title
-	});
-	return new Response(body, {
-		headers: { 'content-type': 'application/atom+xml; charset=utf-8' }
-	});
-}
+export const GET = changelogFeed(siteConfig);
 ```
+
+The feed takes its title, description and `url` from your config, and links to
+the changelog page at the plugin's `changelogPath`.
 
 Atom rather than RSS, because it requires an unambiguous id and timestamp per
 entry, which a version and its release date give exactly.

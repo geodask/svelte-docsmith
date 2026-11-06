@@ -21,7 +21,7 @@ your initial load:
 
 ```svelte title="src/routes/docs/+layout.svelte" {12}
 <script lang="ts">
-	import { docs } from 'svelte-docsmith/content';
+	import { content } from 'svelte-docsmith/content';
 	import { DocsShell } from 'svelte-docsmith';
 	import { siteConfig } from '#lib/site-config.ts';
 
@@ -30,7 +30,7 @@ your initial load:
 
 <DocsShell
 	config={siteConfig}
-	content={docs}
+	{content}
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 >
 	{@render children()}

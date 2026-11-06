@@ -148,7 +148,7 @@ fence itself instead. A single line, a list, or a range all work.
 ```svelte {4}
 <DocsShell
 	config={siteConfig}
-	content={docs}
+	{content}
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 >
 	{@render children()}
@@ -161,7 +161,7 @@ renders as:
 ```svelte {4}
 <DocsShell
 	config={siteConfig}
-	content={docs}
+	{content}
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 >
 	{@render children()}

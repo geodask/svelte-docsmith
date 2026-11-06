@@ -25,23 +25,8 @@ function summarise(release: ChangelogRelease): string {
 }
 
 /**
- * Build an Atom feed body from parsed changelog releases. Framework-agnostic:
- * wire it into a SvelteKit `src/routes/changelog.xml/+server.ts` over the
- * generated `svelte-docsmith/changelog` index.
- *
- * ```ts
- * import { releases } from 'svelte-docsmith/changelog';
- * import { generateFeed } from 'svelte-docsmith';
- *
- * export const prerender = true;
- * export function GET() {
- *   const body = generateFeed(releases, {
- *     url: 'https://my-docs.dev',
- *     title: 'My Library'
- *   });
- *   return new Response(body, { headers: { 'content-type': 'application/atom+xml' } });
- * }
- * ```
+ * Build an Atom feed body from parsed changelog releases. Served by
+ * `changelogFeed()` in `svelte-docsmith/server`.
  *
  * Atom rather than RSS because it requires an unambiguous per-entry id and
  * update timestamp, which is exactly what a version and its release date give.
