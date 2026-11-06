@@ -258,6 +258,16 @@ describe('mcpHandler: get_page', () => {
 		expect(body.result.isError).toBe(true);
 		expect(body.result.content[0].text).toContain('https://elsewhere.dev/docs/intro');
 	});
+
+	it('reads a full URL as if the site had no origin when its origin is malformed', async () => {
+		const result = await callTool(
+			'get_page',
+			{ path: 'https://my-docs.dev/docs/intro' },
+			{ site: { title: 'My Docs', origin: 'not a url' } }
+		);
+		expect(result.isError).toBeFalsy();
+		expect(result.content[0].text).toBe(docs[0].content);
+	});
 });
 
 /** Call one tool on a handler over the given options, expecting a result. */

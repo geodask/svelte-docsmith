@@ -173,7 +173,7 @@ function pagePath(input: string, { site, endpoint }: ToolContext): string | unde
 		} catch {
 			return undefined;
 		}
-		const origins = [endpoint.origin, site.origin && new URL(site.origin).origin];
+		const origins = [endpoint.origin, originOf(site.origin)];
 		if (!origins.includes(url.origin)) return undefined;
 		path = url.pathname;
 	}
@@ -185,6 +185,16 @@ function pagePath(input: string, { site, endpoint }: ToolContext): string | unde
 	}
 	path = normalizePath(path).replace(/\.md$/, '');
 	return normalizePath(path.startsWith('/') ? path : `/${path}`);
+}
+
+/** A URL's origin, or `undefined` when there is no URL or it is malformed. */
+function originOf(url: string | undefined): string | undefined {
+	if (!url) return undefined;
+	try {
+		return new URL(url).origin;
+	} catch {
+		return undefined;
+	}
 }
 
 const listPages: Tool = {
