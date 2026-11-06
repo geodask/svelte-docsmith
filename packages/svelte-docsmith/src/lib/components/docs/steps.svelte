@@ -17,7 +17,12 @@
 	//   2. Do that.
 	//
 	//   </Steps>
-	const { children }: { children: Snippet } = $props();
+	const {
+		children
+	}: {
+		/** `Step` components, or a markdown ordered list. */
+		children: Snippet;
+	} = $props();
 </script>
 
 <div class="steps">{@render children()}</div>

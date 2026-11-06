@@ -6,7 +6,8 @@ order: 15
 ---
 
 <script>
-	import { Kbd, PropsTable, Prop } from 'svelte-docsmith';
+	import { Kbd, PropsTable } from 'svelte-docsmith';
+	import kbdProps from '$docsmith/components/docs/kbd.svelte?props';
 </script>
 
 Show a key or shortcut the way a keyboard does: a small, raised cap that reads as
@@ -31,8 +32,4 @@ Wrap each key in its own `Kbd`; combine several for a chord.
 
 ## API reference
 
-<PropsTable>
-	<Prop name="children" type="Snippet">
-		The key label to show.
-	</Prop>
-</PropsTable>
+<PropsTable of={kbdProps} />

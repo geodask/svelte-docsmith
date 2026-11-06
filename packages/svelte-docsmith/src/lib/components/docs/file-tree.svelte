@@ -1,7 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	const { children }: { children: Snippet } = $props();
+	const {
+		children
+	}: {
+		/** The top-level `FileTreeItem` entries. */
+		children: Snippet;
+	} = $props();
 </script>
 
 <!--

@@ -32,6 +32,8 @@ export default defineConfig({
 				'src/lib/core/version.ts',
 				'src/lib/core/docs-page.ts',
 				'src/lib/buildtime/vite/**/*.ts',
+				'src/lib/buildtime/props/**/*.ts',
+				'src/lib/utils/type-text.ts',
 				'src/lib/buildtime/archive.ts',
 				'src/lib/buildtime/git.ts',
 				'src/lib/buildtime/preprocess.ts',

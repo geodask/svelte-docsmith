@@ -26,8 +26,9 @@
 		multiple = false,
 		children
 	}: {
-		/** Allow several items open at once. Default: one at a time. */
+		/** Allow several panels open at once. */
 		multiple?: boolean;
+		/** One `AccordionItem` per panel. */
 		children: Snippet;
 	} = $props();
 

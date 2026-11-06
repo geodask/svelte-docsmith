@@ -11,9 +11,12 @@
 	}: {
 		/** File or directory name. */
 		name: string;
-		/** Force folder styling for an empty directory (folders with children are detected automatically). */
+		/**
+		 * Force folder styling for an empty directory. Folders with children are
+		 * detected automatically.
+		 */
 		folder?: boolean;
-		/** Emphasize this entry — e.g. the file a guide is about to create. */
+		/** Emphasize the entry, such as the file a guide is about to create. */
 		highlight?: boolean;
 		/** Nested entries. Their presence marks this item as a folder. */
 		children?: Snippet;

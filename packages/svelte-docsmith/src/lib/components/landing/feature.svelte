@@ -6,6 +6,7 @@
 		icon,
 		children
 	}: {
+		/** The cell heading. */
 		title: string;
 		/** Optional leading icon, rendered in a tinted square. */
 		icon?: Snippet;

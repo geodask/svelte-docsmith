@@ -9,9 +9,12 @@
 		source,
 		children
 	}: {
-		/** Pre-highlighted source HTML (Shiki output), rendered as the source panel. */
+		/**
+		 * Pre-highlighted source HTML for the source panel. Pass a `?source`
+		 * import of the same file.
+		 */
 		source?: string;
-		/** The live, rendered example. */
+		/** The live, rendered component. */
 		children: Snippet;
 	} = $props();
 

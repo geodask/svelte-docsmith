@@ -12,14 +12,17 @@
 		title?: string;
 		/** Supporting line below the heading. */
 		description?: string;
-		/** Columns at the widest breakpoint; the grid steps down on smaller screens. */
+		/**
+		 * Columns at the widest breakpoint. The grid steps down to two, then one,
+		 * on narrower screens.
+		 */
 		columns?: 2 | 3;
 		/**
-		 * `muted` gives the section a tinted band with rules above and below, for
-		 * alternating against neighbouring sections.
+		 * `muted` tints the band and adds a rule above and below, for alternating
+		 * against neighbouring sections.
 		 */
 		background?: 'default' | 'muted';
-		/** The `<Feature>` cells. */
+		/** The `Feature` cells. */
 		children: Snippet;
 	} = $props();
 </script>

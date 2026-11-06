@@ -8,17 +8,18 @@
 		before,
 		children
 	}: {
+		/** The closing heading. */
 		title: string;
 		/** Supporting line below the heading. */
 		description?: string;
 		/** Call-to-action buttons. */
 		actions?: Snippet;
 		/**
-		 * Optional content above the heading (e.g. a pre-release note). Placed
-		 * before the title so the section can still *end* on the actions.
+		 * Content above the heading (a pre-release note, for example), so the
+		 * section can still end on the actions.
 		 */
 		before?: Snippet;
-		/** Anything to sit below the actions, e.g. a secondary note. */
+		/** Content below the actions, such as a secondary note. */
 		children?: Snippet;
 	} = $props();
 </script>

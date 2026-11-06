@@ -6,7 +6,9 @@ order: 13
 ---
 
 <script>
-	import { Accordion, AccordionItem, PropsTable, Prop } from 'svelte-docsmith';
+	import { Accordion, AccordionItem, PropsTable } from 'svelte-docsmith';
+	import accordionProps from '$docsmith/components/docs/accordion.svelte?props';
+	import accordionItemProps from '$docsmith/components/docs/accordion-item.svelte?props';
 </script>
 
 Fold FAQs, optional details, or long asides behind a heading the reader expands
@@ -69,16 +71,8 @@ Pass `multiple` to let panels stay open independently:
 
 ### Accordion
 
-<PropsTable>
-	<Prop name="multiple" type="boolean" default="false">
-		Allow several panels open at once.
-	</Prop>
-</PropsTable>
+<PropsTable of={accordionProps} />
 
 ### AccordionItem
 
-<PropsTable>
-	<Prop name="title" type="string" required>
-		The heading that toggles the panel.
-	</Prop>
-</PropsTable>
+<PropsTable of={accordionItemProps} />

@@ -8,10 +8,14 @@
 		value: valueProp,
 		children
 	}: {
-		/** The trigger text for this tab. */
+		/** The tab's trigger text. */
 		label: string;
-		/** Underlying value; defaults to `label` (only needed to disambiguate duplicate labels). */
+		/**
+		 * Underlying value, only needed to disambiguate duplicate labels.
+		 * @default label
+		 */
 		value?: string;
+		/** The tab's content. */
 		children: Snippet;
 	} = $props();
 

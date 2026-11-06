@@ -1,7 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	const { children }: { children: Snippet } = $props();
+	const {
+		children
+	}: {
+		/** The `Card` components to lay out. */
+		children: Snippet;
+	} = $props();
 </script>
 
 <!-- Breakpoint-free responsive grid of <Card>s. -->

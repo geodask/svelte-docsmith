@@ -6,9 +6,10 @@ order: 7
 ---
 
 <script>
-	import { LiveExample, Callout, PropsTable, Prop } from 'svelte-docsmith';
+	import { LiveExample, Callout, PropsTable } from 'svelte-docsmith';
 	import Counter from '#lib/examples/counter.svelte';
 	import counterSource from '#lib/examples/counter.svelte?source';
+	import liveExampleProps from '$docsmith/components/docs/live-example.svelte?props';
 </script>
 
 ## A real, running component
@@ -39,11 +40,4 @@ See [Writing pages](/docs/writing-pages) for the import pattern to copy.
 
 ## API reference
 
-<PropsTable title="LiveExample">
-	<Prop name="children" type="Snippet" required>
-		The live, rendered component.
-	</Prop>
-	<Prop name="source" type="string" required>
-		Pre-highlighted source HTML. Pass a <code>?source</code> import of the same file.
-	</Prop>
-</PropsTable>
+<PropsTable of={liveExampleProps} />
