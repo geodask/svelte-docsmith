@@ -27,6 +27,14 @@ describe('parseFrontmatter', () => {
 		});
 	});
 
+	// js-yaml 4 turned an unquoted date into a Date object, which pages.ts then
+	// ignored because it only accepts a string `lastUpdated`.
+	it('keeps an unquoted date as a string', () => {
+		expect(parseFrontmatter('---\nlastUpdated: 2024-01-02\n---\n', 'page.md')).toEqual({
+			lastUpdated: '2024-01-02'
+		});
+	});
+
 	it('throws with the filename on invalid YAML', () => {
 		expect(() => parseFrontmatter('---\ntitle: "unterminated\n---\nbody', 'docs/page.md')).toThrow(
 			/invalid YAML frontmatter in docs\/page\.md/

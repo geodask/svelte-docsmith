@@ -25,14 +25,14 @@
 		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
 	},
 	"devDependencies": {
-		"@lucide/svelte": "^0.488.0",
+		"@lucide/svelte": "^1.70.0",
 		"@shikijs/twoslash": "4.6.0",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/adapter-vercel": "^6.3.5",
 		"@sveltejs/kit": "^2.70.4",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.4",
-		"mermaid": "^11.17.2",
+		"mermaid": "^12.3.0",
 		"mode-watcher": "^1.1.0",
 		"svelte": "^5.57.3",
 		"svelte-check": "^4.7.8",
