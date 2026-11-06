@@ -163,6 +163,11 @@ generated [Props Tables](/docs/components/props-table).
 		The tsconfig used to read prop types for <code>?props</code> imports, relative to
 		the Vite root. Experimental.
 	</Prop>
+	<Prop name="schema" type="StandardSchemaV1">
+		A schema every page's frontmatter must pass: Zod, Valibot, ArkType or any other
+		<a href="https://standardschema.dev">Standard Schema</a>. See
+		<a href="/docs/writing-pages#validating-frontmatter">Validating frontmatter</a>.
+	</Prop>
 </PropsTable>
 
 ## DocsShell

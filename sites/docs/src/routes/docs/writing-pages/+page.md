@@ -75,9 +75,42 @@ current page is expanded on load; the rest start collapsed.
 
 A page with no `title` is skipped by the sidebar. If a page isn't showing up,
 check its frontmatter before anything else: a stray indent or a typo'd key is
-the usual culprit.
+the usual culprit. A [frontmatter schema](#validating-frontmatter) turns that
+typo into a build error.
 
 </Callout>
+
+### Validating frontmatter
+
+The fields above are always type-checked: `order: "2"` or a `title` that YAML
+reads as a number fails the build with the page's path, instead of quietly
+dropping the page from where you expected it.
+
+To check your own fields, or to reject keys you never defined, pass a `schema`
+to the [`docsmith()` Vite plugin](/docs/configuration#docsmith-vite-plugin). Any
+[Standard Schema](https://standardschema.dev) works: Zod, Valibot, ArkType and
+others. A strict object catches a typo like `ordr: 2`:
+
+```ts
+// vite.config.ts
+import { z } from 'zod';
+
+docsmith({
+	schema: z.strictObject({
+		title: z.string(),
+		description: z.string().optional(),
+		section: z.union([z.string(), z.array(z.string())]).optional(),
+		order: z.number().optional(),
+		lastUpdated: z.string().optional(),
+		draft: z.boolean().optional()
+	})
+});
+```
+
+Every page with a frontmatter block is checked, and one error lists every
+problem on every page. A strict schema has to list the built-in fields too. The
+schema only validates: transforms and defaults in it don't change what the page
+or the sidebar sees.
 
 ## Headings
 
