@@ -91,6 +91,19 @@ The optional Standard Schema passed to `docsmith({ schema })`. It checks custom
 fields only, and never changes them.
 _Avoid_: docs schema, content schema, collection schema
 
+### Code blocks
+
+**Code block**:
+Highlighted code on a page: a markdown fence, or a LiveExample's source panel
+from a `?source` import. A ```mermaid fence is a diagram, not a code block.
+_Avoid_: snippet, code sample, fence (for the rendered result)
+
+**Code block renderer**:
+The build-time module that decides how every code block is drawn (language
+fallback, fence meta, line numbers, Twoslash, diagrams) and the only place that
+writes it into Svelte markup. Fences and `?source` imports both use it.
+_Avoid_: highlighter, Shiki wrapper
+
 ### Agent access
 
 **Agent markdown**:

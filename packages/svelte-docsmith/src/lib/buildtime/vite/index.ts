@@ -23,7 +23,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { DEFAULT_THEMES, lazyHighlighter } from '../highlight.js';
+import { codeBlockRenderer, sourcePanelHtml } from '../code-block.js';
 import { checkVersions, resolveVersions, type DocsVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
@@ -327,8 +327,7 @@ const SOURCE_EXT = '.docsmith-src';
 const SOURCE_SUFFIX = '?source';
 
 function exampleSourcePlugin(options: DocsmithViteOptions): Plugin {
-	const themes = options.themes ?? DEFAULT_THEMES;
-	const getHighlighter = lazyHighlighter([themes.light, themes.dark], ['svelte']);
+	const renderCodeBlock = codeBlockRenderer({ themes: options.themes });
 
 	return {
 		name: 'docsmith-example-source',
@@ -347,15 +346,8 @@ function exampleSourcePlugin(options: DocsmithViteOptions): Plugin {
 			this.addWatchFile(file);
 
 			const code = fs.readFileSync(file, 'utf-8').trimEnd();
-			const highlighter = await getHighlighter();
-			// Strip Shiki's own surface (the inline light `background-color` and the
-			// `--shiki-dark-bg` var) so the highlighted source sits on the
-			// consuming component's token background — matching markdown code blocks,
-			// and never flashing Shiki's default before component CSS applies.
-			const html = highlighter
-				.codeToHtml(code, { lang: 'svelte', themes })
-				.replace(/background-color:[^;"]*;?/gi, '')
-				.replace(/--shiki-dark-bg:[^;"]*;?/gi, '');
+			// The same renderer as a markdown fence, so the panel matches one.
+			const html = sourcePanelHtml(await renderCodeBlock(code, 'svelte'));
 			return `export default ${JSON.stringify(html)};`;
 		}
 	};

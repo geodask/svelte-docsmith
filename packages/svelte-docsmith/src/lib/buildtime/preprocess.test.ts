@@ -1,3 +1,4 @@
+import { compile } from 'svelte/compiler';
 import { describe, expect, it, vi } from 'vitest';
 import { docsmith, type DocsmithPreprocessOptions } from './preprocess.js';
 
@@ -60,7 +61,14 @@ describe('docsmith preprocessor', () => {
 
 	it('passes a fence title through to the pre component', async () => {
 		const code = await render('```ts title="vite.config.ts"\nconst a = 1;\n```');
-		expect(code).toContain('<Components.pre title="vite.config.ts">');
+		expect(code).toContain('<Components.pre title={"vite.config.ts"}>');
+	});
+
+	it('compiles a page whose fence title has quotes and braces', async () => {
+		const code = await render('```ts title=\'say "hi" to {name}.ts\'\nconst a = 1;\n```');
+		const { js } = compile(code, { generate: 'server', filename: 'x.svelte' });
+		// The title is a string, not an expression reading a `name` variable.
+		expect(js.code).toContain('say \\"hi\\" to {name}.ts');
 	});
 
 	it('marks a fence that opts into line numbers, and leaves others alone', async () => {
