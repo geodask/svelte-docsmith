@@ -202,6 +202,62 @@ describe('docsmith() content plugin', () => {
 		expect(out).toContain('"path":"/docs/intro"');
 	});
 
+	it('writes each llms entry as the page markdown without its setup blocks', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage(
+			'docs/guide/setup',
+			'title: Setup\nsection: [Guide, Basics]\norder: 2\ndescription: Install it.',
+			'<script>\n\timport X from "./x.svelte";\n</script>\n\n## Install\n\nRun `pnpm add x`.\n\n<X />\n\n<style>\n\tp { color: red; }\n</style>'
+		);
+		writePage('docs/intro', 'title: Intro', 'Hello.');
+
+		expect(await loadVirtual('\0svelte-docsmith:llms')).toBe(
+			'export const docs = [' +
+				'{"path":"/docs/guide/setup","title":"Setup","section":"Guide / Basics","order":2,' +
+				'"description":"Install it.","content":"# Setup\\n\\n## Install\\n\\nRun `pnpm add x`.\\n\\n<X />"},' +
+				'{"path":"/docs/intro","title":"Intro","content":"# Intro\\n\\nHello."}' +
+				'];\n'
+		);
+	});
+
+	it('never loads TypeScript for a site without props imports', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'No props tables here.');
+		const loadedTypeScript = vi.fn();
+		vi.resetModules();
+		vi.doMock('typescript', () => {
+			loadedTypeScript();
+			throw new Error('TypeScript should not load');
+		});
+		try {
+			const { docsmith: fresh } = await import('./index.js');
+			const plugins = fresh({
+				content: path.join(routesDir, 'docs'),
+				routes: routesDir,
+				changelog: false
+			});
+			for (const plugin of plugins) {
+				(plugin.configResolved as ((c: { root: string }) => void) | undefined)?.({
+					root: routesDir
+				});
+			}
+			const ctx = { addWatchFile: vi.fn(), warn: vi.fn() };
+			for (const plugin of plugins) {
+				for (const id of [
+					'\0svelte-docsmith:content',
+					'\0svelte-docsmith:search',
+					'\0svelte-docsmith:llms',
+					'\0svelte-docsmith:changelog'
+				]) {
+					await (plugin.load as unknown as Load).call(ctx, id);
+				}
+			}
+		} finally {
+			vi.doUnmock('typescript');
+		}
+		expect(loadedTypeScript).not.toHaveBeenCalled();
+	});
+
 	it('dates the content index from git, and leaves the other two indexes dateless', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', "title: Intro\nlastUpdated: '2026-03-04'");

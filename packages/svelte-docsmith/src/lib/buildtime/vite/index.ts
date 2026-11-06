@@ -17,8 +17,8 @@
  *     `<PropsTable of={…}>` (see `../props/extract.js`).
  *
  * Reading the docs root lives in `./pages.js` and building each index from what
- * it read lives in `./collect.js`; this file owns the two Vite plugins, and is
- * the only layer that reports to the console.
+ * it read lives in `./collect.js`; this file owns the Vite plugins and the props
+ * extractor they share, and is the only layer that reports to the console.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -94,7 +94,50 @@ export interface DocsmithViteOptions {
  * ```
  */
 export function docsmith(options: DocsmithViteOptions = {}): Plugin[] {
-	return [contentIndexPlugin(options), exampleSourcePlugin(options), propsPlugin(options)];
+	const extractor = sharedPropsExtractor(options);
+	return [
+		contentIndexPlugin(options, extractor),
+		exampleSourcePlugin(options),
+		propsPlugin(extractor)
+	];
+}
+
+// --- the props extractor -------------------------------------------------
+
+/**
+ * The one props extractor a `docsmith()` call's plugins share, so the `?props`
+ * transform and the llms index read components against one TypeScript program.
+ * Created on first use: TypeScript itself loads only when a component with a
+ * typed `$props()` is first extracted, so a site without props imports never
+ * pays for it.
+ */
+interface SharedPropsExtractor {
+	/** Point extraction at the Vite root, where `tsconfig.json` is looked up. */
+	configure(root: string): void;
+	get(): PropsExtractor;
+}
+
+// Shared across `docsmith()` calls too: SvelteKit builds the client and the
+// server in one process, and both import every props module. Sharing the
+// extractor means one TypeScript program and one result cache for both.
+const extractors = new Map<string, PropsExtractor>();
+
+function sharedPropsExtractor(options: DocsmithViteOptions): SharedPropsExtractor {
+	let root = process.cwd();
+	return {
+		configure(next) {
+			root = next;
+		},
+		get() {
+			const key = `${root}\0${options.tsconfig ?? ''}`;
+			let extractor = extractors.get(key);
+			if (!extractor) {
+				extractor = createPropsExtractor({ root, tsconfig: options.tsconfig });
+				extractors.set(key, extractor);
+			}
+			return extractor;
+		}
+	};
 }
 
 // --- content / search / llms index --------------------------------------
@@ -127,7 +170,7 @@ function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number)
 	}
 }
 
-function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
+function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedPropsExtractor): Plugin {
 	const contentDir = path.resolve(options.content ?? 'src/routes/docs');
 	const routesDir = path.resolve(options.routes ?? 'src/routes');
 	const versions = options.versions;
@@ -156,9 +199,18 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			);
 		}));
 
+	// What agents read. Async so agent markdown can await props extraction
+	// (from `extractor`, the one the `?props` transform uses) and file reads
+	// for each page; today it is the pages' markdown as written.
+	const buildLlmsIndex = async (pages: SourcePage[]) => llmsIndex(pages, indexOptions);
+
 	return {
 		name: 'docsmith-content',
 		enforce: 'pre',
+
+		configResolved(config) {
+			extractor.configure(config.root);
+		},
 
 		resolveId(id) {
 			if (id === CONTENT_SPECIFIER) return VIRTUAL_CONTENT_ID;
@@ -206,7 +258,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			if (id === VIRTUAL_LLMS_ID) {
 				const { pages } = readSourcePages(contentDir);
 				watch(pages);
-				return `export const docs = ${JSON.stringify(llmsIndex(pages, indexOptions))};\n`;
+				return `export const docs = ${JSON.stringify(await buildLlmsIndex(pages))};\n`;
 			}
 			if (id === VIRTUAL_CHANGELOG_ID) {
 				if (!changelogFile) return `export const releases = [];\n`;
@@ -286,23 +338,17 @@ const PROPS_PREFIX = '\0docsmith-props:';
 const PROPS_EXT = '.docsmith-props';
 const PROPS_SUFFIX = '?props';
 
-// Shared across plugin instances: SvelteKit builds the client and the server in
-// one process, and both import every props module. Sharing the extractor means
-// one TypeScript program and one result cache for both.
-const extractors = new Map<string, PropsExtractor>();
 // A cached result comes back as the same object; warn about it once, not once
 // per build.
 const warned = new WeakSet<object>();
 
-function propsPlugin(options: DocsmithViteOptions): Plugin {
-	let root = process.cwd();
-
+function propsPlugin(extractor: SharedPropsExtractor): Plugin {
 	return {
 		name: 'docsmith-props',
 		enforce: 'pre',
 
 		configResolved(config) {
-			root = config.root;
+			extractor.configure(config.root);
 		},
 
 		async resolveId(id, importer) {
@@ -315,15 +361,7 @@ function propsPlugin(options: DocsmithViteOptions): Plugin {
 		async load(id) {
 			if (!id.startsWith(PROPS_PREFIX)) return;
 			const file = id.slice(PROPS_PREFIX.length, -PROPS_EXT.length);
-			// One extractor per root: its TypeScript program is reused across
-			// every props import instead of being rebuilt per component.
-			const key = `${root}\0${options.tsconfig ?? ''}`;
-			let extractor = extractors.get(key);
-			if (!extractor) {
-				extractor = createPropsExtractor({ root, tsconfig: options.tsconfig });
-				extractors.set(key, extractor);
-			}
-			const result = await extractor.extract(file);
+			const result = await extractor.get().extract(file);
 			const { props, warnings, watchFiles } = result;
 			for (const watched of watchFiles) this.addWatchFile(watched);
 			if (!warned.has(result)) for (const warning of warnings) this.warn(warning);
