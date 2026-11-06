@@ -26,6 +26,11 @@ A props table derived entirely from the component's own source, with no content
 written on the doc page.
 _Avoid_: auto table, auto type table, docgen table
 
+**Props import**:
+Importing a component file with the `?props` query, which yields that
+component's extracted props for a generated props table.
+_Avoid_: docgen data, props metadata, props JSON
+
 **Hand-written props table**:
 A props table whose rows the author writes on the doc page.
 _Avoid_: manual table, static table
