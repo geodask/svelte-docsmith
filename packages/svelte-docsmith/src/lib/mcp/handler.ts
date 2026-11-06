@@ -10,6 +10,7 @@
 import type { LlmsDoc, SearchDoc } from '#lib/core/content.js';
 import type { ResolvedVersion } from '#lib/core/version.js';
 import type { LlmsSite } from '#lib/generate/llms.js';
+import { editorSetups } from './connect.js';
 import { checkArguments, tools, type ToolContext } from './tools.js';
 
 /**
@@ -230,11 +231,11 @@ function accepted(): Response {
  */
 function browserNote({ title }: LlmsSite, endpoint: URL): Response {
 	const url = endpoint.origin + endpoint.pathname;
-	const name =
-		title
-			.toLowerCase()
-			.replace(/[^a-z\d]+/g, '-')
-			.replace(/^-|-$/g, '') || 'docs';
+	const setup = editorSetups(title, url).flatMap(({ editor, file, code }) => [
+		file ? `${editor} (${file}):` : `${editor}:`,
+		...code.split('\n').map((line) => `  ${line}`),
+		''
+	]);
 	const note = [
 		`This is the MCP server for the ${title} documentation.`,
 		'',
@@ -244,15 +245,7 @@ function browserNote({ title }: LlmsSite, endpoint: URL): Response {
 		'',
 		`  ${url}`,
 		'',
-		'Claude Code:',
-		`  claude mcp add --transport http ${name} ${url}`,
-		'',
-		'Cursor (~/.cursor/mcp.json):',
-		`  { "mcpServers": { "${name}": { "url": "${url}" } } }`,
-		'',
-		'VS Code (.vscode/mcp.json):',
-		`  { "servers": { "${name}": { "type": "http", "url": "${url}" } } }`,
-		''
+		...setup
 	].join('\n');
 	return new Response(note, {
 		status: 405,

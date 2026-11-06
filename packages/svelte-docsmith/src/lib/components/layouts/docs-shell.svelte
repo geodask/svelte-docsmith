@@ -81,6 +81,7 @@
 		 * Show the "Copy page" split button on doc pages: copy the page as
 		 * Markdown, view the raw `.md`, or open it in ChatGPT / Claude. Requires a
 		 * catch-all `<path>.md` endpoint over the `svelte-docsmith/llms` index.
+		 * With `config.mcp` set, the menu also offers "Connect to your editor".
 		 */
 		copyPage?: boolean;
 		/**
@@ -253,7 +254,12 @@
 							</span>
 						{/if}
 						{#if copyPage && view.entry}
-							<CopyPageMenu path={view.pathname} origin={config.url ?? ''} />
+							<CopyPageMenu
+								path={view.pathname}
+								origin={config.url ?? ''}
+								title={config.title}
+								mcp={config.mcp}
+							/>
 						{/if}
 					</div>
 				</div>

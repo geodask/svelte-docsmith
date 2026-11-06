@@ -7,16 +7,19 @@
 	const {
 		copied,
 		onclick,
+		label = 'Copy',
 		class: className
 	}: {
 		/** Whether the copy just succeeded — swaps the icon to a check. */
 		copied: boolean;
 		onclick: () => void;
+		/** Accessible name; name what is copied when a view has several buttons. */
+		label?: string;
 		class?: string;
 	} = $props();
 </script>
 
-<Button {onclick} variant="ghost" size="icon" aria-label="Copy" class="size-8 {className ?? ''}">
+<Button {onclick} variant="ghost" size="icon" aria-label={label} class="size-8 {className ?? ''}">
 	{#if copied}
 		<div in:fade={{ duration: 80 }}>
 			<Check class="text-emerald-500" />

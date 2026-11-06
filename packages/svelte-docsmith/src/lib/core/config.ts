@@ -58,6 +58,15 @@ export type DocsmithConfig = {
 	 * page's source path. Omit to hide the edit link.
 	 */
 	editUrl?: string;
+	/**
+	 * Path of the site's MCP server, e.g. `/mcp` (or an absolute URL). When set,
+	 * the copy-page menu offers "Connect to your editor" with the server's URL
+	 * and setup for Claude Code, Cursor and VS Code. The route itself is yours to
+	 * add, with `mcpHandler`.
+	 *
+	 * @experimental Outside the 1.0 stability promise. May change in a minor.
+	 */
+	mcp?: string;
 	/** Optional GitHub URL; renders a link in the header when set. */
 	github?: string;
 	/** Optional version string, shown in the header (e.g. your library version). */
@@ -103,7 +112,8 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 		'description',
 		'url',
 		'ogImage',
-		'editUrl'
+		'editUrl',
+		'mcp'
 	] as const) {
 		if (config[key] !== undefined && typeof config[key] !== 'string') {
 			throw new Error(`[svelte-docsmith] config.${key} must be a string when set.`);
