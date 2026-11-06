@@ -2,16 +2,27 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches:
-      - master
-  # Allow the release workflow to run these checks as a gate before publishing.
+    # Changes that can't affect the build, tests or published packages.
+    # Docs site pages live under sites/, so they are never ignored here.
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - "docs/**"
+      - ".github/*.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/assets/**"
+  # master is verified by the Release workflow, which calls this one before
+  # publishing. A `push` trigger here would run the same checks twice.
   workflow_call:
 
-# Cancel superseded runs on the same ref (PR pushes), but never cancel on master.
+# Cancel superseded runs on the same PR. Inside the Release workflow the group
+# name carries "Release" and the run is never cancelled.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -20,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Full history so page lastUpdated / sitemap lastmod are real dates.
           # A shallow clone would omit them (see commitDates in svelte-docsmith).
@@ -28,14 +39,23 @@ jobs:
 
       - name: Setup PNPM
         # Version is read from the root package.json "packageManager" field.
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           # Vite 7+ (Milestone 2) requires Node >= 20.19; pin ahead of it now.
           node-version: "22"
           cache: "pnpm"
+
+      # Turbo's local cache, carried between runs: packages a PR didn't touch
+      # replay their build/test results instead of running again.
+      - name: Restore the turbo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -59,12 +79,15 @@ jobs:
 
       # Pack the publishable tarball so a reviewer can install exactly what
       # would ship to npm and run the README adoption steps against it.
+      # Only useful on PRs; the release gate skips it.
       - name: Pack the library tarball
+        if: github.event_name == 'pull_request'
         working-directory: packages/svelte-docsmith
         run: pnpm pack --pack-destination "$RUNNER_TEMP"
 
       - name: Upload the library tarball
-        uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
         with:
           name: svelte-docsmith-tarball
           path: ${{ runner.temp }}/*.tgz

@@ -4,6 +4,23 @@ on:
   push:
     branches:
       - master
+    # Same filter as CI: these can't change what gets versioned or published.
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - "docs/**"
+      - ".github/*.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/assets/**"
+
+# Never run two releases at once, and never cancel one mid-publish. A newer
+# push waits for the running release, then acts on the latest master.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   # Gate: publishing must not happen unless typecheck/test/lint/build pass.
@@ -19,37 +36,52 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      # npm trusted publishing: npm swaps this OIDC token for a short-lived
+      # publish token, so no NPM_TOKEN secret is needed (or used).
+      id-token: write
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup PNPM
         # Version is read from the root package.json "packageManager" field.
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          # Trusted publishing needs npm >= 11.5.1, which ships with Node 24.
+          # (pnpm publish hands the upload to the npm on PATH.)
+          node-version: "24"
           cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Create Release PR or Publish
+        id: changesets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         uses: changesets/action@v1
         with:
           # ci:version wraps `changeset version` to keep the CLI template's
           # svelte-docsmith pin in range (scripts/sync-template-pin.mjs).
           version: pnpm ci:version
           publish: pnpm ci:publish
-          # The following ensures the PR created can't be merged
-          # until it passes the test workflow
           title: "chore: version packages"
           commit: "chore: version packages"
+
+  # The docs site reads the library version from the workspace, so it only
+  # needs a redeploy once that version is actually on npm.
+  deploy-docs:
+    name: Deploy docs
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    uses: ./.github/workflows/deploy-docs.yml
+    secrets:
+      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
