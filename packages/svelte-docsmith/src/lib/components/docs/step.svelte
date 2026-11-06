@@ -7,6 +7,7 @@
 	}: {
 		/** Optional heading for the step. */
 		title?: string;
+		/** The step's content. */
 		children?: Snippet;
 	} = $props();
 </script>

@@ -8,17 +8,17 @@
 		actions,
 		media
 	}: {
-		/** The headline. Pass a snippet instead of a string to mark part of it up. */
+		/** The headline. Pass a snippet to mark part of it up. */
 		title: string | Snippet;
 		/** Supporting paragraph below the headline. */
 		description?: string | Snippet;
-		/** A pill, badge, or announcement link sitting above the headline. */
+		/** A pill, badge, or announcement link above the headline. */
 		eyebrow?: Snippet;
-		/** Call-to-action buttons. */
+		/** Call-to-action buttons, usually one or two `Action` links. */
 		actions?: Snippet;
 		/**
-		 * The second column: a code sample, screenshot, or live demo. Without it the
-		 * hero collapses to a single centred column.
+		 * The second column: a code sample, screenshot, or live demo. Without it
+		 * the hero centres on one column.
 		 */
 		media?: Snippet;
 	} = $props();

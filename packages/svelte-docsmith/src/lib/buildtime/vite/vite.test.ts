@@ -57,6 +57,69 @@ describe('docsmith() ?source transform', () => {
 	});
 });
 
+// --- ?props transform ----------------------------------------------------
+
+const PROPS_PREFIX = '\0docsmith-props:';
+const PROPS_EXT = '.docsmith-props';
+const propsFixture = (name: string) =>
+	path.resolve(import.meta.dirname, '../props/_fixtures', `${name}.svelte`);
+
+// The first load builds a TypeScript program: seconds on a cold coverage run.
+describe('docsmith() ?props transform', { timeout: 60_000 }, () => {
+	it('maps a *.svelte?props id to the virtual props module', async () => {
+		const ctx = { resolve: vi.fn().mockResolvedValue({ id: '/abs/Foo.svelte' }) };
+		const resolveId = pluginNamed('docsmith-props').resolveId as unknown as ResolveId;
+
+		expect(await resolveId.call(ctx, 'Foo.svelte?props', '/importer')).toBe(
+			PROPS_PREFIX + '/abs/Foo.svelte' + PROPS_EXT
+		);
+		expect(ctx.resolve).toHaveBeenCalledWith('Foo.svelte', '/importer', { skipSelf: true });
+		expect(await resolveId.call(ctx, 'Foo.svelte?source', '/importer')).toBeUndefined();
+	});
+
+	it('leaves an unresolvable component to Vite', async () => {
+		const ctx = { resolve: vi.fn().mockResolvedValue(null) };
+		const resolveId = pluginNamed('docsmith-props').resolveId as unknown as ResolveId;
+		expect(await resolveId.call(ctx, 'Missing.svelte?props', '/importer')).toBeUndefined();
+	});
+
+	it('exports the extracted props and watches what they were read from', async () => {
+		const plugin = pluginNamed('docsmith-props');
+		const root = path.resolve(import.meta.dirname, '../../../..');
+		(plugin.configResolved as unknown as (c: { root: string }) => void)({ root });
+		const ctx = { addWatchFile: vi.fn(), warn: vi.fn() };
+		const load = plugin.load as unknown as Load;
+
+		const out = await load.call(ctx, PROPS_PREFIX + propsFixture('notice') + PROPS_EXT);
+
+		expect(out).toMatch(/^export default /);
+		const props = JSON.parse(
+			String(out)
+				.replace(/^export default /, '')
+				.replace(/;$/, '')
+		);
+		expect(props.name).toBe('Notice');
+		expect(props.props[0]).toMatchObject({ name: 'tone', type: "'neutral' | 'info' | 'danger'" });
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(propsFixture('notice'));
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(
+			path.resolve(import.meta.dirname, '../props/_fixtures/types.ts')
+		);
+		expect(ctx.warn).not.toHaveBeenCalled();
+	});
+
+	it('passes extraction problems on as warnings', async () => {
+		const ctx = { addWatchFile: vi.fn(), warn: vi.fn() };
+		const load = pluginNamed('docsmith-props').load as unknown as Load;
+		await load.call(ctx, PROPS_PREFIX + propsFixture('static') + PROPS_EXT);
+		expect(ctx.warn).toHaveBeenCalledWith(expect.stringContaining('no `$props()` found'));
+	});
+
+	it('ignores ids that are not props modules', async () => {
+		const load = pluginNamed('docsmith-props').load as unknown as Load;
+		expect(await load.call({}, '/abs/Foo.svelte')).toBeUndefined();
+	});
+});
+
 // --- content index -------------------------------------------------------
 //
 // These drive the plugin against a real docs root on disk. That is the point:

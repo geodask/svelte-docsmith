@@ -6,7 +6,8 @@ order: 9
 ---
 
 <script>
-	import { Callout, PropsTable, Prop } from 'svelte-docsmith';
+	import { Callout, PropsTable } from 'svelte-docsmith';
+	import calloutProps from '$docsmith/components/docs/callout.svelte?props';
 </script>
 
 Highlight something the reader shouldn't miss. Four intents, each with its own
@@ -59,11 +60,4 @@ inside, including `code` and [links](/docs/theming).
 
 ## API reference
 
-<PropsTable>
-	<Prop name="variant" type="'note' | 'tip' | 'warning' | 'danger'" default="'note'">
-		Visual intent.
-	</Prop>
-	<Prop name="title" type="string" default="the variant">
-		Heading above the body.
-	</Prop>
-</PropsTable>
+<PropsTable of={calloutProps} />

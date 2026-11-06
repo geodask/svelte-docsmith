@@ -6,7 +6,8 @@ order: 14
 ---
 
 <script>
-	import { Badge, PropsTable, Prop } from 'svelte-docsmith';
+	import { Badge, PropsTable } from 'svelte-docsmith';
+	import badgeProps from '$docsmith/components/docs/badge.svelte?props';
 </script>
 
 Label a status, version, or category inline. Six intents cover the usual docs
@@ -40,14 +41,4 @@ badge into a link.
 
 ## API reference
 
-<PropsTable>
-	<Prop name="variant" type="'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'outline'" default="'default'">
-		Visual intent.
-	</Prop>
-	<Prop name="href" type="string">
-		Renders the badge as a link.
-	</Prop>
-	<Prop name="external" type="boolean" default="false">
-		For a linked badge, open in a new tab with <code>rel="noopener noreferrer"</code>.
-	</Prop>
-</PropsTable>
+<PropsTable of={badgeProps} />

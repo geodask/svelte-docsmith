@@ -5,8 +5,17 @@ import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { docsmith } from 'svelte-docsmith/vite';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
+	resolve: {
+		alias: {
+			// The package's source, for props imports: the published `dist`
+			// strips types out of `.svelte` files, so generated props tables read
+			// `$docsmith/components/docs/badge.svelte?props` instead.
+			$docsmith: fileURLToPath(new URL('../../packages/svelte-docsmith/src/lib', import.meta.url))
+		}
+	},
 	plugins: [
 		docsmith({
 			changelog: '../../packages/svelte-docsmith/CHANGELOG.md',

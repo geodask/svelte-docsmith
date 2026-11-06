@@ -6,7 +6,9 @@ order: 16
 ---
 
 <script>
-	import { FileTree, FileTreeItem, PropsTable, Prop } from 'svelte-docsmith';
+	import { FileTree, FileTreeItem, PropsTable } from 'svelte-docsmith';
+	import fileTreeItemProps from '$docsmith/components/docs/file-tree-item.svelte?props';
+	import fileTreeProps from '$docsmith/components/docs/file-tree.svelte?props';
 </script>
 
 Sketch a folder layout so the reader sees where a file goes. Indentation and
@@ -50,18 +52,8 @@ call out the entry a guide is about to touch.
 
 ### FileTree
 
-Wraps its `<FileTreeItem>` children; no other props.
+<PropsTable of={fileTreeProps} />
 
 ### FileTreeItem
 
-<PropsTable>
-	<Prop name="name" type="string" required>
-		File or directory name.
-	</Prop>
-	<Prop name="folder" type="boolean" default="false">
-		Force folder styling for an empty directory.
-	</Prop>
-	<Prop name="highlight" type="boolean" default="false">
-		Emphasize the entry.
-	</Prop>
-</PropsTable>
+<PropsTable of={fileTreeItemProps} />

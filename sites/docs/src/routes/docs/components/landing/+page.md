@@ -6,7 +6,12 @@ order: 18
 ---
 
 <script>
-	import { PropsTable, Prop } from 'svelte-docsmith';
+	import { PropsTable } from 'svelte-docsmith';
+	import heroProps from '$docsmith/components/landing/hero.svelte?props';
+	import featureGridProps from '$docsmith/components/landing/feature-grid.svelte?props';
+	import featureProps from '$docsmith/components/landing/feature.svelte?props';
+	import ctaProps from '$docsmith/components/landing/cta.svelte?props';
+	import actionProps from '$docsmith/components/landing/action.svelte?props';
 </script>
 
 Five components compose the page in front of your docs: `Hero`, `FeatureGrid`
@@ -67,23 +72,7 @@ screenshot.
 snippet form when you want to mark part of the headline up, such as colouring
 one word with `text-primary`.
 
-<PropsTable title="Hero">
-	<Prop name="title" type="string | Snippet" required>
-		The headline. Pass a snippet to mark part of it up.
-	</Prop>
-	<Prop name="description" type="string | Snippet">
-		Supporting paragraph below the headline.
-	</Prop>
-	<Prop name="eyebrow" type="Snippet">
-		A pill, badge, or announcement link above the headline.
-	</Prop>
-	<Prop name="actions" type="Snippet">
-		Call-to-action buttons, usually one or two <code>Action</code> links.
-	</Prop>
-	<Prop name="media" type="Snippet">
-		The second column. Without it the hero centres on one column.
-	</Prop>
-</PropsTable>
+<PropsTable of={heroProps} />
 
 ## Feature grid
 
@@ -95,36 +84,9 @@ Set `background="muted"` to tint the band and rule it top and bottom. Alternate
 it against the sections either side and the page reads as distinct bands rather
 than one continuous scroll.
 
-<PropsTable title="FeatureGrid">
-	<Prop name="title" type="string">
-		Section heading above the grid.
-	</Prop>
-	<Prop name="description" type="string">
-		Supporting line below the heading.
-	</Prop>
-	<Prop name="columns" type="2 | 3" default="3">
-		Columns at the widest breakpoint. The grid steps down to two, then one, on
-		narrower screens.
-	</Prop>
-	<Prop name="background" type="'default' | 'muted'" default="'default'">
-		<code>muted</code> tints the band and adds a rule above and below.
-	</Prop>
-	<Prop name="children" type="Snippet" required>
-		The <code>Feature</code> cells.
-	</Prop>
-</PropsTable>
+<PropsTable of={featureGridProps} />
 
-<PropsTable title="Feature">
-	<Prop name="title" type="string" required>
-		The cell heading.
-	</Prop>
-	<Prop name="icon" type="Snippet">
-		Optional leading icon, rendered in a tinted square.
-	</Prop>
-	<Prop name="children" type="Snippet">
-		The description.
-	</Prop>
-</PropsTable>
+<PropsTable of={featureProps} />
 
 ## CTA
 
@@ -133,24 +95,7 @@ page ends on your primary colour instead of trailing off. Use `before` for a
 note that should sit above the heading (for example a pre-release `Callout`) so
 the section still ends on the actions; use `children` for content below them.
 
-<PropsTable title="CTA">
-	<Prop name="title" type="string" required>
-		The closing heading.
-	</Prop>
-	<Prop name="description" type="string">
-		Supporting line below the heading.
-	</Prop>
-	<Prop name="actions" type="Snippet">
-		Call-to-action buttons.
-	</Prop>
-	<Prop name="before" type="Snippet">
-		Content above the heading — a pre-release note, for example — so the
-		section can still end on the actions.
-	</Prop>
-	<Prop name="children" type="Snippet">
-		Content below the actions, such as a secondary note.
-	</Prop>
-</PropsTable>
+<PropsTable of={ctaProps} title="CTA" />
 
 ## Action
 
@@ -162,20 +107,4 @@ It is deliberately small. Anything more elaborate, such as a button that copies
 an install command to the clipboard, is clearer written as your own markup
 inside the `actions` snippet.
 
-<PropsTable title="Action">
-	<Prop name="href" type="string" required>
-		Where the link points.
-	</Prop>
-	<Prop name="variant" type="'primary' | 'secondary'" default="'primary'">
-		Filled or outlined.
-	</Prop>
-	<Prop name="external" type="boolean" default="false">
-		Open in a new tab with <code>rel="noopener noreferrer"</code>.
-	</Prop>
-	<Prop name="arrow" type="boolean">
-		Trailing arrow. Defaults to on for <code>primary</code>, off for <code>secondary</code>.
-	</Prop>
-	<Prop name="children" type="Snippet" required>
-		The link label.
-	</Prop>
-</PropsTable>
+<PropsTable of={actionProps} />

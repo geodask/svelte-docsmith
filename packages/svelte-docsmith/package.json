@@ -72,6 +72,9 @@
 			"svelte": "./dist/components/docs/mermaid.svelte",
 			"default": "./dist/components/docs/mermaid.svelte"
 		},
+		"./client": {
+			"types": "./dist/client.d.ts"
+		},
 		"./theme.css": "./dist/theme.css",
 		"./themes/*.css": "./dist/themes/*.css",
 		"./package.json": "./package.json"
@@ -88,10 +91,18 @@
 		"@sveltejs/kit": "^2.16.0 || ^3.0.0",
 		"mermaid": "^10.0.0 || ^11.0.0 || ^12.0.0",
 		"svelte": "^5.0.0",
-		"tailwindcss": "^4.0.0"
+		"svelte2tsx": "^0.7.0",
+		"tailwindcss": "^4.0.0",
+		"typescript": "^5.0.0 || ^6.0.0"
 	},
 	"peerDependenciesMeta": {
 		"mermaid": {
+			"optional": true
+		},
+		"svelte2tsx": {
+			"optional": true
+		},
+		"typescript": {
 			"optional": true
 		}
 	},
@@ -113,6 +124,7 @@
 		"shadcn-svelte": "^1.8.0",
 		"svelte": "^5.57.3",
 		"svelte-check": "^4.7.8",
+		"svelte2tsx": "^0.7.63",
 		"tailwindcss": "^4.3.4",
 		"twoslash-svelte": "0.3.9",
 		"typescript": "^6.0.3",

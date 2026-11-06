@@ -15,10 +15,14 @@
 		title,
 		children
 	}: {
-		/** Visual intent. Default: `note`. */
+		/** Visual intent. */
 		variant?: CalloutVariant;
-		/** Optional heading; defaults to the capitalized variant. */
+		/**
+		 * Heading above the body.
+		 * @default the variant, capitalized
+		 */
 		title?: string;
+		/** The callout body. */
 		children: Snippet;
 	} = $props();
 

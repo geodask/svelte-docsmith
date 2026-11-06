@@ -1,7 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	const { children }: { children: Snippet } = $props();
+	const {
+		children
+	}: {
+		/** The key label to show. */
+		children: Snippet;
+	} = $props();
 </script>
 
 <kbd

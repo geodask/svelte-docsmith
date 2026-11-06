@@ -1,0 +1,173 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+import { componentName, createPropsExtractor } from './extract.js';
+
+const root = path.resolve(import.meta.dirname, '../../../..');
+const fixture = (name: string) => path.join(import.meta.dirname, '_fixtures', `${name}.svelte`);
+const extractor = createPropsExtractor({ root });
+const extract = (name: string) => extractor.extract(fixture(name));
+
+// The first read builds a TypeScript program, which takes seconds on a cold,
+// instrumented (coverage) run.
+const COLD = { timeout: 60_000 };
+
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-props-'));
+afterAll(() => fs.rmSync(tmp, { recursive: true, force: true }));
+
+describe('createPropsExtractor', COLD, () => {
+	it('reads types, defaults, requiredness and descriptions', async () => {
+		const { props, warnings } = await extract('notice');
+		expect(warnings).toEqual([]);
+		expect(props.name).toBe('Notice');
+		const byName = Object.fromEntries(props.props.map((p) => [p.name, p]));
+
+		// An imported alias of literals shows its resolved union.
+		expect(byName.tone).toEqual({
+			name: 'tone',
+			type: "'neutral' | 'info' | 'danger'",
+			default: "'neutral'",
+			required: false,
+			bindable: false,
+			description: 'Visual intent. See <a href="/docs/tones">tones</a> and <code>Tone</code>.'
+		});
+		expect(byName.title).toMatchObject({ type: 'string', required: true });
+		expect(byName.items).toMatchObject({ type: 'Item[]', default: '[]', required: false });
+		expect(byName.dismissible).toMatchObject({ type: 'boolean', default: 'false' });
+		expect(byName.onclose.type).toBe("(reason: 'button' | 'timeout') => void");
+		expect(byName.children).toMatchObject({ type: 'Snippet', required: true });
+	});
+
+	it('keeps declaration order and honours JSDoc tags', async () => {
+		const { props } = await extract('notice');
+		const names = props.props.map((p) => p.name);
+		expect(names).toEqual([
+			'tone',
+			'title',
+			'items',
+			'dismissible',
+			'size',
+			'onclose',
+			'legacy',
+			'children'
+		]);
+		// @internal hides `secret`; @default wins over the destructured default.
+		expect(names).not.toContain('secret');
+		expect(props.props.find((p) => p.name === 'size')?.default).toBe('2 (medium)');
+		expect(props.props.find((p) => p.name === 'legacy')?.deprecated).toBe(
+			'Use <code>title</code>.'
+		);
+	});
+
+	it('handles generics, $bindable() and inherited element attributes', async () => {
+		const { props } = await extract('select');
+		expect(props.typeParameters).toEqual(['T', 'U']);
+		expect(props.props).toEqual([
+			expect.objectContaining({ name: 'options', type: 'T[]', required: true }),
+			expect.objectContaining({ name: 'value', type: 'T', bindable: true, required: false }),
+			expect.objectContaining({ name: 'option', type: 'Snippet<[T, U]>' })
+		]);
+		// Hundreds of <a> attributes collapse to one group.
+		expect(props.inherited).toEqual([{ kind: 'element', label: 'a' }]);
+	});
+
+	it('finds inherited attributes on an extended interface', async () => {
+		const { props } = await extract('button');
+		expect(props.props.map((p) => p.name)).toEqual(['loading']);
+		expect(props.inherited).toEqual([{ kind: 'element', label: 'button' }]);
+	});
+
+	it('resolves import aliases and other .svelte components', async () => {
+		const { props, warnings } = await extract('aliased');
+		expect(warnings).toEqual([]);
+		expect(props.props).toEqual([
+			expect.objectContaining({ name: 'tone', type: "'neutral' | 'info' | 'danger'" }),
+			expect.objectContaining({ name: 'loading', type: 'boolean' })
+		]);
+	});
+
+	it('watches the files a component imports', async () => {
+		const { watchFiles } = await extract('notice');
+		expect(watchFiles).toEqual([
+			fixture('notice'),
+			path.join(import.meta.dirname, '_fixtures', 'types.ts')
+		]);
+	});
+
+	it('shows untyped props by name, with a warning', async () => {
+		const { props, warnings } = await extract('untyped');
+		expect(props.props).toEqual([
+			{ name: 'label', required: false, bindable: false },
+			{ name: 'count', default: '0', required: false, bindable: true },
+			{ name: 'aria-label', default: "'x'", required: false, bindable: false }
+		]);
+		expect(warnings).toEqual([expect.stringContaining('untyped.svelte: `$props()` has no type')]);
+	});
+
+	it('warns when a component has no $props()', async () => {
+		const { props, warnings } = await extract('static');
+		expect(props.props).toEqual([]);
+		expect(warnings).toEqual([expect.stringContaining('no `$props()` found')]);
+	});
+
+	it('warns instead of throwing on a component that does not parse', async () => {
+		const file = path.join(tmp, 'broken.svelte');
+		fs.writeFileSync(file, '<script lang="ts">let {</script>');
+		const { props, warnings } = await extractor.extract(file);
+		expect(props.props).toEqual([]);
+		expect(warnings).toEqual([expect.stringContaining('could not parse the component')]);
+	});
+
+	it('warns when pointed at a published package file', async () => {
+		const dir = path.join(tmp, 'node_modules', 'lib');
+		fs.mkdirSync(dir, { recursive: true });
+		const file = path.join(dir, 'thing.svelte');
+		fs.writeFileSync(file, '<script>\n\tlet { a } = $props();\n</script>\n');
+		const { warnings } = await extractor.extract(file);
+		expect(warnings[0]).toContain('published package file');
+	});
+
+	it('picks up edits to a component', async () => {
+		const file = path.join(tmp, 'live.svelte');
+		const write = (type: string) =>
+			fs.writeFileSync(
+				file,
+				`<script lang="ts">\n\tlet { a }: { a: ${type} } = $props();\n</script>\n`
+			);
+		write('string');
+		expect((await extractor.extract(file)).props.props[0].type).toBe('string');
+		write('number');
+		// mtime resolution can be coarse; force a distinct timestamp.
+		const later = new Date(Date.now() + 5000);
+		fs.utimesSync(file, later, later);
+		expect((await extractor.extract(file)).props.props[0].type).toBe('number');
+	});
+});
+
+describe('createPropsExtractor without TypeScript', COLD, () => {
+	it('falls back to names and defaults, with an install hint', async () => {
+		vi.resetModules();
+		vi.doMock('typescript', () => {
+			throw new Error('Cannot find module');
+		});
+		const { createPropsExtractor: fresh } = await import('./extract.js');
+		const { props, warnings } = await fresh({ root }).extract(fixture('notice'));
+		vi.doUnmock('typescript');
+		expect(warnings).toEqual([expect.stringContaining('npm i -D typescript svelte2tsx')]);
+		expect(props.props.find((p) => p.name === 'tone')).toEqual({
+			name: 'tone',
+			default: "'neutral'",
+			required: false,
+			bindable: false
+		});
+	});
+});
+
+describe('componentName', () => {
+	it('derives a PascalCase name from the file', () => {
+		expect(componentName('/x/file-tree-item.svelte')).toBe('FileTreeItem');
+		expect(componentName('/x/Badge.svelte')).toBe('Badge');
+		expect(componentName('/x/my_thing.svelte')).toBe('MyThing');
+	});
+});

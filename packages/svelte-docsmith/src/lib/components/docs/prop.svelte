@@ -1,10 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { unionMembers } from '../../utils/type-text.js';
 
 	const {
 		name,
 		type,
 		required = false,
+		bindable = false,
+		deprecated,
 		default: defaultValue,
 		children
 	}: {
@@ -14,24 +17,21 @@
 		type?: string;
 		/** Mark the property as required. */
 		required?: boolean;
+		/** Mark the property as bindable with `bind:`. */
+		bindable?: boolean;
+		/** Mark the property as deprecated; a string says what to use instead. */
+		deprecated?: boolean | string;
 		/** Default value, shown alongside the type. */
 		default?: string;
 		/** Description. */
 		children?: Snippet;
 	} = $props();
 
-	// Split a union into per-value chips so long ones wrap as a tidy pill group
-	// instead of ugly broken text. Skip splitting when the type is a generic
-	// (`Array<A | B>`) or a signature (`() => …`) where a top-level `|` split
-	// would be wrong — those render as one chip that wraps on its own.
-	const typeParts = $derived.by(() => {
-		if (!type) return [];
-		if (/[<(]/.test(type)) return [type];
-		return type
-			.split('|')
-			.map((s) => s.trim())
-			.filter(Boolean);
-	});
+	// Split a top-level union into per-value chips so long ones wrap as a tidy
+	// pill group instead of ugly broken text. A `|` nested in a generic
+	// (`Array<A | B>`) or inside a signature (`() => A | B`) stays put, so
+	// those render as one chip that wraps on its own.
+	const typeParts = $derived(type ? unionMembers(type) : []);
 	const solo = $derived(typeParts.length === 1);
 </script>
 
@@ -39,6 +39,8 @@
 	<div class="prop-head">
 		<code class="prop-name">{name}</code>
 		{#if required}<span class="prop-required">required</span>{/if}
+		{#if bindable}<span class="prop-flag">bindable</span>{/if}
+		{#if deprecated}<span class="prop-flag prop-flag-deprecated">deprecated</span>{/if}
 
 		{#if type}
 			<span class="prop-types">
@@ -56,6 +58,9 @@
 		{/if}
 	</div>
 
+	{#if typeof deprecated === 'string' && deprecated}
+		<div class="prop-desc prop-deprecated-note">Deprecated: {deprecated}</div>
+	{/if}
 	{#if children}
 		<div class="prop-desc">{@render children()}</div>
 	{/if}
@@ -98,6 +103,22 @@
 		font-weight: 600;
 		letter-spacing: 0.02em;
 		text-transform: uppercase;
+	}
+
+	/* Secondary marks (bindable, deprecated): outlined so they never compete
+	   with the solid required pill. */
+	.prop-flag {
+		padding: 0.05rem 0.4rem;
+		border-radius: 9999px;
+		border: 1px solid var(--border);
+		color: var(--muted-foreground);
+		font-size: 0.625rem;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+	}
+	.prop-flag-deprecated {
+		text-decoration: line-through;
 	}
 
 	/* Type values as chips: a union wraps as a neat pill group, each token
@@ -148,6 +169,16 @@
 		font-size: 0.875rem;
 		line-height: 1.55;
 		max-width: 68ch;
+	}
+	.prop-deprecated-note + .prop-desc {
+		margin-top: 0.25rem;
+	}
+	.prop-desc :global(p) {
+		margin: 0;
+	}
+	.prop-desc :global(* + p),
+	.prop-desc :global(* + div) {
+		margin-top: 0.4rem;
 	}
 	.prop-desc :global(code) {
 		font-family: var(--font-mono, ui-monospace, monospace);

@@ -16,12 +16,13 @@
 		external = false,
 		children
 	}: {
-		/** Visual intent. Default: `default`. */
+		/** Visual intent. */
 		variant?: BadgeVariant;
-		/** Turns the badge into a link. */
+		/** Renders the badge as a link. */
 		href?: string;
-		/** For a linked badge, open in a new tab with `rel="noopener"`. */
+		/** For a linked badge, open in a new tab with `rel="noopener noreferrer"`. */
 		external?: boolean;
+		/** The badge label. */
 		children: Snippet;
 	} = $props();
 

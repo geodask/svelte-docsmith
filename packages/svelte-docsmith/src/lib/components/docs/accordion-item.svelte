@@ -7,8 +7,9 @@
 		title,
 		children
 	}: {
-		/** The always-visible summary that toggles the panel. */
+		/** The heading that toggles the panel. */
 		title: string;
+		/** The panel content. */
 		children: Snippet;
 	} = $props();
 

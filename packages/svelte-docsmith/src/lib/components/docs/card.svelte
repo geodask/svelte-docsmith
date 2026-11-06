@@ -9,13 +9,15 @@
 		icon,
 		children
 	}: {
+		/** Card heading. */
 		title: string;
-		/** Turns the card into a link. */
+		/** Makes the card a link. */
 		href?: string;
+		/** Open the link in a new tab. */
 		external?: boolean;
 		/** Optional leading icon. */
 		icon?: Snippet;
-		/** Card body / description. */
+		/** The card body. */
 		children?: Snippet;
 	} = $props();
 

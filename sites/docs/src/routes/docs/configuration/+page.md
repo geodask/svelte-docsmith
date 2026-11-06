@@ -18,7 +18,7 @@ their own pages in the [Components](/docs/components/callout) section.
 
 - **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, `generateFeed`, `generateLlmsTxt`, `generateLlmsFullTxt`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
 - **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor, passed to `sveltekit({ preprocess })` in `vite.config.ts` (or `svelte.config.js` on SvelteKit 2).
-- **`svelte-docsmith/vite`**: the Vite plugin (content, search, llms and changelog indexes, plus the `?source` transform).
+- **`svelte-docsmith/vite`**: the Vite plugin (content, search, llms and changelog indexes, plus the `?source` and `?props` transforms).
 - **`svelte-docsmith/content`**: the generated sidebar index, exported as `docs`.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
 - **`svelte-docsmith/llms`**: the generated per-page markdown index, exported as `docs` (see [SEO](/docs/seo)).
@@ -134,7 +134,8 @@ thing.
 
 From `svelte-docsmith/vite`, added to `plugins` in `vite.config.ts`. It scans
 your pages into the generated indexes and serves the `?source` imports that
-[Live Examples](/docs/live-examples) use.
+[Live Examples](/docs/live-examples) use and the `?props` imports behind
+generated [Props Tables](/docs/components/props-table).
 
 <PropsTable title="docsmith() — vite">
 	<Prop name="content" type="string" default="'src/routes/docs'">
@@ -157,6 +158,10 @@ your pages into the generated indexes and serves the `?source` imports that
 	<Prop name="changelogPath" type="string" default="'/changelog'">
 		Route the changelog is served at. Used to build feed links and to find
 		hand-written per-release pages.
+	</Prop>
+	<Prop name="tsconfig" type="string" default="'tsconfig.json'">
+		The tsconfig used to read prop types for <code>?props</code> imports, relative to
+		the Vite root. Experimental.
 	</Prop>
 </PropsTable>
 

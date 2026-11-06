@@ -29,14 +29,18 @@
 		syncKey,
 		children
 	}: {
-		/** Value/label of the tab selected by default. Defaults to the first tab. */
+		/**
+		 * Label (or value) of the tab selected by default.
+		 * @default the first tab
+		 */
 		value?: string;
 		/**
-		 * Sync group. Every `<Tabs>` with the same `syncKey` shares its selection
-		 * (e.g. `"pkg"` for npm/pnpm/yarn blocks), and the choice is remembered
-		 * across reloads and navigation.
+		 * Sync group. Every `Tabs` with the same `syncKey` shares its selection
+		 * (for example `"pkg"` for npm/pnpm/yarn blocks), and the choice is
+		 * remembered across reloads and navigation.
 		 */
 		syncKey?: string;
+		/** One `TabItem` per tab. */
 		children: Snippet;
 	} = $props();
 

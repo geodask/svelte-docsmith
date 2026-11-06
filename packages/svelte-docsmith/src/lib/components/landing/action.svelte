@@ -8,12 +8,15 @@
 		arrow = variant === 'primary',
 		children
 	}: {
+		/** Where the link points. */
 		href: string;
-		/** `primary` is the filled button, `secondary` the outlined one beside it. */
+		/** Filled (`primary`) or outlined (`secondary`). */
 		variant?: 'primary' | 'secondary';
+		/** Open in a new tab with `rel="noopener noreferrer"`. */
 		external?: boolean;
-		/** Trailing arrow that nudges on hover. Defaults on for `primary`. */
+		/** Trailing arrow that nudges on hover. On for `primary`, off for `secondary`. */
 		arrow?: boolean;
+		/** The link label. */
 		children: Snippet;
 	} = $props();
 

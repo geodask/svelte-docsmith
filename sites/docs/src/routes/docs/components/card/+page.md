@@ -6,7 +6,9 @@ order: 11
 ---
 
 <script>
-	import { Card, CardGrid, PropsTable, Prop } from 'svelte-docsmith';
+	import { Card, CardGrid, PropsTable } from 'svelte-docsmith';
+	import cardProps from '$docsmith/components/docs/card.svelte?props';
+	import cardGridProps from '$docsmith/components/docs/card-grid.svelte?props';
 </script>
 
 A `Card` groups a title and description, optionally as a link. Give it an `href`
@@ -45,25 +47,8 @@ columns as fit, down to one on narrow screens.
 
 ### Card
 
-<PropsTable>
-	<Prop name="title" type="string" required>
-		Card heading.
-	</Prop>
-	<Prop name="href" type="string">
-		Makes the card a link.
-	</Prop>
-	<Prop name="external" type="boolean" default="false">
-		Open the link in a new tab.
-	</Prop>
-	<Prop name="icon" type="Snippet">
-		Optional leading icon.
-	</Prop>
-</PropsTable>
+<PropsTable of={cardProps} />
 
 ### CardGrid
 
-<PropsTable>
-	<Prop name="children" type="Snippet">
-		The Cards to lay out.
-	</Prop>
-</PropsTable>
+<PropsTable of={cardGridProps} />

@@ -12,6 +12,9 @@
  *     index of full markdown bodies is wired the same way.)
  *  3. The **`?source` transform** powering `LiveExample`: importing
  *     `Component.svelte?source` yields that file's Shiki-highlighted source.
+ *  4. The **`?props` transform** powering generated props tables: importing
+ *     `Component.svelte?props` yields that component's extracted props, for
+ *     `<PropsTable of={…}>` (see `../props/extract.js`).
  *
  * Reading the docs root lives in `./pages.js` and building each index from what
  * it read lives in `./collect.js`; this file owns the two Vite plugins, and is
@@ -28,6 +31,7 @@ import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from '.
 import { contentIndex, llmsIndex, searchIndex } from './collect.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
+import { createPropsExtractor, type PropsExtractor } from '../props/extract.js';
 
 export interface DocsmithViteOptions {
 	/** Directory scanned for doc pages. Default: `'src/routes/docs'`. */
@@ -63,6 +67,13 @@ export interface DocsmithViteOptions {
 	 * not dependencies.
 	 */
 	versions?: DocsVersions;
+	/**
+	 * tsconfig used to read prop types for props imports (`?props`), relative
+	 * to the Vite root. Default: the root's `tsconfig.json`.
+	 *
+	 * @experimental Generated props tables are outside the 1.0 stability promise.
+	 */
+	tsconfig?: string;
 }
 
 /**
@@ -74,7 +85,7 @@ export interface DocsmithViteOptions {
  * ```
  */
 export function docsmith(options: DocsmithViteOptions = {}): Plugin[] {
-	return [contentIndexPlugin(options), exampleSourcePlugin(options)];
+	return [contentIndexPlugin(options), exampleSourcePlugin(options), propsPlugin(options)];
 }
 
 // --- content / search / llms index --------------------------------------
@@ -250,6 +261,60 @@ function exampleSourcePlugin(options: DocsmithViteOptions): Plugin {
 				.replace(/background-color:[^;"]*;?/gi, '')
 				.replace(/--shiki-dark-bg:[^;"]*;?/gi, '');
 			return `export default ${JSON.stringify(html)};`;
+		}
+	};
+}
+
+// --- ?props transform (generated props tables) ---------------------------
+
+const PROPS_PREFIX = '\0docsmith-props:';
+// Like the `?source` id, it must not end in `.svelte`.
+const PROPS_EXT = '.docsmith-props';
+const PROPS_SUFFIX = '?props';
+
+// Shared across plugin instances: SvelteKit builds the client and the server in
+// one process, and both import every props module. Sharing the extractor means
+// one TypeScript program and one result cache for both.
+const extractors = new Map<string, PropsExtractor>();
+// A cached result comes back as the same object; warn about it once, not once
+// per build.
+const warned = new WeakSet<object>();
+
+function propsPlugin(options: DocsmithViteOptions): Plugin {
+	let root = process.cwd();
+
+	return {
+		name: 'docsmith-props',
+		enforce: 'pre',
+
+		configResolved(config) {
+			root = config.root;
+		},
+
+		async resolveId(id, importer) {
+			if (!id.endsWith('.svelte' + PROPS_SUFFIX)) return;
+			const base = id.slice(0, -PROPS_SUFFIX.length);
+			const resolved = await this.resolve(base, importer, { skipSelf: true });
+			if (resolved) return PROPS_PREFIX + resolved.id + PROPS_EXT;
+		},
+
+		async load(id) {
+			if (!id.startsWith(PROPS_PREFIX)) return;
+			const file = id.slice(PROPS_PREFIX.length, -PROPS_EXT.length);
+			// One extractor per root: its TypeScript program is reused across
+			// every props import instead of being rebuilt per component.
+			const key = `${root}\0${options.tsconfig ?? ''}`;
+			let extractor = extractors.get(key);
+			if (!extractor) {
+				extractor = createPropsExtractor({ root, tsconfig: options.tsconfig });
+				extractors.set(key, extractor);
+			}
+			const result = await extractor.extract(file);
+			const { props, warnings, watchFiles } = result;
+			for (const watched of watchFiles) this.addWatchFile(watched);
+			if (!warned.has(result)) for (const warning of warnings) this.warn(warning);
+			warned.add(result);
+			return `export default ${JSON.stringify(props)};`;
 		}
 	};
 }

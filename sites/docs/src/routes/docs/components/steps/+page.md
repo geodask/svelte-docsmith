@@ -6,7 +6,9 @@ order: 10
 ---
 
 <script>
-	import { Steps, Step, PropsTable, Prop } from 'svelte-docsmith';
+	import { Steps, Step, PropsTable } from 'svelte-docsmith';
+	import stepProps from '$docsmith/components/docs/step.svelte?props';
+	import stepsProps from '$docsmith/components/docs/steps.svelte?props';
 </script>
 
 A numbered walkthrough (a connecting line with numbered badges) for setup flows
@@ -68,12 +70,8 @@ ordered list, and mdsvex turns it into steps:
 
 ### Steps
 
-Wraps its `<Step>` children; no other props.
+<PropsTable of={stepsProps} />
 
 ### Step
 
-<PropsTable>
-	<Prop name="title" type="string">
-		Optional heading for the step.
-	</Prop>
-</PropsTable>
+<PropsTable of={stepProps} />

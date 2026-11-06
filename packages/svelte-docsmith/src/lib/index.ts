@@ -26,6 +26,12 @@ export { default as FileTreeItem } from './components/docs/file-tree-item.svelte
 export { default as PropsTable } from './components/docs/props-table.svelte';
 export { default as Prop } from './components/docs/prop.svelte';
 
+// Generated props tables (experimental — outside the 1.0 stability promise).
+// A props import (`import props from './button.svelte?props'`, served by the
+// `docsmith()` vite plugin) yields `ExtractedProps` for `<PropsTable of={props}>`.
+// The shape is internal to `PropsTable` and may change in a minor.
+export type { ExtractedProps, ExtractedProp, InheritedProps } from './core/extracted-props.js';
+
 // Landing page sections (for the marketing page in front of your docs)
 export { default as Hero } from './components/landing/hero.svelte';
 export { default as FeatureGrid } from './components/landing/feature-grid.svelte';

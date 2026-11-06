@@ -6,7 +6,9 @@ order: 12
 ---
 
 <script>
-	import { Tabs, TabItem, PropsTable, Prop } from 'svelte-docsmith';
+	import { Tabs, TabItem, PropsTable } from 'svelte-docsmith';
+	import tabsProps from '$docsmith/components/docs/tabs.svelte?props';
+	import tabItemProps from '$docsmith/components/docs/tab-item.svelte?props';
 </script>
 
 Group alternatives such as package managers, framework variants, or OS-specific
@@ -129,23 +131,8 @@ yarn dlx sv add svelte-docsmith
 
 ### Tabs
 
-<PropsTable>
-	<Prop name="value" type="string" default="first tab">
-		Label of the tab selected by default.
-	</Prop>
-	<Prop name="syncKey" type="string">
-		Sync group. Blocks with the same key share their selection and remember it
-		across reloads.
-	</Prop>
-</PropsTable>
+<PropsTable of={tabsProps} />
 
 ### TabItem
 
-<PropsTable>
-	<Prop name="label" type="string" required>
-		The tab's trigger text.
-	</Prop>
-	<Prop name="value" type="string" default="label">
-		Underlying value, only needed to disambiguate duplicate labels.
-	</Prop>
-</PropsTable>
+<PropsTable of={tabItemProps} />
