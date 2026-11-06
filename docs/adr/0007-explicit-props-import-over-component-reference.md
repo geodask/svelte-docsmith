@@ -1,0 +1,3 @@
+# Generated props tables take an explicit props import, not the component
+
+Authors write `import badgeProps from '#lib/badge.svelte?props'` and `<PropsTable of={badgeProps} />`, not `<PropsTable of={Badge} />`. A component value carries no types at runtime, so `of={Badge}` would only work through a hidden build-time rewrite that adds the `?props` import for the author. We rejected that: the page would compile to something other than what was written, it could only trace plain same-file imports, and it needs its own Vite transform across `.md` and `.svelte` pages. The explicit import costs one line, mirrors the existing `?source` import for `LiveExample`, and works for any component the author can import.
