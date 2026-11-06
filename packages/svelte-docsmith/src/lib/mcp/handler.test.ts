@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mcpHandler } from '#lib/index.js';
 import type { LlmsDoc, SearchDoc } from '#lib/core/content.js';
+import { createSearchEngine } from '#lib/search/create-search.js';
+
+// Pass-through spy, so the search_docs tests can count index builds.
+vi.mock('#lib/search/create-search.js', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('#lib/search/create-search.js')>();
+	return { ...actual, createSearchEngine: vi.fn(actual.createSearchEngine) };
+});
 
 const ENDPOINT = 'https://my-docs.dev/mcp';
 
@@ -117,6 +124,40 @@ describe('mcpHandler: tools/list', () => {
 			required: ['path']
 		});
 	});
+
+	it('lists list_pages, search_docs and get_page, each read-only with a JSON Schema input', async () => {
+		const { body } = await rpc('tools/list');
+		const tools = body.result.tools;
+		expect(tools.map((t: { name: string }) => t.name)).toEqual([
+			'list_pages',
+			'search_docs',
+			'get_page'
+		]);
+		for (const tool of tools) {
+			expect(tool.description).toEqual(expect.any(String));
+			expect(tool.inputSchema.type).toBe('object');
+			expect(tool.annotations).toEqual({ readOnlyHint: true, openWorldHint: false });
+		}
+	});
+
+	it('describes search_docs with a required string query and an optional integer limit', async () => {
+		const { body } = await rpc('tools/list');
+		const searchDocs = body.result.tools.find((t: { name: string }) => t.name === 'search_docs');
+		expect(searchDocs.inputSchema).toEqual({
+			type: 'object',
+			properties: {
+				query: { type: 'string', description: expect.any(String) },
+				limit: { type: 'integer', description: expect.any(String) }
+			},
+			required: ['query']
+		});
+	});
+
+	it('describes list_pages as taking no arguments', async () => {
+		const { body } = await rpc('tools/list');
+		const listPages = body.result.tools.find((t: { name: string }) => t.name === 'list_pages');
+		expect(listPages.inputSchema).toEqual({ type: 'object', properties: {} });
+	});
 });
 
 async function getPage(args: unknown) {
@@ -175,6 +216,190 @@ describe('mcpHandler: get_page', () => {
 	});
 });
 
+/** Call one tool on a handler over the given options, expecting a result. */
+async function callTool(
+	name: string,
+	args: unknown,
+	options: Partial<Parameters<typeof mcpHandler>[0]> = {},
+	serve = mcpHandler({ site, docs, search, versions: [], ...options })
+) {
+	const res = await serve(
+		post({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } })
+	);
+	expect(res.status).toBe(200);
+	const body = await res.json();
+	expect(body.error).toBeUndefined();
+	return body.result as { content: Array<{ type: string; text: string }>; isError?: boolean };
+}
+
+describe('mcpHandler: list_pages', () => {
+	// Deliberately out of order: sections and pages sort by `order`, as in llms.txt.
+	const shuffled: LlmsDoc[] = [
+		{
+			path: '/docs/components/card',
+			title: 'Card',
+			section: 'Components',
+			order: 4,
+			description: 'A boxed group',
+			content: ''
+		},
+		{ path: '/docs/faq', title: 'FAQ', order: 5, content: '' },
+		{
+			path: '/docs/intro',
+			title: 'Introduction',
+			section: 'Getting Started',
+			order: 1,
+			description: 'What this is',
+			content: ''
+		},
+		{
+			path: '/docs/components/badge',
+			title: 'Badge',
+			section: 'Components',
+			order: 3,
+			content: ''
+		},
+		{
+			path: '/docs/install',
+			title: 'Installation',
+			section: 'Getting Started',
+			order: 2,
+			description: 'Add it to a project',
+			content: ''
+		}
+	];
+
+	it('lists every page by section in sidebar reading order, with absolute paths', async () => {
+		const result = await callTool('list_pages', {}, { docs: shuffled });
+		expect(result.isError).toBeFalsy();
+		expect(result.content).toEqual([
+			{
+				type: 'text',
+				text: [
+					'## Getting Started',
+					'',
+					'- [Introduction](https://my-docs.dev/docs/intro): What this is',
+					'- [Installation](https://my-docs.dev/docs/install): Add it to a project',
+					'',
+					'## Components',
+					'',
+					'- [Badge](https://my-docs.dev/docs/components/badge)',
+					'- [Card](https://my-docs.dev/docs/components/card): A boxed group',
+					'',
+					'## Docs',
+					'',
+					'- [FAQ](https://my-docs.dev/docs/faq)'
+				].join('\n')
+			}
+		]);
+	});
+
+	it('keeps paths site-relative when the site has no origin', async () => {
+		const result = await callTool('list_pages', {}, { docs: shuffled, site: { title: 'My Docs' } });
+		expect(result.content[0].text).toContain('- [Introduction](/docs/intro): What this is');
+		expect(result.content[0].text).not.toContain('https://');
+	});
+});
+
+describe('mcpHandler: search_docs', () => {
+	const pages: SearchDoc[] = [
+		{
+			path: '/docs/intro',
+			title: 'Introduction',
+			section: 'Getting Started',
+			headings: [],
+			text: 'Welcome to the docs.'
+		},
+		{
+			path: '/docs/components/button',
+			title: 'Button',
+			section: 'Components',
+			headings: ['Props'],
+			text: 'A clickable button. Pair it with the theming tokens to match your brand colors.'
+		},
+		{
+			path: '/docs/theming',
+			title: 'Theming',
+			headings: ['Dark mode'],
+			text: 'Set colors with CSS variables. Dark mode follows the system setting.'
+		}
+	];
+
+	it('returns ranked hits with title, path, section and a snippet', async () => {
+		const result = await callTool('search_docs', { query: 'theming' }, { search: pages });
+		expect(result.isError).toBeFalsy();
+		expect(result.content).toEqual([
+			{
+				type: 'text',
+				text: [
+					'1. [Theming](https://my-docs.dev/docs/theming)',
+					'   Set colors with CSS variables. Dark mode follows the system setting.',
+					'',
+					'2. [Button](https://my-docs.dev/docs/components/button) (Components)',
+					'   A clickable button. Pair it with the theming tokens to match your brand colors.'
+				].join('\n')
+			}
+		]);
+	});
+
+	it.each([
+		['a missing query', {}],
+		['a query that is not a string', { query: 42 }],
+		['a blank query', { query: '   ' }]
+	])('reports %s as a tool error naming the query argument', async (_, args) => {
+		const result = await callTool('search_docs', args, { search: pages });
+		expect(result.isError).toBe(true);
+		expect(result.content[0].text).toContain('"query"');
+	});
+
+	it('says so when nothing matches, pointing at list_pages', async () => {
+		const result = await callTool('search_docs', { query: 'kubernetes' }, { search: pages });
+		expect(result.isError).toBeFalsy();
+		expect(result.content[0].text).toContain('kubernetes');
+		expect(result.content[0].text).toContain('list_pages');
+	});
+
+	it('builds the search index once per handler, on the first search', async () => {
+		const build = vi.mocked(createSearchEngine);
+		build.mockClear();
+		const serve = mcpHandler({ site, docs, search: pages });
+
+		await callTool('list_pages', {}, {}, serve);
+		await callTool('get_page', { path: '/docs/intro' }, {}, serve);
+		expect(build).not.toHaveBeenCalled();
+
+		await callTool('search_docs', { query: 'theming' }, {}, serve);
+		await callTool('search_docs', { query: 'colors' }, {}, serve);
+		expect(build).toHaveBeenCalledTimes(1);
+		expect(build).toHaveBeenCalledWith(pages);
+	});
+
+	describe('limit', () => {
+		const many: SearchDoc[] = Array.from({ length: 30 }, (_, i) => ({
+			path: `/docs/guide-${i + 1}`,
+			title: `Guide ${i + 1}`,
+			headings: [],
+			text: 'A guide to configuration.'
+		}));
+		const hitCount = (text: string) => text.split('\n').filter((l) => /^\d+\. \[/.test(l)).length;
+
+		it.each([
+			['defaults to 8', undefined, 8],
+			['is honoured', 3, 3],
+			['is capped at 20', 500, 20],
+			['returns at least one hit', 0, 1]
+		])('%s', async (_, limit, expected) => {
+			const result = await callTool(
+				'search_docs',
+				{ query: 'configuration', limit },
+				{ search: many }
+			);
+			expect(result.isError).toBeFalsy();
+			expect(hitCount(result.content[0].text)).toBe(expected);
+		});
+	});
+});
+
 describe('mcpHandler: JSON-RPC envelope', () => {
 	it.each([
 		['notifications/initialized', { jsonrpc: '2.0', method: 'notifications/initialized' }],
@@ -219,8 +444,6 @@ describe('mcpHandler: tools/call arguments', () => {
 	it.each([
 		['an unknown tool', { name: 'delete_everything', arguments: {} }, 'delete_everything'],
 		['no tool name', { arguments: { path: '/docs/intro' } }, 'name'],
-		['a missing required argument', { name: 'get_page', arguments: {} }, 'path'],
-		['an argument of the wrong type', { name: 'get_page', arguments: { path: 3 } }, 'path'],
 		[
 			'arguments that are not an object',
 			{ name: 'get_page', arguments: ['/docs/intro'] },
@@ -231,6 +454,21 @@ describe('mcpHandler: tools/call arguments', () => {
 		expect(body.id).toBe(1);
 		expect(body.error.code).toBe(-32602);
 		expect(body.error.message).toContain(mentioned);
+	});
+
+	// MCP 2025-11-25 (server/tools, Error Handling): input validation failures
+	// are tool execution errors the model can act on, not protocol errors.
+	it.each([
+		['a missing required argument', { name: 'get_page', arguments: {} }, '"path"'],
+		['no arguments at all', { name: 'get_page' }, '"path"'],
+		['an argument of the wrong type', { name: 'get_page', arguments: { path: 3 } }, '"path"']
+	])('reports %s as a tool error naming the argument', async (_, params, mentioned) => {
+		const { res, body } = await rpc('tools/call', params);
+		expect(res.status).toBe(200);
+		expect(body.error).toBeUndefined();
+		expect(body.result.isError).toBe(true);
+		expect(body.result.content[0].type).toBe('text');
+		expect(body.result.content[0].text).toContain(mentioned);
 	});
 
 	it('answers a request whose params are not an object with invalid-params', async () => {

@@ -4,16 +4,18 @@
  * result. `tools/list` and `tools/call` in `handler.ts` read this registry, so
  * adding a tool means adding an entry to {@link tools}.
  */
-import type { LlmsDoc, SearchDoc } from '#lib/core/content.js';
+import type { LlmsDoc } from '#lib/core/content.js';
 import type { ResolvedVersion } from '#lib/core/version.js';
-import type { LlmsSite } from '#lib/generate/llms.js';
-import { normalizePath } from '../utils/url.js';
+import { bySection, type LlmsSite } from '#lib/generate/llms.js';
+import type { SearchEngine } from '#lib/search/create-search.js';
+import { join, normalizePath } from '../utils/url.js';
 
 /** What every tool call can read: the handler's indexes and the request URL. */
 export type ToolContext = {
 	site: LlmsSite;
 	docs: LlmsDoc[];
-	search: SearchDoc[];
+	/** The search engine over the search index, built on first call, once per handler. */
+	searchEngine(): SearchEngine;
 	versions: ResolvedVersion[];
 	/** The URL the MCP request was sent to. */
 	endpoint: URL;
@@ -48,7 +50,8 @@ export type Tool = {
 /**
  * Check `args` against a tool's {@link InputSchema}: every required property
  * present, every known property of its declared type. Unknown properties are
- * ignored. Returns what is wrong, for an invalid-params error, or `undefined`.
+ * ignored. Returns what is wrong, for an `isError` tool result the model can
+ * act on, or `undefined`.
  */
 export function checkArguments(
 	schema: InputSchema,
@@ -66,7 +69,8 @@ export function checkArguments(
 	return undefined;
 }
 
-const text = (value: string, isError = false): ToolResult => ({
+/** A text result, flagged `isError` for a failure the agent can recover from. */
+export const text = (value: string, isError = false): ToolResult => ({
 	content: [{ type: 'text', text: value }],
 	...(isError ? { isError: true } : {})
 });
@@ -135,5 +139,72 @@ function pagePath(input: string, { site, endpoint }: ToolContext): string | unde
 	return normalizePath(path.startsWith('/') ? path : `/${path}`);
 }
 
+const listPages: Tool = {
+	name: 'list_pages',
+	title: 'List the docs pages',
+	description:
+		'List every documentation page in sidebar reading order, grouped by section, with ' +
+		'its title, path and description. Use it to browse when search_docs misses, then ' +
+		'read a page with get_page.',
+	inputSchema: { type: 'object', properties: {} },
+	call(_, { site, docs }) {
+		const sections = bySection(docs).map(([section, items]) =>
+			[
+				`## ${section}`,
+				'',
+				...items.map((doc) => {
+					const suffix = doc.description ? `: ${doc.description}` : '';
+					return `- [${doc.title}](${link(site, doc.path)})${suffix}`;
+				})
+			].join('\n')
+		);
+		return text(sections.join('\n\n'));
+	}
+};
+
+/** A page path as an agent should see it: absolute when the site has an origin. */
+const link = (site: LlmsSite, path: string) => join(site.origin ?? '', path);
+
+/** `search_docs` hits by default, and the most an agent can ask for. */
+const SEARCH_LIMIT = 8;
+const SEARCH_LIMIT_MAX = 20;
+
+const searchDocs: Tool = {
+	name: 'search_docs',
+	title: 'Search the docs',
+	description:
+		'Search the documentation by keywords. Returns the best-matching pages, ranked, each ' +
+		'with its title, path, section and a snippet of the matching text. Read a hit in full ' +
+		'with get_page.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			query: { type: 'string', description: 'Keywords to search for, such as `dark mode`.' },
+			limit: {
+				type: 'integer',
+				description: `How many hits to return. Default ${SEARCH_LIMIT}, at most ${SEARCH_LIMIT_MAX}.`
+			}
+		},
+		required: ['query']
+	},
+	call(args, { site, searchEngine }) {
+		const query = (args.query as string).trim();
+		if (!query) return text('search_docs: argument "query" must not be empty', true);
+		const requested = (args.limit as number | undefined) ?? SEARCH_LIMIT;
+		const limit = Math.min(Math.max(requested, 1), SEARCH_LIMIT_MAX);
+		const hits = searchEngine().search(query, limit);
+		if (hits.length === 0) {
+			return text(
+				`No pages match "${query}". Try other or fewer words, or list_pages to browse every page.`
+			);
+		}
+		const lines = hits.map((hit, i) => {
+			const section = hit.section ? ` (${hit.section})` : '';
+			return `${i + 1}. [${hit.title}](${link(site, hit.path)})${section}\n   ${hit.snippet}`;
+		});
+		return text(lines.join('\n\n'));
+	}
+};
+
 /** Every tool the server offers, in the order `tools/list` returns them. */
-export const tools: Tool[] = [getPage];
+export const tools: Tool[] = [listPages, searchDocs, getPage];
