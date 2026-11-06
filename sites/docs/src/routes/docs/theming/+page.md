@@ -6,7 +6,7 @@ order: 8
 ---
 
 <script>
-	import ThemeGallery from '$lib/components/theme-gallery.svelte';
+	import ThemeGallery from '#lib/components/theme-gallery.svelte';
 	import { Callout } from 'svelte-docsmith';
 </script>
 

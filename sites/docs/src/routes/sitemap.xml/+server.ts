@@ -1,6 +1,6 @@
 import { docs, versions } from 'svelte-docsmith/content';
 import { generateSitemap, currentOnly } from 'svelte-docsmith';
-import { siteConfig } from '$lib/site-config';
+import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
 

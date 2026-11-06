@@ -9,7 +9,7 @@ order: 3
 	import { Steps, Step, Callout, FileTree, FileTreeItem } from 'svelte-docsmith';
 </script>
 
-Four steps take you from an installed package to a live docs page in the
+Three steps take you from an installed package to a live docs page in the
 sidebar. Each one edits a single file.
 
 <Callout variant="tip" title="Scaffolding a new project?">
@@ -21,40 +21,47 @@ pieces. See [Installation](/docs/installation) for the scaffolder.
 </Callout>
 
 <Steps>
-<Step title="Register the markdown pipeline">
+<Step title="Configure Vite">
 
-In `svelte.config.js`, add `.md` to your extensions and call `docsmith()`. It
-bundles mdsvex, Shiki highlighting with a generous language set, heading
-anchors, and the DocSmith page layout:
+DocSmith has two halves, and both go in `vite.config.ts`:
 
-```js title="svelte.config.js"
-import adapter from '@sveltejs/adapter-auto';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { docsmith } from 'svelte-docsmith/preprocess'; // [!code ++]
-
-export default {
-	extensions: ['.svelte', '.md'], // [!code ++]
-	preprocess: [vitePreprocess(), docsmith()], // [!code ++]
-	kit: { adapter: adapter() }
-};
-```
-
-</Step>
-<Step title="Add the Vite plugin">
-
-In `vite.config.ts`, add `docsmith()`. It scans your pages' frontmatter into the
-`svelte-docsmith/content` module and powers live examples:
+- The **Vite plugin**, `docsmith()` from `svelte-docsmith/vite`, scans your
+  pages' frontmatter into the `svelte-docsmith/content` module and powers live
+  examples. It goes before `sveltekit()`.
+- The **markdown pipeline**, `docsmith()` from `svelte-docsmith/preprocess`,
+  bundles mdsvex, Shiki highlighting with a generous language set, heading
+  anchors, and the DocSmith page layout. Register it as a preprocessor and add
+  `.md` to your extensions.
 
 ```ts title="vite.config.ts"
+import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { docsmith } from 'svelte-docsmith/vite'; // [!code ++]
+import { docsmith as markdown } from 'svelte-docsmith/preprocess'; // [!code ++]
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [docsmith(), tailwindcss(), sveltekit()] // [!code ++]
+	plugins: [
+		docsmith(), // [!code ++]
+		tailwindcss(),
+		sveltekit({
+			extensions: ['.svelte', '.md'], // [!code ++]
+			preprocess: [vitePreprocess(), markdown()], // [!code ++]
+			adapter: adapter()
+		})
+	]
 });
 ```
+
+<Callout variant="note" title="On SvelteKit 2?">
+
+DocSmith supports SvelteKit 2 and 3. On SvelteKit 2, `extensions` and
+`preprocess` go in `svelte.config.js` instead, and you import your own files
+from `$lib` rather than `#lib`.
+
+</Callout>
 
 </Step>
 <Step title="Add the shell">
@@ -108,10 +115,9 @@ const docs = loadDocs(); // [!code highlight]
 
 ## What you end up with
 
-Those four files sit exactly here:
+Those files sit exactly here:
 
 <FileTree>
-	<FileTreeItem name="svelte.config.js" />
 	<FileTreeItem name="vite.config.ts" />
 	<FileTreeItem name="src" folder>
 		<FileTreeItem name="app.css" />

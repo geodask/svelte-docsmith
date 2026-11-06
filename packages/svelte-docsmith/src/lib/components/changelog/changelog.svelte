@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ChangelogRelease } from '$lib/core/changelog.js';
+	import type { ChangelogRelease } from '#lib/core/changelog.js';
 	import ChangelogEntry from './changelog-entry.svelte';
 
 	const {

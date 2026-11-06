@@ -20,7 +20,7 @@
 
 <script lang="ts">
 	import { setContext, type Snippet } from 'svelte';
-	import * as TabsPrimitive from '$lib/components/shadcn/tabs/index.js';
+	import * as TabsPrimitive from '#lib/components/shadcn/tabs/index.js';
 	import TabsPhaseScope from './tabs-phase.svelte';
 	import { syncedValue, setSyncedValue, hydrateSyncedValue } from './tabs-sync.svelte.js';
 

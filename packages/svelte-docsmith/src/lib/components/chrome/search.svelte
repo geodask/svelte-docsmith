@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import * as Command from '$lib/components/shadcn/command/index.js';
-	import { useSearch } from '$lib/search/context.svelte.js';
+	import * as Command from '#lib/components/shadcn/command/index.js';
+	import { useSearch } from '#lib/search/context.svelte.js';
 	import { useDocsPage } from '../docs-page-context.js';
-	import type { SearchDoc } from '$lib/core/index.js';
-	import type { SearchEngine } from '$lib/search/create-search.js';
+	import type { SearchDoc } from '#lib/core/index.js';
+	import type { SearchEngine } from '#lib/search/create-search.js';
 	import CornerDownLeft from '@lucide/svelte/icons/corner-down-left';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -73,7 +73,7 @@
 		status = 'loading';
 		try {
 			const [{ createSearchEngine }, docs] = await Promise.all([
-				import('$lib/search/create-search.js'),
+				import('#lib/search/create-search.js'),
 				load(version)
 			]);
 			indexDocs = docs;

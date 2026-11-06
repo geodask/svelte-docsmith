@@ -2,7 +2,7 @@
 	import { BROWSER } from 'esm-env';
 	import X from '@lucide/svelte/icons/x';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
-	import type { DocsmithAnnouncement } from '$lib/core/index.js';
+	import type { DocsmithAnnouncement } from '#lib/core/index.js';
 
 	const { announcement }: { announcement: DocsmithAnnouncement } = $props();
 

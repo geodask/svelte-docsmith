@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import { cn } from '$lib/utils/cn.js';
-	import { normalizePath } from '$lib/utils/url.js';
-	import { isNavGroup, type NavGroup, type NavNode } from '$lib/core/index.js';
+	import { cn } from '#lib/utils/cn.js';
+	import { normalizePath } from '#lib/utils/url.js';
+	import { isNavGroup, type NavGroup, type NavNode } from '#lib/core/index.js';
 
 	const { nav, class: className = '' }: { nav: NavGroup[]; class?: string } = $props();
 

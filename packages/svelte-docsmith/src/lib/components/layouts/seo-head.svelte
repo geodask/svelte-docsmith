@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { join, normalizePath } from '$lib/utils/url.js';
-	import type { DocsmithConfig } from '$lib/core/index.js';
+	import { join, normalizePath } from '#lib/utils/url.js';
+	import type { DocsmithConfig } from '#lib/core/index.js';
 
 	const {
 		config,

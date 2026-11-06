@@ -2,7 +2,7 @@
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { mode } from 'mode-watcher';
-	import { themeStore, applyActiveTheme } from '$lib/theme-store.svelte';
+	import { themeStore, applyActiveTheme } from '#lib/theme-store.svelte.ts';
 	import type { Snippet } from 'svelte';
 
 	// No <ModeWatcher /> here on purpose: DocsShell provides it for every page

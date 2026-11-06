@@ -1,4 +1,4 @@
-import type { LlmsDoc } from '$lib/core/content.js';
+import type { LlmsDoc } from '#lib/core/content.js';
 import { join } from '../utils/url.js';
 
 /** Site-level info for the LLM files: title, optional description, and origin. */

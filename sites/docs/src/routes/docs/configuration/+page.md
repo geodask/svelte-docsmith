@@ -17,7 +17,7 @@ their own pages in the [Components](/docs/components/callout) section.
 ## Package exports
 
 - **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, `generateSitemap`, `generateFeed`, `generateLlmsTxt`, `generateLlmsFullTxt`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
-- **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor for `svelte.config.js`.
+- **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor, passed to `sveltekit({ preprocess })` in `vite.config.ts` (or `svelte.config.js` on SvelteKit 2).
 - **`svelte-docsmith/vite`**: the Vite plugin (content, search, llms and changelog indexes, plus the `?source` transform).
 - **`svelte-docsmith/content`**: the generated sidebar index, exported as `docs`.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
@@ -90,7 +90,8 @@ of the way in between. Dismiss it and it holds until the next version.
 
 ## docsmith() preprocessor
 
-From `svelte-docsmith/preprocess`, registered in `svelte.config.js`. It bundles
+From `svelte-docsmith/preprocess`, registered as a preprocessor in
+`sveltekit({ preprocess })` (or `svelte.config.js` on SvelteKit 2). It bundles
 mdsvex, Shiki, heading anchors and the page layout, so markdown compiles to real
 routes. Every option has a working default; pass none and it does the right
 thing.
@@ -245,7 +246,7 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 <script lang="ts">
 	import { docs } from 'svelte-docsmith/content';
 	import { ErrorPage } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
+	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
 <ErrorPage config={siteConfig} content={docs} home="/docs" homeLabel="Back to the docs" />

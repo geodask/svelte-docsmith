@@ -11,7 +11,7 @@
  * read this, so it can't live in either without one importing the other.
  */
 import { getContext, setContext } from 'svelte';
-import type { DocsPageView } from '$lib/core/index.js';
+import type { DocsPageView } from '#lib/core/index.js';
 
 const KEY = Symbol('docsmith-page');
 

@@ -99,6 +99,12 @@ describe('boundaryCrossings', () => {
 		]);
 	});
 
+	it('reports an import from #lib (SvelteKit 3)', () => {
+		expect(crossings("import Counter from '#lib/examples/counter.svelte';")).toEqual([
+			'#lib/examples/counter.svelte'
+		]);
+	});
+
 	it('reports a bare npm specifier', () => {
 		expect(crossings("import Rocket from '@lucide/svelte/icons/rocket';")).toEqual([
 			'@lucide/svelte/icons/rocket'

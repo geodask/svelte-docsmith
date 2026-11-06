@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getContext, type Snippet } from 'svelte';
-	import * as TabsPrimitive from '$lib/components/shadcn/tabs/index.js';
+	import * as TabsPrimitive from '#lib/components/shadcn/tabs/index.js';
 	import { TABS_PHASE, getTabsContext, type TabsPhase } from './tabs.svelte';
 
 	const {

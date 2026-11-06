@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useClipboard } from '$lib/utils/clipboard.svelte.js';
+	import { useClipboard } from '#lib/utils/clipboard.svelte.js';
 	import { Button } from '../shadcn/button/index.js';
 	import CopyButton from '../chrome/copy-button.svelte';
 	import Code from '@lucide/svelte/icons/code';

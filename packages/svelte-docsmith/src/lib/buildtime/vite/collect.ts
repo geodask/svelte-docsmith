@@ -6,9 +6,9 @@
  * place and can be checked without a docs root on disk.
  */
 import path from 'node:path';
-import type { DocsContentItem, LlmsDoc, SearchDoc } from '$lib/core/content.js';
-import type { DocsVersions } from '$lib/core/version.js';
-import { firstSegmentUnder } from '$lib/utils/url.js';
+import type { DocsContentItem, LlmsDoc, SearchDoc } from '#lib/core/content.js';
+import type { DocsVersions } from '#lib/core/version.js';
+import { firstSegmentUnder } from '#lib/utils/url.js';
 import { docsBaseFrom, urlFor } from '../paths.js';
 import { titleOf, type SourcePage } from './pages.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';

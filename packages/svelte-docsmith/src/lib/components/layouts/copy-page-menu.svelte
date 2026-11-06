@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { BROWSER } from 'esm-env';
-	import { Button } from '$lib/components/shadcn/button/index.js';
-	import * as DropdownMenu from '$lib/components/shadcn/dropdown-menu/index.js';
+	import { Button } from '#lib/components/shadcn/button/index.js';
+	import * as DropdownMenu from '#lib/components/shadcn/dropdown-menu/index.js';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Copy from '@lucide/svelte/icons/copy';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
-	import { join } from '$lib/utils/url.js';
+	import { join } from '#lib/utils/url.js';
 
 	const {
 		path,

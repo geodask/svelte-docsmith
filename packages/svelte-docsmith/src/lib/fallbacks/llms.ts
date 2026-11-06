@@ -6,7 +6,7 @@
  * markdown bodies. This file is only the fallback that runs when the plugin is
  * missing — see {@link missingPluginError}.
  */
-import type { LlmsDoc } from '$lib/core/content.js';
+import type { LlmsDoc } from '#lib/core/content.js';
 import { missingPluginError } from './missing-plugin.js';
 
 export const docs: LlmsDoc[] = [];

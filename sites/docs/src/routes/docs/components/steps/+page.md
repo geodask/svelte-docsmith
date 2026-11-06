@@ -20,7 +20,7 @@ Add `svelte-docsmith` to your SvelteKit project.
     </Step>
     <Step title="Register the pipeline">
 
-Add `docsmith()` in `svelte.config.js` and `vite.config.ts`.
+Add both `docsmith()` halves in `vite.config.ts`.
 
     </Step>
     <Step title="Write a page">

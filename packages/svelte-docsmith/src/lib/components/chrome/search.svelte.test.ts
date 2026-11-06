@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import type { SearchDoc } from '$lib/core/index.js';
+import type { SearchDoc } from '#lib/core/index.js';
 import Harness from './_fixtures/search-harness.svelte';
 
 // goto would try to drive the (absent) SvelteKit router; stub it so we can assert

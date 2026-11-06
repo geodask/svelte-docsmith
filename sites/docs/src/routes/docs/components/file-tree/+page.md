@@ -22,7 +22,7 @@ folder icons carry the structure, no ASCII art to keep aligned by hand.
 		</FileTreeItem>
 		<FileTreeItem name="app.css" />
 	</FileTreeItem>
-	<FileTreeItem name="svelte.config.js" />
+	<FileTreeItem name="vite.config.ts" />
 	<FileTreeItem name="package.json" />
 </FileTree>
 

@@ -80,7 +80,7 @@ frontmatter, so pass the `seo` prop to set or override the head:
 ```ts title="src/routes/sitemap.xml/+server.ts"
 import { docs } from 'svelte-docsmith/content';
 import { generateSitemap } from 'svelte-docsmith';
-import { siteConfig } from '$lib/site-config';
+import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
 
@@ -123,7 +123,7 @@ Add `src/routes/llms.txt/+server.ts`:
 ```ts title="src/routes/llms.txt/+server.ts"
 import { docs } from 'svelte-docsmith/llms';
 import { generateLlmsTxt } from 'svelte-docsmith';
-import { siteConfig } from '$lib/site-config';
+import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
 
@@ -141,7 +141,7 @@ And `src/routes/llms-full.txt/+server.ts`, identical but for `generateLlmsFullTx
 ```ts title="src/routes/llms-full.txt/+server.ts"
 import { docs } from 'svelte-docsmith/llms';
 import { generateLlmsFullTxt } from 'svelte-docsmith';
-import { siteConfig } from '$lib/site-config';
+import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
 

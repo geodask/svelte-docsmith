@@ -1,3 +1,6 @@
+import adapter from '@sveltejs/adapter-auto';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { docsmith as docsmithPreprocess } from 'svelte-docsmith/preprocess';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
@@ -13,6 +16,10 @@ export default defineConfig({
 			versions: { current: { id: 'v0', label: 'v0.x' } }
 		}),
 		tailwindcss(),
-		sveltekit()
+		sveltekit({
+			extensions: ['.svelte', '.md'],
+			preprocess: [vitePreprocess(), docsmithPreprocess({ twoslash: true })],
+			adapter: adapter()
+		})
 	]
 });

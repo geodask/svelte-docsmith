@@ -34,7 +34,7 @@ docsmith({ changelog: '../../packages/my-lib/CHANGELOG.md' });
 	import { docs } from 'svelte-docsmith/content';
 	import { releases } from 'svelte-docsmith/changelog';
 	import { DocsShell, Changelog } from 'svelte-docsmith';
-	import { siteConfig } from '$lib/site-config';
+	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
 <DocsShell config={siteConfig} content={docs} layout="page">
@@ -50,7 +50,7 @@ something they have to check for.
 ```ts title="src/routes/changelog.xml/+server.ts"
 import { releases } from 'svelte-docsmith/changelog';
 import { generateFeed } from 'svelte-docsmith';
-import { siteConfig } from '$lib/site-config';
+import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { mode } from 'mode-watcher';
-	import { themes, defaultThemeSlug } from '$lib/themes-data';
+	import { themes, defaultThemeSlug } from '#lib/themes-data.ts';
 	import ThemePicker from './theme-picker.svelte';
 
 	// Scoped preview: applying a theme's tokens to this container cascades into

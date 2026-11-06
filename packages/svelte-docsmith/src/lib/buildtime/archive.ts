@@ -99,9 +99,10 @@ function escapesRoot(specifier: string, depth: number): boolean {
  * Archiving copies the docs root and nothing else, so anything reached from
  * outside it keeps resolving to current code: a live example on an archived
  * page demonstrates the current library rather than the version the page
- * documents, with a green build and nothing said. Hence `$lib`, bare npm
- * specifiers and relative paths that climb out all count, while a relative
- * import landing inside the docs root is frozen along with the page.
+ * documents, with a green build and nothing said. Hence `$lib` (Kit 2), `#lib`
+ * (Kit 3), bare npm specifiers and relative paths that climb out all count,
+ * while a relative import landing inside the docs root is frozen along with
+ * the page.
  *
  * `svelte-docsmith` itself is never reported. An archived page importing the
  * authoring components is the expected shape, and those are covered by the

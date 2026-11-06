@@ -193,8 +193,8 @@ export default { plugins: [docsmith()] };
 Numbering every block by default is a preprocessor option, and a single fence
 can still opt out with `noLineNumbers`:
 
-```js title="svelte.config.js"
-docsmith({ lineNumbers: true });
+```ts title="vite.config.ts"
+sveltekit({ preprocess: [vitePreprocess(), markdown({ lineNumbers: true })] });
 ```
 
 ## Real types on hover
@@ -220,8 +220,8 @@ const parts = version.split('.').map(Number);
 Twoslash is opt-in twice over: enable it in the preprocessor, then mark the
 individual fences that want it.
 
-```js title="svelte.config.js"
-docsmith({ twoslash: true });
+```ts title="vite.config.ts"
+sveltekit({ preprocess: [vitePreprocess(), markdown({ twoslash: true })] });
 ```
 
 It needs three optional peer dependencies, pulled in only if you use it:

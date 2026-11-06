@@ -156,8 +156,8 @@ highlighted source. Pass both to `LiveExample`:
 ```md
 <script>
   import { LiveExample } from 'svelte-docsmith';
-  import Counter from '$lib/examples/counter.svelte';
-  import counterSource from '$lib/examples/counter.svelte?source';
+  import Counter from '#lib/examples/counter.svelte';
+  import counterSource from '#lib/examples/counter.svelte?source';
 </script>
 
 <LiveExample source={counterSource}>

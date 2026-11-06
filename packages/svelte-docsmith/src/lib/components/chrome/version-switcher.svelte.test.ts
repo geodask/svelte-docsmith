@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
-import type { VersionLink } from '$lib/core/index.js';
+import type { VersionLink } from '#lib/core/index.js';
 import VersionSwitcher from './version-switcher.svelte';
 
 vi.mock('$app/navigation', () => ({ goto: vi.fn() }));

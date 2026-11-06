@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { NavItem } from '$lib/core/index.js';
+	import type { NavItem } from '#lib/core/index.js';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 

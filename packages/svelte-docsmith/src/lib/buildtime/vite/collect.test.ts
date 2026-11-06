@@ -2,7 +2,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { contentIndex, llmsIndex, searchIndex } from './collect.js';
 import { toPage, type SourcePage } from './pages.js';
-import type { DocsVersions } from '$lib/core/version.js';
+import type { DocsVersions } from '#lib/core/version.js';
 
 const routesDir = path.resolve('/app/src/routes');
 const contentDir = path.join(routesDir, 'docs');

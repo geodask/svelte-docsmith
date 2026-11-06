@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DocsmithConfig } from '$lib/core/index.js';
+	import type { DocsmithConfig } from '#lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 
 	const { config }: { config: DocsmithConfig } = $props();

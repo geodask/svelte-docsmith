@@ -7,8 +7,8 @@ order: 7
 
 <script>
 	import { LiveExample, Callout, PropsTable, Prop } from 'svelte-docsmith';
-	import Counter from '$lib/examples/counter.svelte';
-	import counterSource from '$lib/examples/counter.svelte?source';
+	import Counter from '#lib/examples/counter.svelte';
+	import counterSource from '#lib/examples/counter.svelte?source';
 </script>
 
 ## A real, running component

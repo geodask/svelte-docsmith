@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateLlmsTxt, generateLlmsFullTxt } from './llms.js';
-import type { LlmsDoc } from '$lib/core/content.js';
+import type { LlmsDoc } from '#lib/core/content.js';
 
 // Deliberately out of reading order: a later section listed first, and items
 // within a section reversed, so the ordering logic has something to fix.
