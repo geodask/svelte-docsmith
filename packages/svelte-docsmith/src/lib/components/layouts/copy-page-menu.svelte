@@ -44,38 +44,49 @@
 	const setups = $derived(serverUrl ? editorSetups(title, serverUrl) : []);
 	let connectOpen = $state(false);
 
-	let copied = $state(false);
-	let timer: ReturnType<typeof setTimeout>;
+	/**
+	 * A clipboard copy with its own "copied" timer: writes what `read` returns,
+	 * then calls `show(true)`, and `show(false)` 1.5s after the latest copy.
+	 * `navigator.clipboard` is undefined on insecure origins and can reject
+	 * without permission; fail quietly so a copy button never throws.
+	 */
+	function clipboardCopy(failure: string) {
+		let timer: ReturnType<typeof setTimeout>;
+		return async (read: () => string | Promise<string>, show: (shown: boolean) => void) => {
+			try {
+				await navigator.clipboard.writeText(await read());
+				show(true);
+				clearTimeout(timer);
+				timer = setTimeout(() => show(false), 1500);
+			} catch (error) {
+				console.warn(`[svelte-docsmith] ${failure}`, error);
+			}
+		};
+	}
 
-	async function copyPage() {
-		try {
-			const res = await fetch(mdHref);
-			if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-			const text = await res.text();
-			// `navigator.clipboard` is undefined on insecure origins and can reject
-			// without permission; fail quietly so the button never throws.
-			await navigator.clipboard.writeText(text);
-			copied = true;
-			clearTimeout(timer);
-			timer = setTimeout(() => (copied = false), 1500);
-		} catch (error) {
-			console.warn('[svelte-docsmith] copy page failed', error);
-		}
+	let copied = $state(false);
+	const copyPageText = clipboardCopy('copy page failed');
+
+	function copyPage() {
+		return copyPageText(
+			async () => {
+				const res = await fetch(mdHref);
+				if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+				return res.text();
+			},
+			(shown) => (copied = shown)
+		);
 	}
 
 	// Which snippet in the connect dialog was just copied, to flip its icon.
 	let copiedSnippet = $state<string | null>(null);
-	let snippetTimer: ReturnType<typeof setTimeout>;
+	const copySnippetText = clipboardCopy('copy to clipboard failed');
 
-	async function copySnippet(key: string, text: string) {
-		try {
-			await navigator.clipboard.writeText(text);
-			copiedSnippet = key;
-			clearTimeout(snippetTimer);
-			snippetTimer = setTimeout(() => (copiedSnippet = null), 1500);
-		} catch (error) {
-			console.warn('[svelte-docsmith] copy to clipboard failed', error);
-		}
+	function copySnippet(key: string, text: string) {
+		return copySnippetText(
+			() => text,
+			(shown) => (copiedSnippet = shown ? key : null)
+		);
 	}
 </script>
 

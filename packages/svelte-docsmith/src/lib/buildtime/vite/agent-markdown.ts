@@ -88,13 +88,24 @@ const LIVE_EXAMPLE =
 /** `source={name}`, or the `{source}` shorthand. */
 const SOURCE_ATTRIBUTE = /(?:\bsource\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}|\{\s*(source)\s*\})/;
 
-/** A fenced block of `code`, fenced longer than any backtick run inside it. */
-function fenced(code: string, lang: string, indent: string): string {
-	const longest = Math.max(0, ...[...code.matchAll(/`+/g)].map(([run]) => run.length));
-	const fence = '`'.repeat(Math.max(3, longest + 1));
-	return [fence + lang, ...code.split('\n'), fence]
+/** A backtick fence one longer than the longest backtick run in `text`, and at least `min`. */
+function fenceFor(text: string, min: number): string {
+	const longest = Math.max(0, ...[...text.matchAll(/`+/g)].map(([run]) => run.length));
+	return '`'.repeat(Math.max(min, longest + 1));
+}
+
+/** `text` with `indent` before each non-empty line. */
+function indented(text: string, indent: string): string {
+	return text
+		.split('\n')
 		.map((line) => (line ? indent + line : line))
 		.join('\n');
+}
+
+/** A fenced block of `code`, fenced longer than any backtick run inside it. */
+function fenced(code: string, lang: string, indent: string): string {
+	const fence = fenceFor(code, 3);
+	return indented([fence + lang, code, fence].join('\n'), indent);
 }
 
 /**
@@ -220,11 +231,7 @@ function propsTable(
 		);
 	}
 	if (props.props.length === 0 && props.inherited.length === 0) blocks.push('No props.');
-	return blocks
-		.join('\n\n')
-		.split('\n')
-		.map((line) => (line ? indent + line : line))
-		.join('\n');
+	return indented(blocks.join('\n\n'), indent);
 }
 
 /** One row's cells, marked as the rendered row is and escaped for a table. */
@@ -250,8 +257,7 @@ function propCells(prop: ExtractedProp): string[] {
 /** `text` as a code span on one line, fenced longer than any backtick run in it. */
 function code(text: string): string {
 	const flat = text.replace(/\s*\n\s*/g, ' ');
-	const longest = Math.max(0, ...[...flat.matchAll(/`+/g)].map(([run]) => run.length));
-	const fence = '`'.repeat(longest + 1);
+	const fence = fenceFor(flat, 1);
 	const pad = flat.startsWith('`') || flat.endsWith('`') ? ' ' : '';
 	return fence + pad + flat + pad + fence;
 }
