@@ -23,3 +23,11 @@ export function urlFor(routesDir: string, dir: string): string {
 export function docsBaseFrom(routesDir: string, contentDir: string): string {
 	return urlFor(routesDir, contentDir);
 }
+
+/**
+ * A file's path relative to the app's working directory, with `/` separators:
+ * the path an author would type, for "Edit this page" links and error messages.
+ */
+export function relativeToCwd(file: string): string {
+	return path.relative(process.cwd(), file).split(path.sep).join('/');
+}

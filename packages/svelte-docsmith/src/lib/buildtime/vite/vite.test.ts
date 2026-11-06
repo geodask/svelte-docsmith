@@ -260,8 +260,18 @@ describe('docsmith() content plugin', () => {
 		await expect(loadVirtual('\0svelte-docsmith:content', { schema })).rejects.toThrow(
 			/invalid frontmatter in 1 page\n.*intro\/\+page\.md\n {4}Unrecognized key: "ordr"/
 		);
-		// The same pages without the schema build: an unknown key is not an error by itself.
-		expect(await loadVirtual('\0svelte-docsmith:content')).toContain('"title": "Intro"');
+	});
+
+	it('builds without a schema, warning about a key that looks like a typo', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro\nordr: 2');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const out = await loadVirtual('\0svelte-docsmith:content');
+
+		expect(out).toContain('"ordr": 2');
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('ordr: did you mean `order`?'));
+		warn.mockRestore();
 	});
 
 	it('warns when the content dir does not exist', async () => {

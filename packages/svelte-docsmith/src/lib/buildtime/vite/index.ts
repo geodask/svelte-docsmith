@@ -34,8 +34,6 @@ import { commitDates } from '../git.js';
 import { createPropsExtractor, type PropsExtractor } from '../props/extract.js';
 import { checkFrontmatter, type StandardSchemaV1 } from './frontmatter-schema.js';
 
-export type { StandardSchemaV1 } from './frontmatter-schema.js';
-
 export interface DocsmithViteOptions {
 	/** Directory scanned for doc pages. Default: `'src/routes/docs'`. */
 	content?: string;
@@ -78,12 +76,11 @@ export interface DocsmithViteOptions {
 	 */
 	tsconfig?: string;
 	/**
-	 * A schema every page's frontmatter must pass: any Standard Schema, such as
-	 * Zod, Valibot or ArkType. Use it to require your own fields, or make it
-	 * strict so a typo'd key like `ordr` fails the build. It only validates: its
-	 * output, transforms and defaults are not used, so custom fields reach each
-	 * content entry's `data` as written. The fields docsmith reads
-	 * (`title`, `section`, `order`, …) are type-checked with or without one.
+	 * A schema for your pages' custom fields: every frontmatter key besides the
+	 * built-in ones, which are always checked. Any Standard Schema works (Zod,
+	 * Valibot, ArkType). Make it strict and a key you never declared, like a
+	 * typo'd `ordr`, fails the build. It only validates: custom fields reach each
+	 * content entry's `data` as written, so leave transforms and defaults out.
 	 */
 	schema?: StandardSchemaV1;
 }
@@ -190,7 +187,8 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 				// Checked here only: the docs layout always imports this index, so a
 				// bad page fails the build (or raises the dev overlay) once, not once
 				// per index.
-				await checkFrontmatter(pages, options.schema);
+				const typos = await checkFrontmatter(pages, options.schema);
+				if (typos) console.warn(typos);
 				// Only this index has a date field, so only this one pays for git.
 				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
 				warnAboutDocsRoot(contentDir, exists, docs.length);

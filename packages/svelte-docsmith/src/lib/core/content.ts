@@ -6,23 +6,24 @@
  */
 
 /**
- * The custom fields in a page's frontmatter: every key besides the ones
- * svelte-docsmith reads itself (`title`, `description`, `section`, `order`,
- * `lastUpdated`). Untyped until you declare your fields, once, in `src/app.d.ts`:
+ * A page's custom fields: every frontmatter key besides the built-in ones the
+ * other {@link DocsContentItem} fields come from. Untyped until you declare
+ * yours, once, in `src/app.d.ts`:
  *
  * ```ts
  * declare module 'svelte-docsmith' {
- * 	interface DocsFrontmatter {
+ * 	interface DocsCustomFields {
  * 		draft?: boolean;
  * 		badge?: string;
  * 	}
  * }
  * ```
  *
- * Declaring a field types it; it does not check it. Pair it with a `schema` in
- * `docsmith()` so a page that disagrees fails the build.
+ * Declaring a field types it; it does not check it. To do both from one place,
+ * pass a schema to `docsmith({ schema })` and extend its inferred type here
+ * (`interface DocsCustomFields extends z.infer<typeof schema> {}`).
  */
-export interface DocsFrontmatter {
+export interface DocsCustomFields {
 	[key: string]: unknown;
 }
 
@@ -68,11 +69,11 @@ export type DocsContentItem = {
 	 */
 	version?: string;
 	/**
-	 * The page's custom frontmatter fields (see {@link DocsFrontmatter}), exactly
-	 * as written. Absent when the page has none. It ships in the content index
-	 * every page loads, so keep it to small values.
+	 * The page's custom fields (see {@link DocsCustomFields}), exactly as
+	 * written. Absent when the page has none. It ships in the content index every
+	 * page loads, so keep it to small values.
 	 */
-	data?: DocsFrontmatter;
+	data?: DocsCustomFields;
 };
 
 /**

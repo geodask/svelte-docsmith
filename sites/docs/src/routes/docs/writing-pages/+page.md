@@ -32,7 +32,8 @@ Create the file, and the page exists.
 
 ## Frontmatter
 
-The frontmatter block at the top of each page drives the sidebar. Four fields:
+The frontmatter block at the top of each page drives the sidebar through its
+built-in fields:
 
 | Field         | Required | Purpose                                                                    |
 | ------------- | -------- | -------------------------------------------------------------------------- |
@@ -40,6 +41,7 @@ The frontmatter block at the top of each page drives the sidebar. Four fields:
 | `description` | no       | One-line summary, shown under the title.                                   |
 | `section`     | no       | Sidebar group, a string or a nested path. Omitted pages fall under "Docs". |
 | `order`       | no       | Sort key within the group.                                                 |
+| `lastUpdated` | no       | The day the page last changed, `YYYY-MM-DD`. Git supplies it otherwise.    |
 
 ```md
 ---
@@ -75,16 +77,17 @@ current page is expanded on load; the rest start collapsed.
 
 A page with no `title` is skipped by the sidebar. If a page isn't showing up,
 check its frontmatter before anything else: a stray indent or a typo'd key is
-the usual culprit. A [frontmatter schema](#validating-frontmatter) turns that
-typo into a build error.
+the usual culprit. The build warns about a key that looks like a typo of a
+built-in one, and a [frontmatter schema](#validating-frontmatter) turns any
+undeclared key into a build error.
 
 </Callout>
 
 ### Custom fields
 
-Any other key you put in frontmatter is yours. It reaches the content index as
-`data` on that page's entry, so the sidebar, a custom layout, or your own
-listing page can use it:
+Any other key is a custom field, and it's yours. It reaches the content index as
+`data` on that page's entry, so a custom layout or your own listing page can use
+it:
 
 ```md
 ---
@@ -106,7 +109,7 @@ const published = docs.filter((doc) => !doc.data?.draft);
 ```ts
 // src/app.d.ts
 declare module 'svelte-docsmith' {
-	interface DocsFrontmatter {
+	interface DocsCustomFields {
 		draft?: boolean;
 		badge?: string;
 	}
@@ -118,37 +121,50 @@ label, not a paragraph. Search and `llms.txt` don't include them.
 
 ### Validating frontmatter
 
-The built-in fields are always type-checked: `order: "2"` or a `title` that YAML
+The built-in fields are always checked: `order: "2"` or a `title` that YAML
 reads as a number fails the build with the page's path, instead of quietly
-dropping the page from where you expected it.
+dropping the page from where you expected it. A custom key one letter away from
+a built-in one, like `ordr` or `Title`, prints a warning.
 
-Declaring a custom field types it but doesn't check it. To check your fields, or
-to reject keys you never defined, pass a `schema` to the
+To check your custom fields too, pass a `schema` to the
 [`docsmith()` Vite plugin](/docs/configuration#docsmith-vite-plugin). Any
 [Standard Schema](https://standardschema.dev) works: Zod, Valibot, ArkType and
-others. A strict object also catches a typo like `ordr: 2`:
+others. It sees only the custom fields, so list just yours. Make it strict and
+any key you didn't declare, typo or not, fails the build.
+
+Keep the schema in its own module, so the config can check with it and
+`app.d.ts` can take its types from it, and you declare each field once:
 
 ```ts
-// vite.config.ts
+// src/lib/frontmatter.ts
 import { z } from 'zod';
 
-docsmith({
-	schema: z.strictObject({
-		title: z.string(),
-		description: z.string().optional(),
-		section: z.union([z.string(), z.array(z.string())]).optional(),
-		order: z.number().optional(),
-		lastUpdated: z.string().optional(),
-		draft: z.boolean().optional(),
-		badge: z.string().optional()
-	})
+export const customFields = z.strictObject({
+	draft: z.boolean().optional(),
+	badge: z.string().optional()
 });
 ```
 
+```ts
+// vite.config.ts
+import { customFields } from './src/lib/frontmatter';
+
+docsmith({ schema: customFields });
+```
+
+```ts
+// src/app.d.ts
+import type { z } from 'zod';
+import type { customFields } from '$lib/frontmatter';
+
+declare module 'svelte-docsmith' {
+	interface DocsCustomFields extends z.infer<typeof customFields> {}
+}
+```
+
 Every page with a frontmatter block is checked, and one error lists every
-problem on every page. A strict schema has to list the built-in fields too. The
-schema only validates: transforms and defaults in it don't change what the page
-or the content index sees.
+problem on every page. The schema only validates: custom fields reach `data`
+as written, so leave transforms and defaults out of it.
 
 ## Headings
 

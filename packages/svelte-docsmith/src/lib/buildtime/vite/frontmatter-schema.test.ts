@@ -14,8 +14,10 @@ const page = (dir: string, frontmatter: string) =>
 function strict(
 	fields: Record<string, (value: unknown) => string | undefined>,
 	{ async = false } = {}
-): StandardSchemaV1 {
+): StandardSchemaV1 & { seen: unknown[] } {
+	const seen: unknown[] = [];
 	const validate = (value: unknown) => {
+		seen.push(value);
 		const data = value as Record<string, unknown>;
 		const issues: { message: string; path?: PropertyKey[] }[] = [];
 		for (const key of Object.keys(data)) {
@@ -28,6 +30,7 @@ function strict(
 		return issues.length ? { issues } : { value: data };
 	};
 	return {
+		seen,
 		'~standard': {
 			version: 1,
 			vendor: 'test',
@@ -38,9 +41,14 @@ function strict(
 
 const optional = () => undefined;
 const required = (value: unknown) => (value === undefined ? 'Required' : undefined);
+const messageOf = (promise: Promise<unknown>) =>
+	promise.then(
+		() => '',
+		(err: Error) => err.message
+	);
 
 describe('checkFrontmatter', () => {
-	it('passes well-formed pages', async () => {
+	it('passes well-formed pages, custom fields included', async () => {
 		await expect(
 			checkFrontmatter([
 				page(
@@ -53,69 +61,76 @@ describe('checkFrontmatter', () => {
 	});
 
 	it('type-checks the built-in fields without a schema', async () => {
-		const error = await checkFrontmatter([
-			page(
-				'docs/a',
-				'title: 2024\norder: "2"\nsection: [Guides, 3]\nlastUpdated: last week\ndescription:'
-			)
-		]).catch((err: Error) => err);
+		const message = await messageOf(
+			checkFrontmatter([
+				page(
+					'docs/a',
+					'title: 2024\norder: "2"\nsection: [Guides, 3]\nlastUpdated: last week\ndescription:'
+				)
+			])
+		);
 
-		expect((error as Error).message).toBe(
+		expect(message).toBe(
 			[
 				'[svelte-docsmith] invalid frontmatter in 1 page',
 				'  docs/a/+page.md',
 				'    title: expected a string, got 2024',
-				'    description: expected a string, got null',
-				'    section: expected a string or a list of strings, got ["Guides",3]',
 				'    order: expected a number, got "2"',
-				'    lastUpdated: expected a YYYY-MM-DD date, got "last week"'
+				'    section: expected a string or a list of strings, got ["Guides",3]',
+				'    lastUpdated: expected a YYYY-MM-DD date, got "last week"',
+				'    description: expected a string, got null'
 			].join('\n')
 		);
 	});
 
 	it('leaves pages without a frontmatter block alone', async () => {
 		const stub = toPage(path.join(process.cwd(), 'docs/stub/+page.md'), '# no frontmatter\n');
-		const schema = strict({ title: required });
+		const schema = strict({ draft: required });
 		await expect(checkFrontmatter([stub], schema)).resolves.toBeUndefined();
+		expect(schema.seen).toEqual([]);
+	});
+
+	it('hands the schema only the custom fields, so it never repeats the built-in ones', async () => {
+		const schema = strict({ draft: optional });
+		await checkFrontmatter([page('docs/a', 'title: A\norder: 1\ndraft: true')], schema);
+		expect(schema.seen).toEqual([{ draft: true }]);
 	});
 
 	it('reports a typo a strict schema rejects, with the file it is in', async () => {
-		const schema = strict({ title: required, order: optional });
+		const schema = strict({ draft: optional });
 		await expect(checkFrontmatter([page('docs/a', 'title: A\nordr: 2')], schema)).rejects.toThrow(
 			'  docs/a/+page.md\n    Unrecognized key: "ordr"'
 		);
 	});
 
 	it('awaits an async schema', async () => {
-		const schema = strict({ title: required }, { async: true });
-		await expect(checkFrontmatter([page('docs/a', 'order: 1')], schema)).rejects.toThrow(
-			/Unrecognized key: "order"\n {4}title: Required/
+		const schema = strict({ badge: required }, { async: true });
+		await expect(checkFrontmatter([page('docs/a', 'title: A')], schema)).rejects.toThrow(
+			'    badge: Required'
 		);
 	});
 
-	it("keeps the schema's message over the built-in one for the same field", async () => {
-		const schema = strict({
-			title: optional,
-			order: (v) => (typeof v === 'number' ? undefined : 'order must be a number')
-		});
-		const error = await checkFrontmatter([page('docs/a', 'title: A\norder: "2"')], schema).catch(
-			(err: Error) => err
+	it('reports built-in and schema problems on the same page together', async () => {
+		const schema = strict({ draft: (v) => (typeof v === 'boolean' ? undefined : 'Not a boolean') });
+		const message = await messageOf(
+			checkFrontmatter([page('docs/a', 'title: A\norder: "2"\ndraft: yes please')], schema)
 		);
-		expect((error as Error).message).toContain('order: order must be a number');
-		expect((error as Error).message).not.toContain('expected a number');
+		expect(message).toContain('    order: expected a number, got "2"\n    draft: Not a boolean');
 	});
 
 	it('lists every failing page in one error, sorted by file', async () => {
-		const error = await checkFrontmatter([
-			page('docs/b', 'order: x'),
-			page('docs/ok', 'title: Fine'),
-			page('docs/a', 'title: [1]')
-		]).catch((err: Error) => err);
+		const message = await messageOf(
+			checkFrontmatter([
+				page('docs/b', 'order: x'),
+				page('docs/ok', 'title: Fine'),
+				page('docs/a', 'title: [1]')
+			])
+		);
 
-		expect((error as Error).message).toMatch(
+		expect(message).toMatch(
 			/invalid frontmatter in 2 pages\n {2}docs\/a\/\+page\.md\n.*\n {2}docs\/b\/\+page\.md\n/
 		);
-		expect((error as Error).message).not.toContain('docs/ok');
+		expect(message).not.toContain('docs/ok');
 	});
 
 	it('formats nested issue paths the way the author would point at them', async () => {
@@ -131,5 +146,31 @@ describe('checkFrontmatter', () => {
 		await expect(checkFrontmatter([page('docs/a', 'title: A')], schema)).rejects.toThrow(
 			'    authors[1].name: Expected string'
 		);
+	});
+
+	describe('without a schema, a custom key that looks like a built-in one', () => {
+		it('is returned as a warning naming the field it was probably meant to be', async () => {
+			const warning = await checkFrontmatter([
+				page('docs/b', 'title: B\nTitle: again'),
+				page('docs/a', 'title: A\nordr: 2\ndraft: true')
+			]);
+
+			expect(warning).toBe(
+				[
+					'[svelte-docsmith] possible frontmatter typos in 2 pages',
+					'  docs/a/+page.md',
+					'    ordr: did you mean `order`? It is kept as a custom field.',
+					'  docs/b/+page.md',
+					'    Title: did you mean `title`? It is kept as a custom field.',
+					'  Rename the key, or pass a strict `schema` to docsmith() to declare your custom fields.'
+				].join('\n')
+			);
+		});
+
+		it('is not an error, so the build goes on', async () => {
+			await expect(checkFrontmatter([page('docs/a', 'title: A\nsecton: Guides')])).resolves.toMatch(
+				/secton: did you mean `section`/
+			);
+		});
 	});
 });

@@ -1,30 +1,34 @@
 /**
  * Checking each page's frontmatter before any index is built from it. The
- * indexes drop a built-in field of the wrong type rather than carry it, and an
- * unknown key is just a custom field, so without this a typo like `ordr: 2` or
- * `order: "2"` builds fine and only shows up as a page in the wrong place.
+ * indexes drop a built-in field they cannot read, and any other key is kept as
+ * a custom field, so without this `order: "2"` or a typo like `ordr: 2` builds
+ * fine and only shows up as a page in the wrong place.
  *
- * Two layers, both reported together so one build lists every problem:
+ * Three checks, reported together so one build lists every problem:
  *
- *  1. The fields svelte-docsmith reads (`title`, `description`, `section`,
- *     `order`, `lastUpdated`) are always checked for the type the indexes
- *     expect, whenever a page sets them.
+ *  1. Every built-in field a page sets must pass its reader in `./fields.js`,
+ *     the same reader the indexes use. A failure is an error.
  *  2. An optional author schema, any Standard Schema (Zod, Valibot, ArkType…),
- *     checks everything else: required extras, or a strict object that rejects
- *     unknown keys.
+ *     checks the custom fields, and only those: the built-in fields are already
+ *     covered, so a strict schema lists just the author's own keys. A failure is
+ *     an error.
+ *  3. A custom key one edit away from a built-in one (`ordr`, `Title`) is
+ *     reported as a likely typo. Only a warning: it may be a real custom field,
+ *     and a strict schema is how an author makes it an error.
  *
  * The schema validates and nothing more. Its output is not used, so transforms
- * and defaults do not reach the indexes: mdsvex hands the page its raw YAML at
+ * and defaults do not reach `data`: mdsvex hands the page its raw YAML at
  * render time, and an index built from a different value would disagree with it.
  */
-import path from 'node:path';
-import { splitFrontmatter } from '../markdown-source.js';
+import { relativeToCwd } from '../paths.js';
+import { customFields, invalidFields, likelyTypoOf } from './fields.js';
 import type { SourcePage } from './pages.js';
 
 /**
- * The Standard Schema interface (https://standardschema.dev), inlined as the
- * spec recommends so no validation library becomes a dependency. Zod 3.24+,
- * Valibot 1+ and ArkType 2+ schemas all satisfy it.
+ * The Standard Schema interface (https://standardschema.dev), copied whole as
+ * the spec asks, so no validation library becomes a dependency. Zod 3.24+,
+ * Valibot 1+ and ArkType 2+ schemas all satisfy it. Only `validate` is called;
+ * `types` is what each library's own infer helper reads.
  */
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
 	readonly '~standard': {
@@ -47,43 +51,18 @@ type StandardSchemaIssue = {
 };
 
 /** One problem with one page's frontmatter, at a field path (`''` for the whole block). */
-type Issue = { path: string; message: string };
+type FieldProblem = { path: string; message: string };
 
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
-const isString = (value: unknown): value is string => typeof value === 'string';
-
-/** The built-in fields, each with the check the indexes rely on and how to say it failed. */
-const BUILTIN_FIELDS: [key: string, ok: (value: unknown) => boolean, expected: string][] = [
-	['title', isString, 'a string'],
-	['description', isString, 'a string'],
-	[
-		'section',
-		(v) => isString(v) || (Array.isArray(v) && v.length > 0 && v.every(isString)),
-		'a string or a list of strings'
-	],
-	['order', (v) => typeof v === 'number' && Number.isFinite(v), 'a number'],
-	['lastUpdated', (v) => isString(v) && DAY.test(v), 'a YYYY-MM-DD date']
-];
-
-/** The frontmatter keys svelte-docsmith reads itself; every other key is the author's own. */
-export const BUILTIN_KEYS: ReadonlySet<string> = new Set(BUILTIN_FIELDS.map(([key]) => key));
-
-function builtinIssues(frontmatter: Record<string, unknown>): Issue[] {
-	const issues: Issue[] = [];
-	for (const [key, ok, expected] of BUILTIN_FIELDS) {
-		if (!(key in frontmatter) || ok(frontmatter[key])) continue;
-		issues.push({ path: key, message: `expected ${expected}, got ${shown(frontmatter[key])}` });
-	}
-	return issues;
-}
+/** A page's problems, under the path an author would open. */
+type PageReport = { file: string; lines: string[] };
 
 /** A value as the author would recognise it, short enough for one error line. */
-function shown(value: unknown): string {
+function preview(value: unknown): string {
 	const text = JSON.stringify(value) ?? String(value);
 	return text.length > 40 ? `${text.slice(0, 37)}...` : text;
 }
 
-/** `['section', 1]` → `section[1]`, the way the author would point at it. */
+/** `['tags', 1]` → `tags[1]`, the way the author would point at it. */
 function pathOf(issue: StandardSchemaIssue): string {
 	let out = '';
 	for (const segment of issue.path ?? []) {
@@ -93,45 +72,76 @@ function pathOf(issue: StandardSchemaIssue): string {
 	return out;
 }
 
-async function schemaIssues(
-	frontmatter: Record<string, unknown>,
+function builtinProblems(frontmatter: Record<string, unknown>): FieldProblem[] {
+	return invalidFields(frontmatter).map(({ key, expected }) => ({
+		path: key,
+		message: `expected ${expected}, got ${preview(frontmatter[key])}`
+	}));
+}
+
+async function schemaProblems(
+	fields: Record<string, unknown>,
 	schema: StandardSchemaV1
-): Promise<Issue[]> {
-	const result = await schema['~standard'].validate(frontmatter);
+): Promise<FieldProblem[]> {
+	const result = await schema['~standard'].validate(fields);
 	return (result.issues ?? []).map((issue) => ({ path: pathOf(issue), message: issue.message }));
 }
 
+function typoLines(fields: Record<string, unknown>): string[] {
+	return Object.keys(fields).flatMap((key) => {
+		const meant = likelyTypoOf(key);
+		return meant ? [`${key}: did you mean \`${meant}\`? It is kept as a custom field.`] : [];
+	});
+}
+
+/** Pages sorted by path, each indented under its path: the shape both reports share. */
+function formatReports(reports: PageReport[]): string {
+	return reports
+		.sort((a, b) => a.file.localeCompare(b.file))
+		.flatMap(({ file, lines }) => [`  ${relativeToCwd(file)}`, ...lines.map((l) => `    ${l}`)])
+		.join('\n');
+}
+
+const pagesCount = (n: number) => (n === 1 ? '1 page' : `${n} pages`);
+
 /**
- * Check every page that has a frontmatter block, and throw one error listing
- * each page's problems. A page with no block is left alone: it is a stub the
- * indexes skip, not something the author configured.
- *
- * Where the schema and a built-in check both flag a field, only the schema's
- * message is kept, since the author wrote it.
+ * Check every page that has a frontmatter block. Throws one error listing each
+ * page's problems; otherwise returns a warning about likely typos, if there
+ * are any. A page with no block is left alone: it is a stub the indexes skip,
+ * not something the author configured.
  */
 export async function checkFrontmatter(
 	pages: SourcePage[],
 	schema?: StandardSchemaV1
-): Promise<void> {
-	const problems: { file: string; issues: Issue[] }[] = [];
+): Promise<string | undefined> {
+	const errors: PageReport[] = [];
+	const typos: PageReport[] = [];
 
 	for (const page of pages) {
-		if (splitFrontmatter(page.source).frontmatter === undefined) continue;
-		const fromSchema = schema ? await schemaIssues(page.frontmatter, schema) : [];
-		const flagged = new Set(fromSchema.map((issue) => issue.path));
-		const issues = [
-			...builtinIssues(page.frontmatter).filter((issue) => !flagged.has(issue.path)),
-			...fromSchema
+		if (!page.hasFrontmatter) continue;
+		const fields = customFields(page.frontmatter);
+		const problems = [
+			...builtinProblems(page.frontmatter),
+			...(schema ? await schemaProblems(fields, schema) : [])
 		];
-		if (issues.length) problems.push({ file: page.file, issues });
+		if (problems.length) {
+			const lines = problems.map((p) => (p.path ? `${p.path}: ${p.message}` : p.message));
+			errors.push({ file: page.file, lines });
+		}
+		const typoed = typoLines(fields);
+		if (typoed.length) typos.push({ file: page.file, lines: typoed });
 	}
 
-	if (!problems.length) return;
-	problems.sort((a, b) => a.file.localeCompare(b.file));
-	const count = problems.length === 1 ? '1 page' : `${problems.length} pages`;
-	const lines = problems.flatMap(({ file, issues }) => [
-		`  ${path.relative(process.cwd(), file).split(path.sep).join('/')}`,
-		...issues.map((issue) => `    ${issue.path ? `${issue.path}: ` : ''}${issue.message}`)
-	]);
-	throw new Error(`[svelte-docsmith] invalid frontmatter in ${count}\n${lines.join('\n')}`);
+	if (errors.length) {
+		throw new Error(
+			`[svelte-docsmith] invalid frontmatter in ${pagesCount(errors.length)}\n${formatReports(errors)}`
+		);
+	}
+	if (typos.length) {
+		return (
+			`[svelte-docsmith] possible frontmatter typos in ${pagesCount(typos.length)}\n` +
+			`${formatReports(typos)}\n` +
+			`  Rename the key, or pass a strict \`schema\` to docsmith() to declare your custom fields.`
+		);
+	}
 }

@@ -164,8 +164,9 @@ generated [Props Tables](/docs/components/props-table).
 		the Vite root. Experimental.
 	</Prop>
 	<Prop name="schema" type="StandardSchemaV1">
-		A schema every page's frontmatter must pass: Zod, Valibot, ArkType or any other
-		<a href="https://standardschema.dev">Standard Schema</a>. See
+		A schema for your pages' custom fields: Zod, Valibot, ArkType or any other
+		<a href="https://standardschema.dev">Standard Schema</a>. The built-in fields are
+		checked with or without one. See
 		<a href="/docs/writing-pages#validating-frontmatter">Validating frontmatter</a>.
 	</Prop>
 </PropsTable>
@@ -299,8 +300,8 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 - **`DocsmithConfig`**: the config object above.
 - **`DocsContentItem`**: a content-index entry with `title`, `path`, and optional
   `section`, `order`, `description`, `toc`, and `data`.
-- **`DocsFrontmatter`**: the type of `data`, a page's custom frontmatter fields.
-  Extend it to type yours. See [Custom fields](/docs/writing-pages#custom-fields).
+- **`DocsCustomFields`**: the type of `data`, a page's custom fields. Extend it
+  to type yours. See [Custom fields](/docs/writing-pages#custom-fields).
 - **`SearchDoc`** / **`SearchResult`** / **`SearchEngine`**: the search index
   entry and the shape returned by [`createSearchEngine`](/docs/search).
 - **`ResolvedVersion`**: one entry of the generated version manifest. See

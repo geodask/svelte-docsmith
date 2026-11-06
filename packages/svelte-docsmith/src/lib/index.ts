@@ -44,7 +44,7 @@ export {
 	defineConfig,
 	type DocsmithConfig,
 	type DocsContentItem,
-	type DocsFrontmatter,
+	type DocsCustomFields,
 	type SearchDoc,
 	type LlmsDoc
 } from './core/index.js';
