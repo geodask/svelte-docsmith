@@ -163,6 +163,12 @@ generated [Props Tables](/docs/components/props-table).
 		The tsconfig used to read prop types for <code>?props</code> imports, relative to
 		the Vite root. Experimental.
 	</Prop>
+	<Prop name="schema" type="StandardSchemaV1">
+		A schema for your pages' custom fields: Zod, Valibot, ArkType or any other
+		<a href="https://standardschema.dev">Standard Schema</a>. The built-in fields are
+		checked with or without one. See
+		<a href="/docs/writing-pages#validating-frontmatter">Validating frontmatter</a>.
+	</Prop>
 </PropsTable>
 
 ## DocsShell
@@ -293,7 +299,9 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 
 - **`DocsmithConfig`**: the config object above.
 - **`DocsContentItem`**: a content-index entry with `title`, `path`, and optional
-  `section`, `order`, `description`, `toc`.
+  `section`, `order`, `description`, `toc`, and `data`.
+- **`DocsCustomFields`**: the type of `data`, a page's custom fields. Extend it
+  to type yours. See [Custom fields](/docs/writing-pages#custom-fields).
 - **`SearchDoc`** / **`SearchResult`** / **`SearchEngine`**: the search index
   entry and the shape returned by [`createSearchEngine`](/docs/search).
 - **`ResolvedVersion`**: one entry of the generated version manifest. See

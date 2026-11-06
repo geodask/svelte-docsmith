@@ -6,6 +6,8 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { splitFrontmatter } from '../markdown-source.js';
+import { readField } from './fields.js';
 import { parseFrontmatter } from './frontmatter.js';
 
 const PAGE_NAMES = ['+page.md', '+page.svx'];
@@ -23,6 +25,11 @@ export type SourcePage = {
 	/** The page's parsed frontmatter, `{}` when it has none. */
 	frontmatter: Record<string, unknown>;
 	/**
+	 * Whether the page opens with a frontmatter block at all. `frontmatter` is
+	 * `{}` either way, but only a page with a block is one the author configured.
+	 */
+	hasFrontmatter: boolean;
+	/**
 	 * The day (`YYYY-MM-DD`) the page last changed. Only {@link withCommitDates}
 	 * fills this in, so it is absent on a page list that never went through it.
 	 */
@@ -39,7 +46,12 @@ export function isPageFile(file: string): boolean {
  * shared with tests so an in-memory page is built exactly the way a read one is.
  */
 export function toPage(file: string, source: string): SourcePage {
-	return { file, source, frontmatter: parseFrontmatter(source, file) };
+	return {
+		file,
+		source,
+		frontmatter: parseFrontmatter(source, file),
+		hasFrontmatter: splitFrontmatter(source).frontmatter !== undefined
+	};
 }
 
 /**
@@ -61,7 +73,7 @@ export function readSourcePages(contentDir: string): { pages: SourcePage[]; exis
  * nothing is looked up about it.
  */
 export function titleOf(page: SourcePage): string | undefined {
-	return typeof page.frontmatter.title === 'string' ? page.frontmatter.title : undefined;
+	return readField(page.frontmatter, 'title');
 }
 
 /**
@@ -81,10 +93,7 @@ export function withCommitDates(pages: SourcePage[], dates: Map<string, string>)
 		if (titleOf(page) === undefined) return page;
 		return {
 			...page,
-			lastUpdated:
-				typeof page.frontmatter.lastUpdated === 'string'
-					? page.frontmatter.lastUpdated
-					: dates.get(page.file)
+			lastUpdated: readField(page.frontmatter, 'lastUpdated') ?? dates.get(page.file)
 		};
 	});
 }

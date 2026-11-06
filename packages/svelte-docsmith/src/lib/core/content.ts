@@ -6,6 +6,28 @@
  */
 
 /**
+ * A page's custom fields: every frontmatter key besides the built-in ones the
+ * other {@link DocsContentItem} fields come from. Untyped until you declare
+ * yours, once, in `src/app.d.ts`:
+ *
+ * ```ts
+ * declare module 'svelte-docsmith' {
+ * 	interface DocsCustomFields {
+ * 		draft?: boolean;
+ * 		badge?: string;
+ * 	}
+ * }
+ * ```
+ *
+ * Declaring a field types it; it does not check it. To do both from one place,
+ * pass a schema to `docsmith({ schema })` and extend its inferred type here
+ * (`interface DocsCustomFields extends z.infer<typeof schema> {}`).
+ */
+export interface DocsCustomFields {
+	[key: string]: unknown;
+}
+
+/**
  * The minimal shape `DocsShell` needs from each content entry to build the
  * sidebar. The generated `svelte-docsmith/content` module produces these from
  * your pages' frontmatter; any source with matching title/path/section/order
@@ -46,6 +68,12 @@ export type DocsContentItem = {
 	 * versions (`docsmith({ versions })`). `undefined` on unversioned sites.
 	 */
 	version?: string;
+	/**
+	 * The page's custom fields (see {@link DocsCustomFields}), exactly as
+	 * written. Absent when the page has none. It ships in the content index every
+	 * page loads, so keep it to small values.
+	 */
+	data?: DocsCustomFields;
 };
 
 /**

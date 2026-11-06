@@ -32,6 +32,7 @@ import { contentIndex, llmsIndex, searchIndex } from './collect.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
 import { createPropsExtractor, type PropsExtractor } from '../props/extract.js';
+import { checkFrontmatter, type StandardSchemaV1 } from './frontmatter-schema.js';
 
 export interface DocsmithViteOptions {
 	/** Directory scanned for doc pages. Default: `'src/routes/docs'`. */
@@ -74,6 +75,14 @@ export interface DocsmithViteOptions {
 	 * @experimental Generated props tables are outside the 1.0 stability promise.
 	 */
 	tsconfig?: string;
+	/**
+	 * A schema for your pages' custom fields: every frontmatter key besides the
+	 * built-in ones, which are always checked. Any Standard Schema works (Zod,
+	 * Valibot, ArkType). Make it strict and a key you never declared, like a
+	 * typo'd `ordr`, fails the build. It only validates: custom fields reach each
+	 * content entry's `data` as written, so leave transforms and defaults out.
+	 */
+	schema?: StandardSchemaV1;
 }
 
 /**
@@ -158,7 +167,7 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 			if (id === CHANGELOG_SPECIFIER) return VIRTUAL_CHANGELOG_ID;
 		},
 
-		load(id) {
+		async load(id) {
 			// Watch each page file (not the directory) so editing frontmatter or
 			// body re-runs this load. A directory here is treated as an
 			// unresolvable import by vite:import-analysis; new/removed pages are
@@ -175,6 +184,11 @@ function contentIndexPlugin(options: DocsmithViteOptions): Plugin {
 				checkVersions(versions, discoverArchives(contentDir), ARCHIVE_MARKER);
 				const { pages, exists } = readSourcePages(contentDir);
 				watch(pages);
+				// Checked here only: the docs layout always imports this index, so a
+				// bad page fails the build (or raises the dev overlay) once, not once
+				// per index.
+				const typos = await checkFrontmatter(pages, options.schema);
+				if (typos) console.warn(typos);
 				// Only this index has a date field, so only this one pays for git.
 				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
 				warnAboutDocsRoot(contentDir, exists, docs.length);

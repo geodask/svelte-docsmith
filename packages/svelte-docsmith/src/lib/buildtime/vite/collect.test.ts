@@ -48,6 +48,25 @@ describe('contentIndex', () => {
 		]);
 	});
 
+	it('carries custom frontmatter fields as data, and only those', () => {
+		const pages = [
+			page('a', 'title: A\norder: 1\ndraft: true\nbadge: New\ntags: [x, y]'),
+			page('b', 'title: B\nsection: Guides')
+		];
+		const [a, b] = contentIndex(pages, options);
+
+		expect(a.data).toEqual({ draft: true, badge: 'New', tags: ['x', 'y'] });
+		// A page without custom fields adds no key to the index at all.
+		expect(b.data).toBeUndefined();
+		expect(JSON.stringify(b)).not.toContain('"data"');
+	});
+
+	it('keeps custom fields out of the search and llms indexes', () => {
+		const pages = [page('a', 'title: A\ndraft: true')];
+		expect(searchIndex(pages, options)[0]).not.toHaveProperty('data');
+		expect(llmsIndex(pages, options)[0]).not.toHaveProperty('data');
+	});
+
 	it('tags archive folders by id, and everything else as the current version', () => {
 		const versions: DocsVersions = {
 			current: { id: 'v2', label: 'v2' },

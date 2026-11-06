@@ -9,9 +9,10 @@ import path from 'node:path';
 import type { DocsContentItem, LlmsDoc, SearchDoc } from '#lib/core/content.js';
 import type { DocsVersions } from '#lib/core/version.js';
 import { firstSegmentUnder } from '#lib/utils/url.js';
-import { docsBaseFrom, urlFor } from '../paths.js';
+import { docsBaseFrom, relativeToCwd, urlFor } from '../paths.js';
 import { titleOf, type SourcePage } from './pages.js';
 import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
+import { customFields, readField } from './fields.js';
 
 /** Where the pages sit, which is what turns a page's file into a URL and a version. */
 export type IndexOptions = {
@@ -64,46 +65,25 @@ function indexedPages(pages: SourcePage[], options: IndexOptions): IndexedPage[]
 	}
 }
 
-/**
- * Read a page's `section` frontmatter: a string is one level, an array is a
- * nested group path. Non-string array members are dropped; anything else is
- * treated as no section.
- */
-function readSection(value: unknown): string | string[] | undefined {
-	if (typeof value === 'string') return value;
-	if (Array.isArray(value)) {
-		const segs = value.filter((s): s is string => typeof s === 'string');
-		return segs.length ? segs : undefined;
-	}
-	return undefined;
-}
-
 /** The most-specific (last) group segment, for the compact search-result pill. */
-function sectionLabel(value: unknown): string | undefined {
-	const section = readSection(value);
-	if (section === undefined) return undefined;
+function sectionLabel(front: Record<string, unknown>): string | undefined {
+	const section = readField(front, 'section');
 	return Array.isArray(section) ? section[section.length - 1] : section;
 }
 
 /** The full group path joined, so nested pages group under one llms.txt heading. */
-function sectionKey(value: unknown): string | undefined {
-	const section = readSection(value);
-	if (section === undefined) return undefined;
+function sectionKey(front: Record<string, unknown>): string | undefined {
+	const section = readField(front, 'section');
 	return Array.isArray(section) ? section.join(' / ') : section;
 }
 
 /**
- * A frontmatter field, when it holds the type the index expects. Frontmatter is
- * whatever the author typed, so a field of the wrong type is dropped rather than
- * carried into the index as one.
+ * A page's custom fields, or `undefined` when it has none, so a page without
+ * them adds nothing to the eagerly-loaded content index.
  */
-function stringField(front: Record<string, unknown>, key: string): string | undefined {
-	return typeof front[key] === 'string' ? front[key] : undefined;
-}
-
-/** As {@link stringField}, for the numeric fields. */
-function numberField(front: Record<string, unknown>, key: string): number | undefined {
-	return typeof front[key] === 'number' ? front[key] : undefined;
+function dataOf(front: Record<string, unknown>): Record<string, unknown> | undefined {
+	const fields = customFields(front);
+	return Object.keys(fields).length ? fields : undefined;
 }
 
 /**
@@ -118,14 +98,15 @@ export function contentIndex(pages: SourcePage[], options: IndexOptions): DocsCo
 	return indexedPages(pages, options).map((page) => ({
 		title: page.title,
 		path: page.url,
-		description: stringField(page.frontmatter, 'description'),
-		section: readSection(page.frontmatter.section),
-		order: numberField(page.frontmatter, 'order'),
-		sourcePath: path.relative(process.cwd(), page.file).split(path.sep).join('/'),
+		description: readField(page.frontmatter, 'description'),
+		section: readField(page.frontmatter, 'section'),
+		order: readField(page.frontmatter, 'order'),
+		sourcePath: relativeToCwd(page.file),
 		lastUpdated: page.lastUpdated,
 		readingTime: readingMinutes(extractSearchText(page.source)),
 		toc: extractToc(page.source),
-		version: page.version
+		version: page.version,
+		data: dataOf(page.frontmatter)
 	}));
 }
 
@@ -138,8 +119,8 @@ export function searchIndex(pages: SourcePage[], options: IndexOptions): SearchD
 	return indexedPages(pages, options).map((page) => ({
 		path: page.url,
 		title: page.title,
-		section: sectionLabel(page.frontmatter.section),
-		description: stringField(page.frontmatter, 'description'),
+		section: sectionLabel(page.frontmatter),
+		description: readField(page.frontmatter, 'description'),
 		headings: extractToc(page.source).map((entry) => entry.title),
 		text: extractSearchText(page.source),
 		version: page.version
@@ -155,9 +136,9 @@ export function llmsIndex(pages: SourcePage[], options: IndexOptions): LlmsDoc[]
 	return indexedPages(pages, options).map((page) => ({
 		path: page.url,
 		title: page.title,
-		section: sectionKey(page.frontmatter.section),
-		order: numberField(page.frontmatter, 'order'),
-		description: stringField(page.frontmatter, 'description'),
+		section: sectionKey(page.frontmatter),
+		order: readField(page.frontmatter, 'order'),
+		description: readField(page.frontmatter, 'description'),
 		content: extractLlmsContent(page.source, page.title),
 		version: page.version
 	}));

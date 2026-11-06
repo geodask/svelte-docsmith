@@ -40,3 +40,20 @@ What a component accepts by spreading its remaining props onto something else:
 an element's native attributes, or every prop of another component's type. They
 are summarised by what they belong to, never listed as props.
 _Avoid_: rest props, passthrough props, HTML props, inherited props
+
+### Doc page frontmatter
+
+**Built-in field**:
+A frontmatter key svelte-docsmith reads itself to place and describe a page:
+`title`, `description`, `section`, `order`, `lastUpdated`. Always type-checked.
+_Avoid_: known field, reserved key, standard field
+
+**Custom field**:
+Any other frontmatter key. Kept as written and exposed on the page's content
+entry as `data`, typed by extending `DocsCustomFields`.
+_Avoid_: extra, extension field, author's own frontmatter, metadata
+
+**Frontmatter schema**:
+The optional Standard Schema passed to `docsmith({ schema })`. It checks custom
+fields only, and never changes them.
+_Avoid_: docs schema, content schema, collection schema
