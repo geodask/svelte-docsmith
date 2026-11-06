@@ -14,7 +14,9 @@ export function parseFrontmatter(source: string, file: string): Record<string, u
 		data = yaml.load(frontmatter);
 	} catch (err) {
 		const reason = err instanceof Error ? err.message : String(err);
-		throw new Error(`[svelte-docsmith] invalid YAML frontmatter in ${file}\n${reason}`);
+		throw new Error(`[svelte-docsmith] invalid YAML frontmatter in ${file}\n${reason}`, {
+			cause: err
+		});
 	}
 	return data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
 }

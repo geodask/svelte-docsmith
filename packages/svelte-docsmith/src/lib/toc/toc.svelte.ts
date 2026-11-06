@@ -52,6 +52,8 @@ export function createToc(contentFn: () => HTMLElement | null): Toc {
 			.map((item) => el.querySelector<HTMLElement>(`#${CSS.escape(item.id)}`))
 			.filter((node): node is HTMLElement => node !== null);
 
+		// Plain Set on purpose: it's scratch state read only inside recompute(), never rendered.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const visible = new Set<string>();
 
 		function recompute() {

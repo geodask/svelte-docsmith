@@ -146,7 +146,7 @@ export function checkVersions(
 		try {
 			assertValidVersionId(version?.id);
 		} catch (error) {
-			throw new Error(`[svelte-docsmith] ${(error as Error).message}`);
+			throw new Error(`[svelte-docsmith] ${(error as Error).message}`, { cause: error });
 		}
 	}
 

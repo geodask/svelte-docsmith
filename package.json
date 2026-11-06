@@ -4,6 +4,7 @@
 	"description": "Monorepo for svelte-docsmith",
 	"main": "index.js",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"ci:version": "node scripts/sync-template-pin.mjs pre && changeset version && node scripts/sync-template-pin.mjs post",
 		"ci:publish": "turbo run build --filter=svelte-docsmith && changeset publish",
@@ -38,16 +39,16 @@
 		]
 	},
 	"devDependencies": {
-		"@changesets/cli": "^2.31.1",
-		"@eslint/compat": "^1.4.1",
-		"@eslint/js": "^9.39.5",
+		"@changesets/cli": "^3.0.3",
+		"@eslint/compat": "^2.1.1",
+		"@eslint/js": "^10.0.1",
 		"@shikijs/twoslash": "3.23.0",
-		"eslint": "^9.39.5",
+		"eslint": "^10.14.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.24.0",
-		"globals": "^16.5.0",
+		"globals": "^17.14.0",
 		"prettier": "^3.9.10",
-		"prettier-plugin-svelte": "^3.5.2",
+		"prettier-plugin-svelte": "^4.1.1",
 		"turbo": "^2.11.10",
 		"twoslash-svelte": "0.3.9",
 		"typescript-eslint": "^8.72.1"
