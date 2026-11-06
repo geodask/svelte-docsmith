@@ -12,7 +12,14 @@ import type { ResolvedVersion } from '#lib/core/version.js';
 import type { LlmsSite } from '#lib/generate/llms.js';
 import { createSearchEngine, type SearchEngine } from '#lib/search/create-search.js';
 import { editorSetups } from './connect.js';
-import { checkArguments, text, tools, type ToolContext } from './tools.js';
+import {
+	checkArguments,
+	resolveVersion,
+	text,
+	tools,
+	versionIds,
+	type ToolContext
+} from './tools.js';
 
 /**
  * What the MCP server answers from: the same indexes that feed llms.txt and
@@ -116,7 +123,7 @@ export function mcpHandler(options: McpOptions) {
 				title: `${options.site.title} docs`,
 				version: SERVER_VERSION
 			},
-			instructions: instructions(options.site)
+			instructions: instructions(options.site, options.versions ?? [])
 		}),
 		ping: () => ({}),
 		'tools/list': () => ({
@@ -146,7 +153,9 @@ export function mcpHandler(options: McpOptions) {
 			// sees what was wrong and can retry (MCP 2025-11-25, server/tools).
 			const problem = checkArguments(tool.inputSchema, args);
 			if (problem) return text(`${tool.name}: ${problem}`, true);
-			return tool.call(args, context);
+			const scope = resolveVersion(args.version as string | undefined, context.versions);
+			if (scope.problem) return text(`${tool.name}: ${scope.problem}`, true);
+			return tool.call(args, { ...context, version: scope.version });
 		}
 	};
 
@@ -272,11 +281,17 @@ function negotiate(requested: unknown): string {
 		: PROTOCOL_VERSIONS[0];
 }
 
-function instructions({ title, description }: LlmsSite): string {
+function instructions({ title, description }: LlmsSite, versions: ResolvedVersion[]): string {
 	const about = description ? `${title}: ${description}` : title;
+	const versioned = versions.length
+		? `\n\nThe docs are versioned (${versionIds(versions)}). Every tool reads the current ` +
+			'version unless you pass its `version` argument, e.g. to match an older installed release.'
+		: '';
 	return (
 		`The documentation for ${about}\n\n` +
-		`This server answers questions about these docs. Use its tools to read the pages ` +
-		`as markdown before answering questions about ${title}, rather than relying on memory.`
+		`This server answers questions about these docs. Read the pages before answering ` +
+		`questions about ${title}, rather than relying on memory: search_docs to find pages ` +
+		`by topic, list_pages to browse every page, and get_page to read one in full as markdown.` +
+		versioned
 	);
 }

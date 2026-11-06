@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mcpHandler } from '#lib/index.js';
 import type { LlmsDoc, SearchDoc } from '#lib/core/content.js';
+import type { ResolvedVersion } from '#lib/core/version.js';
 import { createSearchEngine } from '#lib/search/create-search.js';
 
 // Pass-through spy, so the search_docs tests can count index builds.
@@ -102,6 +103,35 @@ describe('mcpHandler: initialize', () => {
 		expect(result.instructions).toContain('Bare');
 		expect(result.instructions).not.toContain('undefined');
 	});
+
+	it('says when to use each tool, and nothing about versions on an unversioned site', async () => {
+		const { body } = await rpc('initialize', { protocolVersion: '2025-11-25' });
+		const { instructions } = body.result;
+		expect(instructions).toMatch(/search_docs[^.]*find/);
+		expect(instructions).toMatch(/list_pages[^.]*browse/);
+		expect(instructions).toMatch(/get_page[^.]*read/);
+		expect(instructions).not.toContain('version');
+	});
+
+	it('mentions the version argument and the versions on a versioned site', async () => {
+		const versions: ResolvedVersion[] = [
+			{ id: 'v2', label: 'v2', basePath: '/docs', landing: '/docs', current: true, noindex: false },
+			{
+				id: 'v1',
+				label: 'v1',
+				basePath: '/docs/v1',
+				landing: '/docs/v1',
+				current: false,
+				noindex: false
+			}
+		];
+		const res = await mcpHandler({ site, docs, search, versions })(
+			post({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: 'x' } })
+		);
+		const { instructions } = (await res.json()).result;
+		expect(instructions).toContain('`version`');
+		expect(instructions).toContain('v2 (current), v1');
+	});
 });
 
 describe('mcpHandler: ping', () => {
@@ -147,16 +177,30 @@ describe('mcpHandler: tools/list', () => {
 			type: 'object',
 			properties: {
 				query: { type: 'string', description: expect.any(String) },
-				limit: { type: 'integer', description: expect.any(String) }
+				limit: { type: 'integer', description: expect.any(String) },
+				version: { type: 'string', description: expect.any(String) }
 			},
 			required: ['query']
 		});
 	});
 
-	it('describes list_pages as taking no arguments', async () => {
+	it('describes list_pages as taking only an optional version', async () => {
 		const { body } = await rpc('tools/list');
 		const listPages = body.result.tools.find((t: { name: string }) => t.name === 'list_pages');
-		expect(listPages.inputSchema).toEqual({ type: 'object', properties: {} });
+		expect(listPages.inputSchema).toEqual({
+			type: 'object',
+			properties: { version: { type: 'string', description: expect.any(String) } }
+		});
+	});
+
+	it('documents an optional version string on every tool', async () => {
+		const { body } = await rpc('tools/list');
+		for (const tool of body.result.tools) {
+			const { version } = tool.inputSchema.properties;
+			expect(version, tool.name).toEqual({ type: 'string', description: expect.any(String) });
+			expect(version.description, tool.name).toMatch(/current version/);
+			expect(tool.inputSchema.required ?? [], tool.name).not.toContain('version');
+		}
 	});
 });
 
@@ -397,6 +441,144 @@ describe('mcpHandler: search_docs', () => {
 			expect(result.isError).toBeFalsy();
 			expect(hitCount(result.content[0].text)).toBe(expected);
 		});
+	});
+});
+
+describe('mcpHandler: version scoping', () => {
+	// A versioned site: v2 is current (unprefixed), v1 is archived under /docs/v1.
+	const versions: ResolvedVersion[] = [
+		{
+			id: 'v2',
+			label: 'v2',
+			basePath: '/docs',
+			landing: '/docs/intro',
+			current: true,
+			noindex: false
+		},
+		{
+			id: 'v1',
+			label: 'v1',
+			basePath: '/docs/v1',
+			landing: '/docs/v1/intro',
+			current: false,
+			noindex: false
+		}
+	];
+	const versionedDocs: LlmsDoc[] = [
+		{
+			path: '/docs/intro',
+			title: 'Introduction',
+			order: 1,
+			version: 'v2',
+			content: '# Introduction\n\nWelcome to v2.'
+		},
+		{ path: '/docs/signals', title: 'Signals', order: 2, version: 'v2', content: '# Signals' },
+		{
+			path: '/docs/v1/intro',
+			title: 'Introduction',
+			order: 1,
+			version: 'v1',
+			content: '# Introduction\n\nWelcome to v1.'
+		},
+		{ path: '/docs/v1/stores', title: 'Stores', order: 2, version: 'v1', content: '# Stores' }
+	];
+	const versionedSearch: SearchDoc[] = versionedDocs.map((d) => ({
+		path: d.path,
+		title: d.title,
+		headings: [],
+		text: `${d.content} Reactivity guide.`,
+		version: d.version
+	}));
+	const versioned = { docs: versionedDocs, search: versionedSearch, versions };
+
+	describe('list_pages', () => {
+		it('lists only the current version by default', async () => {
+			const { content } = await callTool('list_pages', {}, versioned);
+			expect(content[0].text).toContain('/docs/signals');
+			expect(content[0].text).not.toContain('/docs/v1/');
+		});
+
+		it('lists only the requested version', async () => {
+			const { content } = await callTool('list_pages', { version: 'v1' }, versioned);
+			expect(content[0].text).toBe(
+				[
+					'## Docs',
+					'',
+					'- [Introduction](https://my-docs.dev/docs/v1/intro)',
+					'- [Stores](https://my-docs.dev/docs/v1/stores)'
+				].join('\n')
+			);
+		});
+	});
+
+	describe('search_docs', () => {
+		const hitPaths = (text: string) =>
+			[...text.matchAll(/^\d+\. \[[^\]]+\]\(https:\/\/my-docs\.dev([^)]+)\)/gm)].map((m) => m[1]);
+
+		it('searches only the current version by default', async () => {
+			const { content } = await callTool('search_docs', { query: 'reactivity' }, versioned);
+			expect(hitPaths(content[0].text).sort()).toEqual(['/docs/intro', '/docs/signals']);
+		});
+
+		it('searches only the requested version', async () => {
+			const { content } = await callTool(
+				'search_docs',
+				{ query: 'reactivity', version: 'v1' },
+				versioned
+			);
+			expect(hitPaths(content[0].text).sort()).toEqual(['/docs/v1/intro', '/docs/v1/stores']);
+		});
+	});
+
+	describe('get_page', () => {
+		it('reads a current-version page by default', async () => {
+			const result = await callTool('get_page', { path: '/docs/intro' }, versioned);
+			expect(result.isError).toBeFalsy();
+			expect(result.content[0].text).toBe('# Introduction\n\nWelcome to v2.');
+		});
+
+		it('reads a page of the requested version', async () => {
+			const result = await callTool(
+				'get_page',
+				{ path: '/docs/v1/intro', version: 'v1' },
+				versioned
+			);
+			expect(result.isError).toBeFalsy();
+			expect(result.content[0].text).toBe('# Introduction\n\nWelcome to v1.');
+		});
+
+		it.each([
+			['an archived page with no version', { path: '/docs/v1/stores' }, 'v1'],
+			['a current page under an archived version', { path: '/docs/signals', version: 'v1' }, 'v2']
+		])('misses %s, naming the version that has it', async (_, args, owner) => {
+			const result = await callTool('get_page', args, versioned);
+			expect(result.isError).toBe(true);
+			expect(result.content[0].text).toContain(args.path);
+			expect(result.content[0].text).toContain(`version "${owner}"`);
+		});
+	});
+
+	it.each([
+		['list_pages', {}],
+		['search_docs', { query: 'reactivity' }],
+		['get_page', { path: '/docs/intro' }]
+	])('%s reports an unknown version as a tool error listing the valid ids', async (name, args) => {
+		const result = await callTool(name, { ...args, version: 'v9' }, versioned);
+		expect(result.isError).toBe(true);
+		const [{ text }] = result.content;
+		expect(text).toContain('"v9"');
+		expect(text).toMatch(/v2 \(current\), v1/);
+	});
+
+	it.each([
+		['list_pages', {}],
+		['search_docs', { query: 'welcome' }],
+		['get_page', { path: '/docs/intro' }]
+	])('%s ignores the version on an unversioned site', async (name, args) => {
+		const without = await callTool(name, args);
+		const withVersion = await callTool(name, { ...args, version: 'v9' });
+		expect(without.isError).toBeFalsy();
+		expect(withVersion).toEqual(without);
 	});
 });
 

@@ -273,12 +273,12 @@ export function currentOnly<T extends { version?: string }>(
 /**
  * Content scoped to one version. With no version id (unversioned site) the
  * content passes through unchanged, so every caller stays a no-op off the
- * versioned path.
+ * versioned path. Works over any record carrying `version`.
  */
-export function scopeContent(
-	content: DocsContentItem[],
+export function scopeContent<T extends { version?: string }>(
+	content: T[],
 	versionId: string | undefined
-): DocsContentItem[] {
+): T[] {
 	if (!versionId) return content;
 	return content.filter((item) => item.version === versionId);
 }
