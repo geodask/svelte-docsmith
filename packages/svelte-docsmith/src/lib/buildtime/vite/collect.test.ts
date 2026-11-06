@@ -259,6 +259,12 @@ describe('searchIndex', () => {
 		expect(doc.section).toBe('Advanced');
 	});
 
+	it('labels a section by the group the sidebar shows, ignoring blank segments', () => {
+		const [doc] = searchIndex([page('deep', "title: Deep\nsection:\n  - Guides\n  - ''")], options);
+
+		expect(doc.section).toBe('Guides');
+	});
+
 	it('skips pages without a title and sorts by path', () => {
 		const pages = [
 			page('b', 'title: Bravo', 'Second.'),
@@ -307,13 +313,13 @@ describe('llmsIndex', () => {
 		expect(doc.content).not.toContain('color: red');
 	});
 
-	it('joins a nested section path so the pages group under one heading', () => {
+	it('keeps a nested section path as written, as the content index does', () => {
 		const [doc] = llmsIndex(
 			[page('deep', 'title: Deep\nsection:\n  - Guides\n  - Advanced')],
 			options
 		);
 
-		expect(doc.section).toBe('Guides / Advanced');
+		expect(doc.section).toEqual(['Guides', 'Advanced']);
 	});
 
 	it('skips pages without a title and sorts by path', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateLlmsTxt, generateLlmsFullTxt } from './llms.js';
 import type { LlmsDoc } from '#lib/core/content.js';
+import { flattenNav, navFromContent } from '#lib/core/nav.js';
 
 // Deliberately out of reading order: a later section listed first, and items
 // within a section reversed, so the ordering logic has something to fix.
@@ -129,5 +130,57 @@ describe('generateLlmsFullTxt', () => {
 	it('drops the description line from the header when absent', () => {
 		const txt = generateLlmsFullTxt({ title: 'My Docs' }, docs);
 		expect(txt.startsWith('# My Docs\n\n# Introduction')).toBe(true);
+	});
+});
+
+describe('reading order agrees with the sidebar', () => {
+	const page = (path: string, title: string, section?: string | string[], order?: number) => ({
+		path,
+		title,
+		section,
+		order,
+		content: `# ${title}`
+	});
+	const sidebarOrder = (items: LlmsDoc[]) => flattenNav(navFromContent(items)).map((i) => i.url);
+	const llmsOrder = (items: LlmsDoc[]) =>
+		generateLlmsTxt({ title: 'T' }, items)
+			.split('\n')
+			.filter((l) => l.startsWith('- '))
+			.map((l) => l.slice(l.indexOf('](') + 2, l.indexOf(')', l.indexOf(']('))));
+
+	it('breaks an order tie by title, as the sidebar does, not by path', () => {
+		const items = [page('/docs/a', 'Zebra', 'Guides'), page('/docs/b', 'Apple', 'Guides')];
+		expect(llmsOrder(items)).toEqual(['/docs/b', '/docs/a']);
+		expect(llmsOrder(items)).toEqual(sidebarOrder(items));
+	});
+
+	it('keeps a nested section right after its parent, under a joined heading', () => {
+		const items = [
+			page('/docs/guide', 'Guide', 'Guides', 1),
+			page('/docs/later', 'Later', 'Later', 2),
+			page('/docs/deep', 'Deep', ['Guides', 'Advanced'], 5)
+		];
+		const headings = generateLlmsTxt({ title: 'T' }, items)
+			.split('\n')
+			.filter((l) => l.startsWith('## '));
+		expect(headings).toEqual(['## Guides', '## Guides / Advanced', '## Later']);
+	});
+
+	it('drops blank section segments, as the sidebar does', () => {
+		const txt = generateLlmsTxt({ title: 'T' }, [page('/docs/a', 'A', ['Guides', ''])]);
+		expect(txt).toContain('## Guides\n');
+		expect(txt).not.toContain('Guides /');
+	});
+
+	it('writes llms-full.txt in exact sidebar reading order', () => {
+		const items = [
+			page('/docs/p3', 'Three', 'Guides', 3),
+			page('/docs/adv', 'Advanced page', ['Guides', 'Advanced'], 2),
+			page('/docs/p1', 'One', 'Guides', 1)
+		];
+		const full = generateLlmsFullTxt({ title: 'T' }, items);
+		const order = ['# One', '# Advanced page', '# Three'].map((h) => full.indexOf(h));
+		expect(order).toEqual([...order].sort((a, b) => a - b));
+		expect(sidebarOrder(items)).toEqual(['/docs/p1', '/docs/adv', '/docs/p3']);
 	});
 });

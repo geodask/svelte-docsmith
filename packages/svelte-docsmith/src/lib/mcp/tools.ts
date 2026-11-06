@@ -6,7 +6,8 @@
  */
 import type { LlmsDoc } from '#lib/core/content.js';
 import { currentVersion, scopeContent, type ResolvedVersion } from '#lib/core/version.js';
-import { bySection, type LlmsSite } from '#lib/generate/llms.js';
+import type { LlmsSite } from '#lib/generate/llms.js';
+import { readingSections } from '#lib/core/reading-order.js';
 import type { SearchEngine } from '#lib/search/create-search.js';
 import { join, normalizePath } from '../utils/url.js';
 
@@ -206,7 +207,7 @@ const listPages: Tool = {
 		'read a page with get_page.',
 	inputSchema: { type: 'object', properties: { version: VERSION_ARG } },
 	call(_, { site, docs, version }) {
-		const sections = bySection(scopeContent(docs, version)).map(([section, items]) =>
+		const sections = readingSections(scopeContent(docs, version)).map(([section, items]) =>
 			[
 				`## ${section}`,
 				'',

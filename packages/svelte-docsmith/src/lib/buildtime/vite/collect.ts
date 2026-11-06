@@ -8,6 +8,7 @@
 import path from 'node:path';
 import type { DocsContentItem, LlmsDoc, SearchDoc } from '#lib/core/content.js';
 import type { DocsVersions } from '#lib/core/version.js';
+import { sectionPath } from '#lib/core/reading-order.js';
 import { firstSegmentUnder } from '#lib/utils/url.js';
 import { docsBaseFrom, relativeToCwd, urlFor } from '../paths.js';
 import { titleOf, type SourcePage } from './pages.js';
@@ -65,16 +66,13 @@ function indexedPages(pages: SourcePage[], options: IndexOptions): IndexedPage[]
 	}
 }
 
-/** The most-specific (last) group segment, for the compact search-result pill. */
+/**
+ * The most-specific group the sidebar puts the page in, for the compact
+ * search-result pill. A page that names no section gets no pill.
+ */
 function sectionLabel(front: Record<string, unknown>): string | undefined {
 	const section = readField(front, 'section');
-	return Array.isArray(section) ? section[section.length - 1] : section;
-}
-
-/** The full group path joined, so nested pages group under one llms.txt heading. */
-function sectionKey(front: Record<string, unknown>): string | undefined {
-	const section = readField(front, 'section');
-	return Array.isArray(section) ? section.join(' / ') : section;
+	return section === undefined ? undefined : sectionPath(section).at(-1);
 }
 
 /**
@@ -143,7 +141,7 @@ export function llmsIndex(
 	return indexedPages(pages, options).map((page) => ({
 		path: page.url,
 		title: page.title,
-		section: sectionKey(page.frontmatter),
+		section: readField(page.frontmatter, 'section'),
 		order: readField(page.frontmatter, 'order'),
 		description: readField(page.frontmatter, 'description'),
 		content: rewrite(extractLlmsContent(page.source, page.title), page),

@@ -33,7 +33,7 @@ const docs: LlmsDoc[] = [
 const search: SearchDoc[] = docs.map((d) => ({
 	path: d.path,
 	title: d.title,
-	section: d.section,
+	section: d.section as string | undefined,
 	headings: [],
 	text: d.content
 }));

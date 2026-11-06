@@ -154,8 +154,9 @@ export function GET() {
 }
 ```
 
-Both follow your sidebar reading order, grouping pages by `section` and sorting
-by `order`. Each page's title becomes an `h1`, and its `description` frontmatter
+Both follow your sidebar reading order exactly: the same groups, sorted by
+`order` and then title. `llms.txt` can't nest, so a nested section gets its own
+heading, such as `Guides / Advanced`, right after its parent. Each page's title becomes an `h1`, and its `description` frontmatter
 annotates the link in the index.
 
 Each page's text is its agent markdown: the page as a coding agent should read

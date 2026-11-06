@@ -213,7 +213,7 @@ describe('docsmith() content plugin', () => {
 
 		expect(await loadVirtual('\0svelte-docsmith:llms')).toBe(
 			'export const docs = [' +
-				'{"path":"/docs/guide/setup","title":"Setup","section":"Guide / Basics","order":2,' +
+				'{"path":"/docs/guide/setup","title":"Setup","section":["Guide","Basics"],"order":2,' +
 				'"description":"Install it.","content":"# Setup\\n\\n## Install\\n\\nRun `pnpm add x`.\\n\\n<X />"},' +
 				'{"path":"/docs/intro","title":"Intro","content":"# Intro\\n\\nHello."}' +
 				'];\n'
