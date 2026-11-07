@@ -15,22 +15,21 @@
  *     — the same pages reduced to plain-text bodies, in a separate chunk so it
  *     can be lazy-loaded only when search opens. (An `svelte-docsmith/llms`
  *     index of full markdown bodies is wired the same way.)
- *  5. The **`?source` transform** powering `LiveExample`: importing
- *     `Component.svelte?source` yields that file's highlighted source, drawn by
- *     the same code block renderer as a markdown fence.
- *  6. The **`?props` transform** powering generated props tables: importing
- *     `Component.svelte?props` yields that component's extracted props, for
- *     `<PropsTable of={…}>` (see `../props/extract.js`).
+ *  5. The **doc imports** a page makes for its examples and props tables:
+ *     `Component.svelte?source` yields that file's highlighted source for
+ *     `LiveExample`, and `Component.svelte?props` its extracted props for
+ *     `<PropsTable of={…}>`. Each kind lives in `./doc-imports/`, with the page
+ *     side served here and the agent side written into the llms index.
  *
  * The options themselves are resolved in `./options.js`. Reading the docs root
  * lives in `./pages.js` and building each index from what it read lives in
- * `./collect.js`; this file owns the Vite plugins and the props extractor they
- * share, and is the only layer that reports to the console.
+ * `./collect.js`; props are read through `../props/reader.js`, which owns the
+ * shared extractor, file watching and warn-once. This file owns the Vite
+ * plugins and is the only layer that reports to the console.
  */
-import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { codeBlockRenderer, sourcePanelHtml, type RenderCodeBlock } from '../code-block.js';
+import { codeBlockRenderer } from '../code-block.js';
 import { checkVersions, resolveVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
@@ -39,7 +38,8 @@ import { contentIndex, searchIndex } from './collect.js';
 import { llmsIndex } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
-import { createPropsExtractor, type ExtractResult, type PropsExtractor } from '../props/extract.js';
+import { createPropsReader } from '../props/reader.js';
+import { docImportReads, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
 import { checkFrontmatter } from './frontmatter-schema.js';
 import { markdownPlugin } from './markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
@@ -61,7 +61,6 @@ export type { DocsmithSite } from '../../core/config.js';
  */
 export function docsmith(options: DocsmithOptions): Plugin[] {
 	const resolved = resolveOptions(options);
-	const extractor = sharedPropsExtractor(resolved);
 	// One renderer for markdown fences and `?source` panels: one set of themes,
 	// one Shiki highlighter.
 	const renderCodeBlock = codeBlockRenderer({
@@ -70,50 +69,18 @@ export function docsmith(options: DocsmithOptions): Plugin[] {
 		lineNumbers: resolved.markdown.lineNumbers,
 		twoslash: resolved.markdown.twoslash
 	});
-	return [
-		contentIndexPlugin(resolved, extractor, options),
-		markdownPlugin(resolved.markdown, renderCodeBlock),
-		exampleSourcePlugin(renderCodeBlock),
-		propsPlugin(extractor)
-	];
-}
-
-// --- the props extractor -------------------------------------------------
-
-/**
- * The one props extractor a `docsmith()` call's plugins share, so the `?props`
- * transform and the llms index read components against one TypeScript program.
- * Created on first use: TypeScript itself loads only when a component with a
- * typed `$props()` is first extracted, so a site without props imports never
- * pays for it.
- */
-interface SharedPropsExtractor {
-	/** Point extraction at the Vite root, where `tsconfig.json` is looked up. */
-	configure(root: string): void;
-	get(): PropsExtractor;
-}
-
-// Shared across `docsmith()` calls too: SvelteKit builds the client and the
-// server in one process, and both import every props module. Sharing the
-// extractor means one TypeScript program and one result cache for both.
-const extractors = new Map<string, PropsExtractor>();
-
-function sharedPropsExtractor(options: ResolvedDocsmithOptions): SharedPropsExtractor {
-	let root = process.cwd();
-	return {
-		configure(next) {
-			root = next;
-		},
-		get() {
-			const key = `${root}\0${options.tsconfig ?? ''}`;
-			let extractor = extractors.get(key);
-			if (!extractor) {
-				extractor = createPropsExtractor({ root, tsconfig: options.tsconfig });
-				extractors.set(key, extractor);
-			}
-			return extractor;
-		}
+	// What doc imports read through on both sides: one props reader, so a
+	// page's `?props` imports and the llms index read components against one
+	// TypeScript program.
+	const docImports: DocImportDeps = {
+		render: renderCodeBlock,
+		props: createPropsReader({ tsconfig: resolved.tsconfig })
 	};
+	return [
+		contentIndexPlugin(resolved, docImports, options),
+		markdownPlugin(resolved.markdown, renderCodeBlock),
+		docImportsPlugin(docImports)
+	];
 }
 
 // --- content / search / llms index --------------------------------------
@@ -150,7 +117,7 @@ function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number)
 
 function contentIndexPlugin(
 	options: ResolvedDocsmithOptions,
-	extractor: SharedPropsExtractor,
+	docImports: DocImportDeps,
 	authored: DocsmithOptions
 ): Plugin {
 	const { contentDir, routesDir, versions, changelogFile } = options;
@@ -184,10 +151,6 @@ function contentIndexPlugin(
 		// rather than asking for the same directories and versions again. As
 		// written, so the CLI resolves the paths against its own directory.
 		api: { docsmith: authored },
-
-		configResolved(config) {
-			extractor.configure(config.root);
-		},
 
 		resolveId(id) {
 			if (id === CONTENT_SPECIFIER) return VIRTUAL_CONTENT_ID;
@@ -243,15 +206,14 @@ function contentIndexPlugin(
 				const { pages } = readSourcePages(contentDir);
 				watch(pages);
 				// What agents read: each page as agent markdown. Its imports resolve
-				// the way Vite resolves the page's own, and props come from the shared
-				// extractor, so pages without a props import never load TypeScript.
+				// the way Vite resolves the page's own, and each kind reads the way its
+				// page side does, so pages without a props import never load TypeScript.
 				const docs = await llmsIndex(pages, indexOptions, {
 					resolve: async (specifier, importer) =>
 						(await this.resolve(specifier, importer, { skipSelf: true }))?.id,
 					watch: (file) => this.addWatchFile(file),
 					warn: (message) => this.warn(message),
-					source: readExampleSource,
-					props: async (file) => (await extractProps(extractor, file, this)).markdown
+					...docImportReads(docImports, this)
 				});
 				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
@@ -282,104 +244,6 @@ function contentIndexPlugin(
 			server.watcher.on('add', onChange);
 			server.watcher.on('unlink', onChange);
 			server.watcher.on('change', onChange);
-		}
-	};
-}
-
-// --- ?source transform (LiveExample) ------------------------------------
-
-const SOURCE_PREFIX = '\0docsmith-source:';
-// The virtual id must NOT end in `.svelte`, or vite-plugin-svelte will try to
-// compile the highlighted-HTML string as a component.
-const SOURCE_EXT = '.docsmith-src';
-const SOURCE_SUFFIX = '?source';
-
-/**
- * An example file's raw source, as the `?source` transform reads it, or
- * `undefined` when it can't be read. Agent markdown keeps the tag then, where
- * the transform fails the import.
- */
-function readExampleSource(file: string): string | undefined {
-	try {
-		return fs.readFileSync(file, 'utf-8').trimEnd();
-	} catch {
-		return undefined;
-	}
-}
-
-function exampleSourcePlugin(renderCodeBlock: RenderCodeBlock): Plugin {
-	return {
-		name: 'docsmith-example-source',
-		enforce: 'pre',
-
-		async resolveId(id, importer) {
-			if (!id.endsWith('.svelte' + SOURCE_SUFFIX)) return;
-			const base = id.slice(0, -SOURCE_SUFFIX.length);
-			const resolved = await this.resolve(base, importer, { skipSelf: true });
-			if (resolved) return SOURCE_PREFIX + resolved.id + SOURCE_EXT;
-		},
-
-		async load(id) {
-			if (!id.startsWith(SOURCE_PREFIX)) return;
-			const file = id.slice(SOURCE_PREFIX.length, -SOURCE_EXT.length);
-			this.addWatchFile(file);
-
-			const code = fs.readFileSync(file, 'utf-8').trimEnd();
-			// The same renderer as a markdown fence, so the panel matches one.
-			const html = sourcePanelHtml(await renderCodeBlock(code, 'svelte'));
-			return `export default ${JSON.stringify(html)};`;
-		}
-	};
-}
-
-// --- ?props transform (generated props tables) ---------------------------
-
-const PROPS_PREFIX = '\0docsmith-props:';
-// Like the `?source` id, it must not end in `.svelte`.
-const PROPS_EXT = '.docsmith-props';
-const PROPS_SUFFIX = '?props';
-
-// A cached result comes back as the same object; warn about it once, not once
-// per build (or once per props import and again for the llms index).
-const warned = new WeakSet<object>();
-
-/**
- * Extract one component's props from a plugin hook: watch the files they were
- * read from, so editing one re-runs the hook, and pass on the warnings.
- */
-async function extractProps(
-	extractor: SharedPropsExtractor,
-	file: string,
-	ctx: { addWatchFile(file: string): void; warn(message: string): void }
-): Promise<ExtractResult> {
-	const result = await extractor.get().extract(file);
-	for (const watched of result.watchFiles) ctx.addWatchFile(watched);
-	if (!warned.has(result)) for (const warning of result.warnings) ctx.warn(warning);
-	warned.add(result);
-	return result;
-}
-
-function propsPlugin(extractor: SharedPropsExtractor): Plugin {
-	return {
-		name: 'docsmith-props',
-		enforce: 'pre',
-
-		configResolved(config) {
-			extractor.configure(config.root);
-		},
-
-		async resolveId(id, importer) {
-			if (!id.endsWith('.svelte' + PROPS_SUFFIX)) return;
-			const base = id.slice(0, -PROPS_SUFFIX.length);
-			const resolved = await this.resolve(base, importer, { skipSelf: true });
-			if (resolved) return PROPS_PREFIX + resolved.id + PROPS_EXT;
-		},
-
-		async load(id) {
-			if (!id.startsWith(PROPS_PREFIX)) return;
-			const file = id.slice(PROPS_PREFIX.length, -PROPS_EXT.length);
-			const { props } = await extractProps(extractor, file, this);
-			return `export default ${JSON.stringify(props)};`;
 		}
 	};
 }

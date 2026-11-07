@@ -512,6 +512,18 @@ describe('agent markdown props tables', () => {
 		expect(host.warn).not.toHaveBeenCalled();
 	});
 
+	it('writes out a props table inside a LiveExample it keeps', async () => {
+		const host = literalHost({ props: { [libFile('button.svelte')]: extracted('Button') } });
+		const body = '<LiveExample>\n\t<PropsTable of={buttonProps} />\n</LiveExample>';
+		const pages = [
+			page('nested', 'title: Nested', propsPage({ buttonProps: 'button.svelte' }, body))
+		];
+
+		expect(await agentMarkdown(pages, host)).toEqual({
+			'/docs/nested': '# Nested\n\n<LiveExample>\n\t## `Button`\n\n\tNo props.\n</LiveExample>'
+		});
+	});
+
 	it('keeps a PropsTable whose props import does not resolve, and warns with the page and specifier', async () => {
 		const host = literalHost();
 		const pages = [
