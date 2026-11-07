@@ -5,12 +5,11 @@
 		resolveDocsPage,
 		type DocsContent,
 		type DocsContentItem,
-		type SearchDoc,
 		type ResolvedVersion
 	} from '#lib/core/index.js';
 	import { site } from 'svelte-docsmith/site';
 	import { createToc } from '#lib/toc/index.js';
-	import { createSearchSession } from '#lib/search/session.svelte.js';
+	import { createSearchSession, type SearchLoader } from '#lib/search/session.svelte.js';
 	import { setDocsPage } from '../docs-page-context.js';
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
@@ -73,7 +72,7 @@
 		 * Omit to hide search. The index is fetched only when search first opens.
 		 * Receives the active version id on a versioned site.
 		 */
-		search?: (versionId?: string) => Promise<SearchDoc[]>;
+		search?: SearchLoader;
 		/** Custom logo mark for the header and mobile menu. */
 		logo?: Snippet;
 		/** Extra header controls (desktop and mobile), before the theme toggle. */

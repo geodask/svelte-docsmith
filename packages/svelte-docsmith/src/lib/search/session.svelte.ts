@@ -8,6 +8,7 @@
  * suggests. That keeps them testable with a fake loader and no DOM.
  */
 import { getContext, setContext, untrack } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 import type { SearchDoc } from '#lib/core/content.js';
 import { scopeContent } from '#lib/core/version.js';
 import type { SearchEngine, SearchResult } from './create-search.js';
@@ -30,8 +31,8 @@ export type SearchSessionOptions = {
 	version?: () => string | undefined;
 };
 
-/** The engine for one version, over that version's records only. */
-type Index = { version: string | undefined; docs: SearchDoc[]; engine: SearchEngine };
+/** One version's records and the engine over them. */
+type VersionIndex = { docs: SearchDoc[]; engine: SearchEngine };
 
 /** How many starter pages the empty state offers. */
 const SUGGESTION_COUNT = 4;
@@ -43,7 +44,10 @@ export class SearchSession {
 	query = $state('');
 
 	#status = $state<SearchStatus>('idle');
-	#index = $state.raw<Index | null>(null);
+	// One index per version the reader has searched, so switching back to a
+	// version already built is instant. Keyed by version id (`undefined` on an
+	// unversioned site).
+	readonly #indexes = new SvelteMap<string | undefined, VersionIndex>();
 	// The load in flight, so a second request for the same version waits on it
 	// and a load that finishes after the reader switched versions is dropped.
 	#pending: { version: string | undefined } | null = null;
@@ -56,13 +60,13 @@ export class SearchSession {
 		this.#version = version;
 
 		// Build the index the first time the palette opens, keep it across opens,
-		// and rebuild it when the reader switches versions while it is open. Only
+		// and build the next version's when the reader switches while open. Only
 		// `open` and the version are tracked: reacting to `status` too would turn
 		// a failing loader into a retry loop.
 		$effect(() => {
 			if (!this.open) return;
 			const active = this.#version();
-			untrack(() => this.#ensure(active));
+			untrack(() => this.#loadIndexFor(active));
 		});
 	}
 
@@ -71,17 +75,20 @@ export class SearchSession {
 		return this.#status;
 	}
 
-	// The index, only while it is for the version being read: after a version
-	// switch the old one shows nothing rather than another version's pages.
-	readonly #current: Index | null = $derived.by(() =>
-		this.#index?.version === this.#version() ? this.#index : null
+	// The version being read's index, if built: until then nothing shows, never
+	// another version's pages.
+	readonly #current: VersionIndex | undefined = $derived.by(() =>
+		this.#indexes.get(this.#version())
 	);
+
+	/** The query without surrounding whitespace; empty means show starter pages. */
+	readonly trimmedQuery: string = $derived.by(() => this.query.trim());
 
 	/** Ranked results for the query, from the version being read. */
 	readonly results: SearchResult[] = $derived.by(() => {
 		const index = this.#current;
-		if (!index || !this.query.trim()) return [];
-		return index.engine.search(this.query);
+		if (!index || !this.trimmedQuery) return [];
+		return index.engine.search(this.trimmedQuery);
 	});
 
 	/**
@@ -113,10 +120,10 @@ export class SearchSession {
 		this.query = '';
 	}
 
-	async #ensure(version: string | undefined): Promise<void> {
-		if (this.#index && this.#index.version === version) {
-			// Back on the version already built (say, after switching away and
-			// back): abandon any other version's load and its loading or error state.
+	async #loadIndexFor(version: string | undefined): Promise<void> {
+		if (this.#indexes.has(version)) {
+			// Already built (say, after switching away and back): abandon any other
+			// version's load and its loading or error state.
 			this.#pending = null;
 			this.#status = 'idle';
 			return;
@@ -137,7 +144,7 @@ export class SearchSession {
 			// version, and a loader that returns every version still yields one
 			// version's index.
 			const scoped = scopeContent(docs, version);
-			this.#index = { version, docs: scoped, engine: createSearchEngine(scoped) };
+			this.#indexes.set(version, { docs: scoped, engine: createSearchEngine(scoped) });
 			this.#status = 'idle';
 		} catch (error) {
 			if (this.#pending !== request) return;
@@ -162,6 +169,6 @@ export function createSearchSession(options: SearchSessionOptions): SearchSessio
 }
 
 /** Read the search session, or `undefined` when search is not enabled. */
-export function useSearch(): SearchSession | undefined {
+export function useSearchSession(): SearchSession | undefined {
 	return getContext<SearchSession>(KEY);
 }

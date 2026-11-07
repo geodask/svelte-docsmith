@@ -1,10 +1,10 @@
 <script lang="ts">
 	import SearchIcon from '@lucide/svelte/icons/search';
-	import { useSearch } from '#lib/search/session.svelte.js';
+	import { useSearchSession } from '#lib/search/session.svelte.js';
 
 	const { class: className = '' }: { class?: string } = $props();
 
-	const search = useSearch();
+	const search = useSearchSession();
 
 	// Resolve the modifier label client-side so SSR stays platform-neutral.
 	// eslint-disable-next-line svelte/prefer-writable-derived

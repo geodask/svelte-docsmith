@@ -277,7 +277,16 @@ export function scopeContent<T extends { version?: string }>(
 	versionId: string | undefined
 ): T[] {
 	if (!versionId) return content;
-	return content.filter((item) => item.version === versionId);
+	return content.filter((item) => inVersion(item, versionId));
+}
+
+/**
+ * Whether a record belongs to the version being read. With no version id
+ * (unversioned site) every record does. The one rule behind `scopeContent` and
+ * the search engine's version filter.
+ */
+export function inVersion(item: { version?: string }, versionId: string | undefined): boolean {
+	return !versionId || item.version === versionId;
 }
 
 /**

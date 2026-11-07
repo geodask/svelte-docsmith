@@ -11,7 +11,7 @@
 	import { ScrollArea } from '#lib/components/shadcn/scroll-area/index.js';
 	import { Separator } from '#lib/components/shadcn/separator/index.js';
 	import * as Sheet from '#lib/components/shadcn/sheet/index.js';
-	import { useSearch } from '#lib/search/session.svelte.js';
+	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import { useDocsPage } from '../docs-page-context.js';
 	import GithubIcon from '#lib/components/icons/github.svelte';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
@@ -42,7 +42,7 @@
 		actions?: Snippet;
 	} = $props();
 
-	const search = useSearch();
+	const search = useSearchSession();
 	const docsPage = useDocsPage();
 
 	let isMenuOpen = $state(false);

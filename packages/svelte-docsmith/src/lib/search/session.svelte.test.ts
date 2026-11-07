@@ -215,6 +215,21 @@ describe('SearchSession version scoping', () => {
 		expect(paths(s.session.results)).toEqual(['/docs/v1/routing']);
 	});
 
+	it('keeps each version it built, so switching back does not reload', async () => {
+		const load = perVersion();
+		const s = setup(load, 'v2');
+		s.open();
+		await s.settled();
+		s.switchTo('v1');
+		await s.settled();
+
+		s.switchTo('v2');
+		expect(s.session.status).toBe('idle');
+		expect(load).toHaveBeenCalledTimes(2);
+		s.session.query = 'routing';
+		expect(paths(s.session.results)).toEqual(['/docs/routing']);
+	});
+
 	it('waits for the next open to load a version switched to while closed', async () => {
 		const load = perVersion();
 		const s = setup(load, 'v2');

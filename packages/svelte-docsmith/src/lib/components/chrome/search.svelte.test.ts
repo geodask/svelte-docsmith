@@ -29,9 +29,10 @@ const docs: SearchDoc[] = [
 
 const PLACEHOLDER = 'Search documentation...';
 
-// The dialog renders the shell's search session and owns the keys. What the
-// session shows (lazy loading, caching, version scope, starter pages) is
-// covered without a DOM in `search/session.svelte.test.ts`.
+// The dialog renders the shell's search session and owns the keys: ⌘K toggles
+// it and picking a result navigates. What the session shows (lazy loading,
+// caching, version scope, results, starter pages) is covered without a DOM in
+// `search/session.svelte.test.ts`.
 describe('Search palette', () => {
 	// Activating a result is a real <a href>; with no SvelteKit router in jsdom the
 	// anchor's default would log "Not implemented: navigation". The app navigates
@@ -83,26 +84,5 @@ describe('Search palette', () => {
 		await vi.waitFor(() =>
 			expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument()
 		);
-	});
-
-	it('reports when a query matches nothing', async () => {
-		render(Harness, { props: { load: () => Promise.resolve(docs) } });
-
-		await fireEvent.click(screen.getByTestId('open-search'));
-		const input = await screen.findByPlaceholderText(PLACEHOLDER);
-		await fireEvent.input(input, { target: { value: 'zzzznomatch' } });
-
-		expect(await screen.findByText(/no results/i)).toBeInTheDocument();
-	});
-
-	it('shows suggested starter pages while the query is empty', async () => {
-		render(Harness, { props: { load: () => Promise.resolve(docs) } });
-
-		await fireEvent.click(screen.getByTestId('open-search'));
-		await screen.findByPlaceholderText(PLACEHOLDER);
-
-		expect(await screen.findByText('Suggested')).toBeInTheDocument();
-		expect(screen.getByText('Introduction')).toBeInTheDocument();
-		expect(screen.getByText('Theming')).toBeInTheDocument();
 	});
 });
