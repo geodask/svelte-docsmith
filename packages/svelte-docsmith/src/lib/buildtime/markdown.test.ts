@@ -204,6 +204,38 @@ describe('markdown compiler with outside paths', () => {
 		expect(code).not.toContain('external');
 	});
 
+	it('never rewrites an <a> in a comment or a script or style body', async () => {
+		const code = await renderPage(
+			[
+				'<!-- <a href="/relative">commented</a> -->',
+				'',
+				'<div>',
+				'  <!-- <a href="/relative/x">commented too</a> -->',
+				'  <style>a[href="/relative"] { color: red; } /* <a href="/relative"> */</style>',
+				'</div>',
+				'',
+				'<div>',
+				'  <script>const tag = \'<a href="/relative/y">\';</script>',
+				'</div>'
+			].join('\n')
+		);
+		expect(code).not.toContain('external');
+	});
+
+	it('marks a raw <a> exactly when the broken-link check reads its href', async () => {
+		const code = await renderPage(
+			[
+				'<a href="/relative/{slug}">interpolated</a> <a href=/relative/{slug}>bare too</a>',
+				'',
+				'<a title="href=\'/relative\'">no href</a> <A HREF="/relative/u">loud</A>'
+			].join('\n')
+		);
+		expect(code).toContain('<a href="/relative/{slug}">interpolated</a>');
+		expect(code).toContain('<a href=/relative/{slug}>bare too</a>');
+		expect(code).toContain(`<a title="href='/relative'">no href</a>`);
+		expect(code).toContain('<A HREF="/relative/u" rel="external">loud</A>');
+	});
+
 	it('marks links before the author’s rehype plugins see them', async () => {
 		type Node = { tagName?: string; properties?: { rel?: unknown }; children?: Node[] };
 		const seen: unknown[] = [];

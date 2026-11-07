@@ -252,6 +252,15 @@ describe('brokenLinks', () => {
 		expect(brokenLinks([page('intro', body)], options)).toEqual([]);
 	});
 
+	it('checks a raw <a> with an unquoted href, as HTML allows, unless it interpolates', () => {
+		const body =
+			'<a href=/docs/bare>bare</a> <a href=/docs/{slug}>x</a> <a href=/docs/setup>ok</a>';
+
+		const found = brokenLinks([page('intro', body), page('setup')], options);
+
+		expect(found.map(({ line, link }) => `${line} ${link}`)).toEqual(['5 /docs/bare']);
+	});
+
 	it('resolves relative links against the page URL, and reports them as written', () => {
 		const body = [
 			'[sibling](./theming) [child-free](theming) [up](../intro) [gone](./nope)',
@@ -422,6 +431,29 @@ describe('brokenLinks: anchors', () => {
 		].join('\n');
 
 		expect(anchorsOf(page('target', target))).toMatchObject({ anchors: ['real'] });
+	});
+
+	it('ignores ids in HTML comments and script or style bodies, which never render', () => {
+		const target = page(
+			'target',
+			[
+				'<!-- <div id="commented"></div> -->',
+				'',
+				'<script>',
+				'  const tag = \'<div id="scripted">\';',
+				'</script>',
+				'',
+				'<div id="live"></div>'
+			].join('\n')
+		);
+		const body = '[a](/docs/target#commented) [b](/docs/target#scripted) [c](/docs/target#live)';
+
+		const found = brokenLinks([page('intro', body), target], options);
+
+		expect(found.map(({ link }) => link)).toEqual([
+			'/docs/target#commented',
+			'/docs/target#scripted'
+		]);
 	});
 
 	it('accepts a percent-encoded fragment, an empty one and #top', () => {

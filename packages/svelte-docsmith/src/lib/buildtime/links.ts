@@ -20,6 +20,7 @@ import { Marked, type Token, type Tokens } from 'marked';
 import { isOutsidePath } from '../core/outside-path.js';
 import { normalizePath, sitePathOf, under } from '../utils/url.js';
 import { splitFrontmatter } from './markdown-source.js';
+import { liveMarkup, rawLinks } from './raw-html.js';
 import { docsBaseFrom, relativeToCwd, urlFor } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
 import type { ResolvedLinksOptions } from './vite/options.js';
@@ -279,8 +280,8 @@ function writtenLinks(page: SourcePage): WrittenLink[] {
 					links.push({ href: (token as Tokens.Link).href, line: tokenLine });
 				}
 				if (token.type === 'html') {
-					for (const { href, offset } of anchorHrefs(token.raw)) {
-						links.push({ href, line: tokenLine + newlines(token.raw.slice(0, offset)) });
+					for (const { href, hrefAt } of rawLinks(token.raw)) {
+						links.push({ href, line: tokenLine + newlines(token.raw.slice(0, hrefAt)) });
 					}
 				}
 				return;
@@ -292,39 +293,6 @@ function writtenLinks(page: SourcePage): WrittenLink[] {
 	}
 
 	return links;
-}
-
-/**
- * Markup in raw HTML that never renders as a link: comments, and the bodies of
- * `<script>` and `<style>`, where `<a href>` can only be text in a string.
- */
-const NOT_MARKUP = /<!--[\s\S]*?-->|<(script|style)\b[\s\S]*?<\/\1\s*>/gi;
-
-/**
- * An `<a>` tag's `href="…"` or `href='…'`, captured whole in group 1 and its
- * value in group 2 or 3. Quoted values and Svelte `{…}` attributes are stepped
- * over whole, so neither an `href=` inside another attribute's value nor a `>`
- * inside an expression ends the search early. An `href={…}` never matches: it
- * is only known at runtime.
- */
-const ANCHOR_HREF =
-	/<a(?=[\s/>])(?:[^>"'{]|"[^"]*"|'[^']*'|\{[^}]*\})*?\s(href\s*=\s*(?:"([^"]*)"|'([^']*)'))/gi;
-
-/**
- * The `href` of every `<a>` in a piece of raw HTML a page writes, each with the
- * offset of its `href` attribute in `html`, so a tag spread over lines reports
- * the line its link is on. A quoted value that interpolates (`"/docs/{slug}"`)
- * is skipped like a bare expression: no build-time path to check.
- */
-function anchorHrefs(html: string): { href: string; offset: number }[] {
-	const markup = html.replace(NOT_MARKUP, (text) => text.replace(/[^\n]/g, ' '));
-	const found: { href: string; offset: number }[] = [];
-	for (const match of markup.matchAll(ANCHOR_HREF)) {
-		const href = (match[2] ?? match[3]).trim();
-		if (href.includes('{')) continue;
-		found.push({ href, offset: match.index + match[0].length - match[1].length });
-	}
-	return found;
 }
 
 /** A token's nested tokens, wherever its type keeps them. */
@@ -420,10 +388,11 @@ function decodeEntities(text: string): string {
 /**
  * The `id`s written on tags in a piece of HTML: quoted either way, or bare.
  * `id={...}` is a Svelte expression, unknown until the page runs, so it gives
- * no anchor. Script and style blocks are code, not tags, and are skipped.
+ * no anchor. Only live markup counts (see `liveMarkup`): a tag in a comment or
+ * in a script or style body never renders, so its `id` is no anchor.
  */
 function writtenIds(html: string): string[] {
-	const tags = html.replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, '');
+	const tags = liveMarkup(html);
 	const ids = tags.matchAll(/\sid\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`{}]+))/g);
 	return [...ids].map((match) => match[1] ?? match[2] ?? match[3]).filter(Boolean);
 }

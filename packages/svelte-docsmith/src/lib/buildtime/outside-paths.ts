@@ -15,6 +15,7 @@
 import path from 'node:path';
 import { isOutsidePath } from '../core/outside-path.js';
 import { sitePathOf } from '../utils/url.js';
+import { rawLinks } from './raw-html.js';
 import { relativeToCwd, urlFor } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
 import type { SourcePage } from './vite/pages.js';
@@ -120,27 +121,24 @@ function markElement(node: HastNode, isOutside: (href: string) => boolean) {
 }
 
 /**
- * An `<a>` opening tag: attributes may be quoted or a Svelte expression, either
- * of which may hold a `>`.
+ * `html` with `external` added to the `rel` of each `<a>` to an outside path:
+ * the raw links the broken-link check reads (see `rawLinks`), so a raw link is
+ * marked exactly when it is checked. A `rel={...}` is an expression this can't
+ * add to, and is left alone.
  */
-const A_TAG = /<a(\s(?:"[^"]*"|'[^']*'|\{[^}]*\}|[^>"'{])*)>/gi;
-const HREF = /(?:^|\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`{]+))/i;
-const REL = /(\s)rel\s*=\s*(?:"([^"]*)"|'([^']*)'|(\{[^}]*\})|([^\s"'=<>`{]+))/i;
-
-/** `html` with `external` added to the `rel` of each `<a>` to an outside path. */
 function markRaw(html: string, isOutside: (href: string) => boolean): string {
-	return html.replace(A_TAG, (tag, attributes: string) => {
-		const href = HREF.exec(attributes);
-		const value = href && (href[1] ?? href[2] ?? href[3]);
-		if (!value || !isOutside(value)) return tag;
-
-		const rel = REL.exec(attributes);
-		if (!rel) return `<a${attributes.trimEnd()} rel="external">`;
-		if (rel[4] !== undefined) return tag;
-		const existing = rel[2] ?? rel[3] ?? rel[5] ?? '';
-		if (existing.split(/\s+/).includes('external')) return tag;
-		const merged = `${rel[1]}rel="${`${existing} external`.trim()}"`;
-		// A function, so a `$` in the existing value is never read as a pattern.
-		return `<a${attributes.replace(rel[0], () => merged)}>`;
-	});
+	let marked = '';
+	let copied = 0;
+	for (const { href, rel, insertAt } of rawLinks(html)) {
+		if (!isOutside(href)) continue;
+		if (!rel) {
+			marked += html.slice(copied, insertAt) + ' rel="external"';
+			copied = insertAt;
+			continue;
+		}
+		if (rel.value === undefined || rel.value.split(/\s+/).includes('external')) continue;
+		marked += html.slice(copied, rel.start) + `rel="${`${rel.value} external`.trim()}"`;
+		copied = rel.end;
+	}
+	return marked + html.slice(copied);
 }
