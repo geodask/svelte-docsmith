@@ -3,6 +3,8 @@
 	import X from '@lucide/svelte/icons/x';
 	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 	import type { DocsmithAnnouncement } from '#lib/core/index.js';
+	import { siteLinkRel } from '#lib/core/outside-path.js';
+	import { outside } from 'svelte-docsmith/site';
 
 	const { announcement }: { announcement: DocsmithAnnouncement } = $props();
 
@@ -63,7 +65,7 @@
 				class="announcement-body announcement-link"
 				href={announcement.href}
 				target={announcement.external ? '_blank' : undefined}
-				rel={announcement.external ? 'noopener noreferrer' : undefined}
+				rel={siteLinkRel({ href: announcement.href, external: announcement.external }, outside)}
 			>
 				{#if announcement.tag}<span class="announcement-tag">{announcement.tag}</span>{/if}
 				<span class="announcement-text">{announcement.text}</span>

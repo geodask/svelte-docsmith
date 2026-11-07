@@ -4,7 +4,8 @@
  * `vite.config.ts` wires:
  *
  *  1. The **site config** served as the virtual module `svelte-docsmith/site`,
- *     which `DocsShell`, `ErrorPage` and the route handlers read themselves.
+ *     which `DocsShell`, `ErrorPage` and the route handlers read themselves,
+ *     with the outside paths its links are marked `rel="external"` under.
  *  2. The **markdown compiler**, run on every doc page before
  *     vite-plugin-svelte sees it (see `./markdown.js`).
  *  3. A **content index** served as the virtual module `svelte-docsmith/content`
@@ -24,8 +25,9 @@
  * The options themselves are resolved in `./options.js`. Reading the docs root
  * lives in `./pages.js` and building each index from what it read lives in
  * `./collect.js`; props are read through `../props/reader.js`, which owns the
- * shared extractor, file watching and warn-once. This file owns the Vite
- * plugins and is the only layer that reports to the console.
+ * shared extractor, file watching and warn-once. Broken-link reporting lives
+ * in `./broken-links.js`. This file owns the Vite plugins and, with that
+ * reporter, is the only layer that reports to the console.
  */
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
@@ -42,9 +44,17 @@ import { createPropsReader } from '../props/reader.js';
 import { docImportReads, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
 import { checkFrontmatter } from './frontmatter-schema.js';
 import { markdownPlugin } from './markdown.js';
+import { markdownExtensions } from '../markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
+import { brokenLinksReporter } from './broken-links.js';
+import { checkOutsidePaths } from '../outside-paths.js';
 
-export type { DocsmithOptions, DocsmithChangelogOptions } from './options.js';
+export type {
+	DocsmithOptions,
+	DocsmithChangelogOptions,
+	DocsmithLinksOptions,
+	BrokenLinksLevel
+} from './options.js';
 export type { DocsmithMarkdownOptions } from '../markdown.js';
 export type { DocsmithSite } from '../../core/config.js';
 
@@ -78,7 +88,7 @@ export function docsmith(options: DocsmithOptions): Plugin[] {
 	};
 	return [
 		contentIndexPlugin(resolved, docImports, options),
-		markdownPlugin(resolved.markdown, renderCodeBlock),
+		markdownPlugin(resolved.markdown, renderCodeBlock, resolved.links.outside, resolved.routesDir),
 		docImportsPlugin(docImports)
 	];
 }
@@ -120,11 +130,16 @@ function contentIndexPlugin(
 	docImports: DocImportDeps,
 	authored: DocsmithOptions
 ): Plugin {
-	const { contentDir, routesDir, versions, changelogFile } = options;
+	const { contentDir, routesDir, versions, changelogFile, links } = options;
 	const docsBase = docsBaseFrom(routesDir, contentDir);
 	const changelogRoute = options.changelogPath;
 	const changelogOverrides = path.join(routesDir, changelogRoute);
 	const indexOptions = { contentDir, routesDir, versions };
+	const brokenLinks = brokenLinksReporter({
+		indexOptions,
+		links,
+		markdownExtensions: markdownExtensions(options.markdown)
+	});
 
 	// One history walk, reused for the life of the plugin. A build loads this
 	// module once, so it is always fresh there; `dev` reloads it on every page
@@ -152,6 +167,10 @@ function contentIndexPlugin(
 		// written, so the CLI resolves the paths against its own directory.
 		api: { docsmith: authored },
 
+		configResolved(config) {
+			brokenLinks.configResolved(config.command);
+		},
+
 		resolveId(id) {
 			if (id === CONTENT_SPECIFIER) return VIRTUAL_CONTENT_ID;
 			if (id === SEARCH_SPECIFIER) return VIRTUAL_SEARCH_ID;
@@ -171,8 +190,12 @@ function contentIndexPlugin(
 
 			if (id === VIRTUAL_SITE_ID) {
 				// Checked as plain data when the options were resolved, so JSON is
-				// the whole of it.
-				return `export const site = ${JSON.stringify(options.site, null, 2)};\n`;
+				// the whole of it. The outside paths ride along, resolved, so the
+				// shell's site config links match them exactly as the compiler does.
+				return (
+					`export const site = ${JSON.stringify(options.site, null, 2)};\n` +
+					`export const outside = ${JSON.stringify(links.outside)};\n`
+				);
 			}
 			if (id === VIRTUAL_CONTENT_ID) {
 				// Before anything is read: a config that disagrees with the docs root
@@ -182,11 +205,16 @@ function contentIndexPlugin(
 				checkVersions(versions, discoverArchives(contentDir), ARCHIVE_MARKER);
 				const { pages, exists } = readSourcePages(contentDir);
 				watch(pages);
+				// A page under an outside path contradicts the config whether or not
+				// links are checked, so this runs under `broken: 'ignore'` too.
+				checkOutsidePaths(pages, indexOptions, links.outside);
 				// Checked here only: the docs layout always imports this index, so a
 				// bad page fails the build (or raises the dev overlay) once, not once
 				// per index.
 				const typos = await checkFrontmatter(pages, options.schema);
 				if (typos) console.warn(typos);
+				// Here for the same reason: once per build, with the pages already read.
+				brokenLinks.pagesRead(pages);
 				// Only this index has a date field, so only this one pays for git.
 				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
 				warnAboutDocsRoot(contentDir, exists, docs.length);
@@ -230,7 +258,9 @@ function contentIndexPlugin(
 
 		configureServer(server: ViteDevServer) {
 			server.watcher.add(contentDir);
+			brokenLinks.devStarted();
 			const onChange = (file: string) => {
+				brokenLinks.fileChanged(file);
 				if (!isPageFile(file)) return;
 				let invalidated = false;
 				for (const virtualId of [VIRTUAL_CONTENT_ID, VIRTUAL_SEARCH_ID, VIRTUAL_LLMS_ID]) {

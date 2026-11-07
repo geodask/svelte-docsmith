@@ -12,6 +12,8 @@ import { mdsvex, type MdsvexOptions } from 'mdsvex';
 import { fileURLToPath } from 'node:url';
 import rehypeSlug from 'rehype-slug';
 import { codeBlockMarkup, type RenderCodeBlock } from './code-block.js';
+import type { OutsidePaths } from '../core/outside-path.js';
+import { rehypeOutsidePaths } from './outside-paths.js';
 
 /** The `markdown` options of `docsmith()`: how doc pages are compiled. */
 export interface DocsmithMarkdownOptions {
@@ -32,7 +34,10 @@ export interface DocsmithMarkdownOptions {
 	layout?: string | false;
 	/** Extra remark plugins, appended after docsmith's own. */
 	remarkPlugins?: MdsvexOptions['remarkPlugins'];
-	/** Extra rehype plugins, appended after docsmith's own (slug, sectionize). */
+	/**
+	 * Extra rehype plugins, appended after docsmith's own (slug, sectionize, and
+	 * `rel="external"` on links to outside paths).
+	 */
 	rehypePlugins?: MdsvexOptions['rehypePlugins'];
 	/**
 	 * Number every code block by default. Per-fence `showLineNumbers` /
@@ -49,6 +54,15 @@ export interface DocsmithMarkdownOptions {
 	twoslash?: boolean;
 }
 
+/**
+ * The file extensions compiled as markdown: the author's, or `['.md']`. One
+ * default for every pass that has to agree on which files are doc pages: the
+ * compiler, the plugin that runs it, and the broken-link check's route list.
+ */
+export function markdownExtensions(options: DocsmithMarkdownOptions): string[] {
+	return options.extensions ?? ['.md'];
+}
+
 /** Compile one markdown file to Svelte markup, or `undefined` if it isn't one. */
 export type CompileMarkdown = (
 	content: string,
@@ -60,10 +74,16 @@ export type CompileMarkdown = (
  * passed in rather than built here so a site's fences and its `?source`
  * panels share one renderer, and with it one set of themes and one Shiki
  * highlighter.
+ *
+ * `outside` names the outside paths whose links compile with `rel="external"`,
+ * and `routesDir`, the absolute routes root, gives each page the URL its
+ * relative links resolve against. Without outside paths, no link is marked.
  */
 export function markdownCompiler(
 	options: DocsmithMarkdownOptions,
-	renderCodeBlock: RenderCodeBlock
+	renderCodeBlock: RenderCodeBlock,
+	outside: OutsidePaths = [],
+	routesDir = ''
 ): CompileMarkdown {
 	const layout =
 		options.layout === false
@@ -71,7 +91,7 @@ export function markdownCompiler(
 			: (options.layout ?? fileURLToPath(new URL('./markdown-layout.svelte', import.meta.url)));
 
 	const group = mdsvex({
-		extensions: options.extensions ?? ['.md'],
+		extensions: markdownExtensions(options),
 		layout,
 		highlight: {
 			// mdsvex passes the fence's trailing metadata as the third argument,
@@ -83,6 +103,7 @@ export function markdownCompiler(
 		rehypePlugins: [
 			rehypeSlug,
 			[rehypeSectionize, { idPropertyName: 'data-section-id' }],
+			rehypeOutsidePaths(outside, routesDir),
 			...(options.rehypePlugins ?? [])
 		] as MdsvexOptions['rehypePlugins']
 	});

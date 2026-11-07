@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { site } from 'svelte-docsmith/site';
+	import { outside, site } from 'svelte-docsmith/site';
+	import { siteLinkRel } from '#lib/core/outside-path.js';
 	import type { TocItem } from '#lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
@@ -90,7 +91,7 @@
 								<a
 									href={link.href}
 									target={link.external ? '_blank' : undefined}
-									rel={link.external ? 'noopener noreferrer' : undefined}
+									rel={siteLinkRel(link, outside)}
 									aria-current={link.active ? 'page' : undefined}
 									class={cn(
 										'hover:text-foreground rounded-md py-1.5 text-sm font-medium transition-colors',

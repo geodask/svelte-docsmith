@@ -10,7 +10,8 @@ const site: DocsmithSite = vi.hoisted(() => ({
 		{ label: 'Blog', href: '/blog' }
 	]
 }));
-vi.mock('svelte-docsmith/site', () => ({ site }));
+// `/relative` is an outside path: served by something other than this app.
+vi.mock('svelte-docsmith/site', () => ({ site, outside: ['/relative'] }));
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/docs/guide') } }));
 // The mobile menu's scroll area measures itself; jsdom has no ResizeObserver.
 vi.stubGlobal(
@@ -85,5 +86,39 @@ describe('DocsHeader and DocsMobileHeader', () => {
 
 		const menu = within(await openMobileMenu());
 		expect(menu.getByRole('navigation', { name: 'Documentation' })).toBeInTheDocument();
+	});
+
+	// Kit's crawler skips a `rel="external"` link and the client router does a
+	// full page load on it, so a header link to an outside path can't fail the
+	// build and reaches whatever serves it.
+	it('mark header links under an outside path rel="external", and only those', async () => {
+		const nav = [
+			{ label: 'API', href: '/relative/api' },
+			{ label: 'Relatives', href: '/relatives' },
+			{ label: 'Docs', href: '/docs/intro' },
+			{ label: 'Repo', href: 'https://github.com/o/r', external: true },
+			{ label: 'Proxied repo', href: '/relative/repo', external: true }
+		];
+		render(Harness, {
+			props: { view: resolveDocsPage({ ...input, site: { ...site, nav } }) }
+		});
+		const desktop = within(screen.getByRole('navigation', { name: 'Main' }));
+		const menu = within(await openMobileMenu());
+		const mobile = within(menu.getByRole('navigation', { name: 'Main' }));
+
+		for (const header of [desktop, mobile]) {
+			expect(header.getByRole('link', { name: 'API' })).toHaveAttribute('rel', 'external');
+			expect(header.getByRole('link', { name: 'Relatives' })).not.toHaveAttribute('rel');
+			expect(header.getByRole('link', { name: 'Docs' })).not.toHaveAttribute('rel');
+			expect(header.getByRole('link', { name: 'Repo' })).toHaveAttribute(
+				'rel',
+				'noopener noreferrer'
+			);
+			// `external: true` still opens a new tab; the outside path adds to it.
+			expect(header.getByRole('link', { name: 'Proxied repo' })).toHaveAttribute(
+				'rel',
+				'external noopener noreferrer'
+			);
+		}
 	});
 });

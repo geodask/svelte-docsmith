@@ -42,6 +42,29 @@ export function isPageFile(file: string): boolean {
 }
 
 /**
+ * Whether a filename is a route SvelteKit serves as a page: a `+page.svelte`,
+ * or a `+page` file in one of the extensions compiled as markdown. Wider than
+ * {@link isPageFile}: a `+page.svelte` is no doc page, so no index reads it,
+ * but a link to it is still a link to a page. A `+page.ts` or
+ * `+page.server.ts` alone renders nothing, so it doesn't count.
+ */
+export function isRouteFile(file: string, markdownExtensions: string[]): boolean {
+	const name = path.basename(file);
+	return (
+		isPageFile(name) ||
+		['.svelte', ...markdownExtensions].some((extension) => name === `+page${extension}`)
+	);
+}
+
+/**
+ * The absolute path of every page route under `contentDir`, doc pages and
+ * `+page.svelte` alike (see {@link isRouteFile}).
+ */
+export function listRouteFiles(contentDir: string, markdownExtensions: string[]): string[] {
+	return listFiles(contentDir, (name) => isRouteFile(name, markdownExtensions));
+}
+
+/**
  * Turn a page's path and raw markdown into a {@link SourcePage}. Pure, and
  * shared with tests so an in-memory page is built exactly the way a read one is.
  */
@@ -102,12 +125,17 @@ export function withCommitDates(pages: SourcePage[], dates: Map<string, string>)
  * List the absolute paths of every `+page.md`/`+page.svx` under `contentDir`.
  */
 export function listPageFiles(contentDir: string): string[] {
+	return listFiles(contentDir, isPageFile);
+}
+
+/** The absolute path of every file under `contentDir` whose name `wanted` accepts. */
+function listFiles(contentDir: string, wanted: (name: string) => boolean): string[] {
 	if (!fs.existsSync(contentDir)) return [];
 
 	const entries = fs.readdirSync(contentDir, { recursive: true, withFileTypes: true });
 	const files: string[] = [];
 	for (const entry of entries) {
-		if (!entry.isFile() || !isPageFile(entry.name)) continue;
+		if (!entry.isFile() || !wanted(entry.name)) continue;
 		const dir = entry.parentPath ?? (entry as { path?: string }).path ?? contentDir;
 		files.push(path.join(dir, entry.name));
 	}

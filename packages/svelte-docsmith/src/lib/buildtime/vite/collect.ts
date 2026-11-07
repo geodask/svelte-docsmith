@@ -7,12 +7,11 @@
  * and llms.txt show is decided in one place and can be checked without a docs
  * root on disk.
  */
-import path from 'node:path';
 import type { DocsContentItem, SearchDoc } from '#lib/core/content.js';
 import type { DocsVersions } from '#lib/core/version.js';
 import { sectionPath } from '#lib/core/reading-order.js';
 import { firstSegmentUnder } from '#lib/utils/url.js';
-import { docsBaseFrom, relativeToCwd, urlFor } from '../paths.js';
+import { docsBaseFrom, pageUrlFor, relativeToCwd } from '../paths.js';
 import { titleOf, type SourcePage } from './pages.js';
 import { extractSearchText, extractToc, readingMinutes } from './extract.js';
 import { customFields, readField } from './fields.js';
@@ -42,7 +41,7 @@ export function indexedPages(pages: SourcePage[], options: IndexOptions): Indexe
 	for (const page of pages) {
 		const title = titleOf(page);
 		if (title === undefined) continue;
-		const url = urlFor(options.routesDir, path.dirname(page.file));
+		const url = pageUrlFor(options.routesDir, page.file);
 		resolved.push({ ...page, url, title, version: versionOf(url) });
 	}
 

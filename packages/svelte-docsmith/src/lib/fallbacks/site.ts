@@ -10,6 +10,11 @@
  * beside components (`Callout`, `Tabs`, …) that work without the plugin. The
  * stand-in throws {@link missingPluginError} when it is read instead, which is
  * when a component that needs the config renders.
+ *
+ * `outside` is the resolved `links.outside` of `docsmith()`: the outside paths
+ * the shell marks its site config links `rel="external"` under. Without the
+ * plugin nothing is declared, so it is empty rather than a thrower, and a
+ * component that only reads it (`AnnouncementBar`) still renders.
  */
 import type { DocsmithSite } from '#lib/core/config.js';
 import { missingPluginError } from './missing-plugin.js';
@@ -21,3 +26,5 @@ export const site: DocsmithSite = new Proxy({} as DocsmithSite, {
 		throw missingPluginError('site');
 	}
 });
+
+export const outside: string[] = [];

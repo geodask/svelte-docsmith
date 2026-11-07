@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { compile } from 'svelte/compiler';
 import { describe, expect, it, vi } from 'vitest';
 import { codeBlockRenderer } from './code-block.js';
@@ -127,5 +128,146 @@ describe('markdown compiler', () => {
 		// anything, so the meta range is the only way to highlight one.
 		const code = await render('```svelte {2}\n<DocsShell\n\tsearch={loader}\n>\n</DocsShell>\n```');
 		expect(code).toContain('highlighted');
+	});
+});
+
+describe('markdown compiler with outside paths', () => {
+	const routesDir = path.resolve('/app/src/routes');
+	const intro = path.join(routesDir, 'docs', 'intro', '+page.md');
+
+	/** Compile `content` as the page at `/docs/intro`, with `/relative` as an outside path. */
+	async function renderPage(
+		content: string,
+		options: DocsmithMarkdownOptions = {},
+		filename = intro
+	): Promise<string> {
+		const renderer = codeBlockRenderer({});
+		const compile = markdownCompiler(
+			{ layout: false, ...options },
+			renderer,
+			['/relative'],
+			routesDir
+		);
+		const result = await compile(content, filename);
+		if (!result) throw new Error('compiler returned nothing');
+		return result.code;
+	}
+
+	it('marks a markdown link to an outside path rel="external"', async () => {
+		const code = await renderPage('See [the worker](/relative/x) and [this](/relative).');
+		expect(code).toContain('<a href="/relative/x" rel="external">');
+		expect(code).toContain('<a href="/relative" rel="external">');
+	});
+
+	it('marks a link with a query or fragment, and one written relative to the page', async () => {
+		// `/docs/intro` is the page's URL, so `../relative/y` is `/relative/y`.
+		const code = await renderPage('[a](/relative?x=1) [b](/relative#top) [c](../relative/y)');
+		expect(code).toContain('<a href="/relative?x=1" rel="external">');
+		expect(code).toContain('<a href="/relative#top" rel="external">');
+		expect(code).toContain('<a href="../relative/y" rel="external">');
+	});
+
+	it('marks a raw <a> inline in a paragraph, keeping its existing rel', async () => {
+		const code = await renderPage('Inline <a href="/relative" rel="noopener">raw</a> link.');
+		expect(code).toContain('<a href="/relative" rel="noopener external">raw</a>');
+	});
+
+	it('marks raw <a> in an HTML block, whatever its quotes', async () => {
+		const code = await renderPage(
+			[
+				'<div>',
+				'  <a class="x" href=\'/relative/y\'>single</a>',
+				'  <a href=/relative/z>bare</a>',
+				'</div>',
+				'',
+				'<a href="/relative/w">alone</a>'
+			].join('\n')
+		);
+		expect(code).toContain(`<a class="x" href='/relative/y' rel="external">single</a>`);
+		expect(code).toContain('<a href=/relative/z rel="external">bare</a>');
+		expect(code).toContain('<a href="/relative/w" rel="external">alone</a>');
+	});
+
+	it('adds external only once, to a link that already has it', async () => {
+		const code = await renderPage('<a rel="external" href="/relative">raw</a>');
+		expect(code).toContain('<a rel="external" href="/relative">raw</a>');
+	});
+
+	it('leaves links that are not under an outside path alone', async () => {
+		const code = await renderPage(
+			[
+				'[a](/relatives) [b](/docs/relative) [c](https://x.dev/relative) [d](//x.dev/relative)',
+				'',
+				'<a href="/relatives">e</a> <a href={"/relative"}>f</a>',
+				'',
+				'`<a href="/relative">g</a>`'
+			].join('\n')
+		);
+		expect(code).not.toContain('external');
+	});
+
+	it('never rewrites an <a> in a comment or a script or style body', async () => {
+		const code = await renderPage(
+			[
+				'<!-- <a href="/relative">commented</a> -->',
+				'',
+				'<div>',
+				'  <!-- <a href="/relative/x">commented too</a> -->',
+				'  <style>a[href="/relative"] { color: red; } /* <a href="/relative"> */</style>',
+				'</div>',
+				'',
+				'<div>',
+				'  <script>const tag = \'<a href="/relative/y">\';</script>',
+				'</div>'
+			].join('\n')
+		);
+		expect(code).not.toContain('external');
+	});
+
+	it('marks a raw <a> exactly when the broken-link check reads its href', async () => {
+		const code = await renderPage(
+			[
+				'<a href="/relative/{slug}">interpolated</a> <a href=/relative/{slug}>bare too</a>',
+				'',
+				'<a title="href=\'/relative\'">no href</a> <A HREF="/relative/u">loud</A>'
+			].join('\n')
+		);
+		expect(code).toContain('<a href="/relative/{slug}">interpolated</a>');
+		expect(code).toContain('<a href=/relative/{slug}>bare too</a>');
+		expect(code).toContain(`<a title="href='/relative'">no href</a>`);
+		expect(code).toContain('<A HREF="/relative/u" rel="external">loud</A>');
+	});
+
+	it('marks links before the author’s rehype plugins see them', async () => {
+		type Node = { tagName?: string; properties?: { rel?: unknown }; children?: Node[] };
+		const seen: unknown[] = [];
+		const visit = (node: Node) => {
+			if (node.tagName === 'a') seen.push(node.properties?.rel);
+			node.children?.forEach(visit);
+		};
+		const spy = () => (tree: object) => visit(tree as Node);
+		await renderPage('[a](/relative)', { rehypePlugins: [spy] });
+		expect(seen).toEqual([['external']]);
+	});
+
+	it('marks a relative link to an outside path without percent-encoding it', async () => {
+		// The broken-link check accepts this same link; see `links.test.ts`.
+		const compile = markdownCompiler(
+			{ layout: false },
+			codeBlockRenderer({}),
+			['/docs/café'],
+			routesDir
+		);
+		const result = await compile('[a](./café/x) <a href="./café">b</a> [c](./cafe)', intro);
+		// remark writes the markdown link's href encoded; the raw <a> keeps it as written.
+		expect(result?.code).toContain('<a href="./caf%C3%A9/x" rel="external">');
+		expect(result?.code).toContain('<a href="./café" rel="external">');
+		expect(result?.code).toContain('<a href="./cafe">');
+	});
+
+	it('leaves relative links alone in a markdown file outside the routes root', async () => {
+		// It has no URL of its own, so there is nothing to resolve them against.
+		const code = await renderPage('[a](../relative)', {}, path.resolve('/app/src/lib/notes.md'));
+		expect(code).not.toContain('external');
 	});
 });

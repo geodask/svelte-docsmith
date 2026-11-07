@@ -15,6 +15,16 @@ export function urlFor(routesDir: string, dir: string): string {
 }
 
 /**
+ * The URL SvelteKit serves the page route in `file` at: the URL of the
+ * directory holding it, so `<routes>/docs/intro/+page.md` is `/docs/intro`.
+ * Every pass that needs a page's URL from its file goes through here, so they
+ * all agree on it.
+ */
+export function pageUrlFor(routesDir: string, file: string): string {
+	return urlFor(routesDir, path.dirname(file));
+}
+
+/**
  * The docs URL base, e.g. `/docs`, from the content directory's location under
  * the routes directory. The same mapping a page's own directory goes through, so
  * a page at `<routes>/docs/intro/+page.md` is served at `/docs/intro` under a

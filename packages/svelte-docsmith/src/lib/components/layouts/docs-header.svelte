@@ -7,8 +7,9 @@
 	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
-	import { site } from 'svelte-docsmith/site';
+	import { outside, site } from 'svelte-docsmith/site';
 	import type { Snippet } from 'svelte';
+	import { siteLinkRel } from '#lib/core/outside-path.js';
 	import { cn } from '#lib/utils/cn.js';
 	import { useDocsPage } from '../docs-page-context.js';
 	import SiteMark from './site-mark.svelte';
@@ -57,7 +58,7 @@
 						<a
 							href={link.href}
 							target={link.external ? '_blank' : undefined}
-							rel={link.external ? 'noopener noreferrer' : undefined}
+							rel={siteLinkRel(link, outside)}
 							aria-current={link.active ? 'page' : undefined}
 							class={cn(
 								'hover:text-foreground rounded-md px-3 py-1.5 text-sm font-medium transition-colors',

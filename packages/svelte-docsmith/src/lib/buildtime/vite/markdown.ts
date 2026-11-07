@@ -11,7 +11,8 @@
  */
 import type { Plugin } from 'vite';
 import type { RenderCodeBlock } from '../code-block.js';
-import { markdownCompiler, type DocsmithMarkdownOptions } from '../markdown.js';
+import { markdownCompiler, markdownExtensions, type DocsmithMarkdownOptions } from '../markdown.js';
+import type { OutsidePaths } from '../../core/outside-path.js';
 
 /** Vite and vite-plugin-svelte query flags that mean "not the page itself". */
 const SKIP_QUERY = ['svelte', 'url', 'raw', 'direct', 'inline', 'worker', 'sharedworker'];
@@ -30,10 +31,12 @@ export function isMarkdownRequest(id: string, extensions: string[]): boolean {
 
 export function markdownPlugin(
 	options: DocsmithMarkdownOptions,
-	renderCodeBlock: RenderCodeBlock
+	renderCodeBlock: RenderCodeBlock,
+	outside: OutsidePaths = [],
+	routesDir = ''
 ): Plugin {
-	const extensions = options.extensions ?? ['.md'];
-	const compile = markdownCompiler(options, renderCodeBlock);
+	const extensions = markdownExtensions(options);
+	const compile = markdownCompiler(options, renderCodeBlock, outside, routesDir);
 
 	return {
 		name: 'docsmith-markdown',

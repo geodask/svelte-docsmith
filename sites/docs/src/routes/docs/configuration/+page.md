@@ -20,7 +20,7 @@ their own pages in the [Components](/docs/components/callout) section.
 - **`svelte-docsmith`**: every component, plus `createSearchEngine` and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
 - **`svelte-docsmith/server`**: ready route handlers for the files a site serves besides its pages: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown` (the `.md` page twins) and `mcpServer`. Each is one line in a `+server.ts` that reads your site config itself (see [SEO](/docs/seo), [Changelog](/docs/changelog) and [MCP server](/docs/mcp-server)). Server-only.
 - **`svelte-docsmith/vite`**: the `docsmith()` Vite plugin, the one place a site is configured. It compiles markdown pages, builds the content, search, llms and changelog indexes, and serves the `?source` and `?props` imports.
-- **`svelte-docsmith/site`**: your site config, the `site` options of `docsmith()`, exported as `site`. `DocsShell`, `ErrorPage` and the route handlers read it themselves; import it when a page of your own needs the title or links.
+- **`svelte-docsmith/site`**: your site config, the `site` options of `docsmith()`, exported as `site`, with the resolved [outside paths](/docs/links#outside-paths) as `outside`. `DocsShell`, `ErrorPage` and the route handlers read it themselves; import it when a page of your own needs the title or links.
 - **`svelte-docsmith/content`**: the generated sidebar index. Its `content` export (the pages as `docs` plus the version manifest as `versions`) is what `DocsShell` and `ErrorPage` take.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
 - **`svelte-docsmith/llms`**: the generated per-page agent markdown index, with props tables and example code written out, exported as `docs` (see [SEO](/docs/seo)).
@@ -100,6 +100,10 @@ editing them restarts the dev server.
 		<a href="https://standardschema.dev">Standard Schema</a>. The built-in fields are
 		checked with or without one. See
 		<a href="/docs/writing-pages#validating-frontmatter">Validating frontmatter</a>.
+	</Prop>
+	<Prop name="links" type="DocsmithLinksOptions">
+		How the links doc pages write are checked, and which paths something other than
+		this app serves. See <a href="#links">links</a> below.
 	</Prop>
 </PropsTable>
 
@@ -207,6 +211,35 @@ option has a working default.
 	</Prop>
 	<Prop name="rehypePlugins" type="PluggableList">
 		Extra rehype plugins, appended after DocSmith's own (slug, sectionize).
+	</Prop>
+</PropsTable>
+
+### links
+
+How the links your doc pages write are treated. `vite build` checks every link
+to a path under the docs base and, by default, fails on one with no page or
+anchor behind it. See [Links](/docs/links) for what counts as a broken link and
+a worked example of outside paths.
+
+```ts title="vite.config.ts"
+docsmith({
+	site: { title: 'My Library' },
+	links: { broken: 'warn', outside: ['/playground'] }
+});
+```
+
+<PropsTable title="links">
+	<Prop name="broken" type="'error' | 'warn' | 'ignore'" default="'error'">
+		What a broken link does to <code>vite build</code>: <code>'error'</code> prints
+		every one and fails, <code>'warn'</code> prints them and builds,
+		<code>'ignore'</code> skips the check. <code>vite dev</code> only ever warns.
+	</Prop>
+	<Prop name="outside" type="string[]" default="[]">
+		Outside paths: same-origin path prefixes that something other than this app
+		serves, like a Worker or a reverse proxy. Each starts with <code>/</code> and
+		matches whole segments. A link to one is never broken, and doc pages and the
+		shell's site config links mark it <code>rel="external"</code>. See
+		<a href="/docs/links#outside-paths">Outside paths</a>.
 	</Prop>
 </PropsTable>
 
@@ -338,8 +371,9 @@ Like `DocsShell`, it reads the site config itself, so the chrome matches.
 ## Types
 
 - **`DocsmithSite`**: the `site` options above, as `svelte-docsmith/site` serves them.
-- **`DocsmithOptions`** / **`DocsmithMarkdownOptions`** / **`DocsmithChangelogOptions`**:
-  the options of `docsmith()`, from `svelte-docsmith/vite`.
+- **`DocsmithOptions`** / **`DocsmithMarkdownOptions`** / **`DocsmithChangelogOptions`** /
+  **`DocsmithLinksOptions`** / **`BrokenLinksLevel`**: the options of `docsmith()`,
+  from `svelte-docsmith/vite`.
 - **`DocsContentItem`**: a content-index entry with `title`, `path`, and optional
   `section`, `order`, `description`, `toc`, and `data`.
 - **`DocsCustomFields`**: the type of `data`, a page's custom fields. Extend it

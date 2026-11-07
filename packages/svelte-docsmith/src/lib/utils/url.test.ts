@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { atBoundary, firstSegmentUnder, join, normalizePath, under } from './url.js';
+import { atBoundary, firstSegmentUnder, join, normalizePath, sitePathOf, under } from './url.js';
 
 describe('normalizePath', () => {
 	it('strips a trailing slash', () => {
@@ -113,5 +113,63 @@ describe('firstSegmentUnder', () => {
 	it('is undefined when the url is not under the base', () => {
 		expect(firstSegmentUnder('/docsmith/x', '/docs')).toBeUndefined();
 		expect(firstSegmentUnder('https://x.dev', '/')).toBeUndefined();
+	});
+});
+
+describe('sitePathOf', () => {
+	it('keeps a site-absolute href, without its query or fragment', () => {
+		expect(sitePathOf('/docs/intro', '/docs/setup')).toBe('/docs/intro');
+		expect(sitePathOf('/docs/intro?tab=x#top', '/docs/setup')).toBe('/docs/intro');
+		expect(sitePathOf('/docs/intro/', '/docs/setup')).toBe('/docs/intro/');
+	});
+
+	it('resolves a relative href against the page URL, as a browser does', () => {
+		// Pages are served without a trailing slash, so `./x` is a sibling.
+		expect(sitePathOf('./theming', '/docs/guide/setup')).toBe('/docs/guide/theming');
+		expect(sitePathOf('../intro', '/docs/guide/setup')).toBe('/docs/intro');
+		expect(sitePathOf('../../../../x', '/docs/guide/setup')).toBe('/x');
+		expect(sitePathOf('./', '/docs/guide/setup')).toBe('/docs/guide/');
+		expect(sitePathOf('./x?q=1#y', '/docs/intro')).toBe('/docs/x');
+		expect(sitePathOf('./x', '/')).toBe('/x');
+	});
+
+	it('resolves dot segments in a site-absolute href too', () => {
+		expect(sitePathOf('/docs/guide/../intro', '/')).toBe('/docs/intro');
+		expect(sitePathOf('/docs/./intro', '/')).toBe('/docs/intro');
+	});
+
+	it('reads a same-page fragment as the page itself', () => {
+		expect(sitePathOf('#versions', '/docs/intro')).toBe('/docs/intro');
+	});
+
+	it('never percent-encodes, so a path matches a directory named as written', () => {
+		expect(sitePathOf('./café/x', '/docs/intro')).toBe('/docs/café/x');
+		expect(sitePathOf('/docs/a b', '/')).toBe('/docs/a b');
+	});
+
+	it('decodes a percent-encoded segment, which names the same path to a browser', () => {
+		// remark writes a markdown link's href encoded, a raw <a> keeps it as written.
+		expect(sitePathOf('./caf%C3%A9/x', '/docs/intro')).toBe('/docs/café/x');
+		expect(sitePathOf('/docs/a%20b', '/')).toBe('/docs/a b');
+		// Never into a separator, and never failing on a stray `%`.
+		expect(sitePathOf('/docs/a%2Fb', '/')).toBe('/docs/a%2Fb');
+		expect(sitePathOf('/docs/100%', '/')).toBe('/docs/100%');
+	});
+
+	it('is undefined for another origin', () => {
+		expect(sitePathOf('https://x.dev/docs', '/docs/intro')).toBeUndefined();
+		expect(sitePathOf('mailto:a@x.dev', '/docs/intro')).toBeUndefined();
+		expect(sitePathOf('//x.dev/docs', '/docs/intro')).toBeUndefined();
+	});
+
+	it('is undefined for a form it does not resolve: a bare relative path or a query alone', () => {
+		expect(sitePathOf('theming', '/docs/intro')).toBeUndefined();
+		expect(sitePathOf('?tab=x', '/docs/intro')).toBeUndefined();
+	});
+
+	it('is undefined for a relative href or fragment with no page URL to resolve against', () => {
+		expect(sitePathOf('./x', undefined)).toBeUndefined();
+		expect(sitePathOf('#x', undefined)).toBeUndefined();
+		expect(sitePathOf('/docs/x', undefined)).toBe('/docs/x');
 	});
 });
