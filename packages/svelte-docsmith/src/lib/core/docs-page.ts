@@ -111,12 +111,14 @@ export type DocsPageView = {
 	archivedBanner: ArchivedBanner | undefined;
 	/**
 	 * `site.nav` in order, each marked active or not. Both headers render this
-	 * one list, so they can't disagree about which section is current.
+	 * one list, so they can't disagree about which section is current. Two
+	 * links may share an `href`, so render it keyed by position.
 	 */
 	headerLinks: HeaderLink[];
 	/**
 	 * "Open an issue" target for the feedback widget, prefilled with the page
-	 * title and path. Absent without `site.github`, or off a doc page.
+	 * title and path. Absent off a doc page, and without a `site.github` that
+	 * names a repository (an account URL has no issues to open).
 	 */
 	issueHref: string | undefined;
 	/**
@@ -212,7 +214,7 @@ export function resolveDocsPage(input: {
 			...link,
 			active: isActiveLink(link, pathname)
 		})),
-		issueHref: site.github && entry ? feedbackIssueHref(site.github, title, pathname) : undefined,
+		issueHref: entry ? feedbackIssueHref(site.github, entry.title, pathname) : undefined,
 		canonicalUrl: site.url ? join(site.url, pathname) : undefined
 	};
 }
@@ -237,11 +239,30 @@ function isActiveLink(link: DocsmithLink, pathname: string): boolean {
 	return under(pathname, '/' + segment);
 }
 
-/** A new GitHub issue on `repo`, prefilled to say which page the feedback is about. */
-function feedbackIssueHref(repo: string, title: string, pathname: string): string {
+/**
+ * A new GitHub issue on the repository `github` points into, prefilled to say
+ * which page the feedback is about. `github` is only documented as "a GitHub
+ * URL", so it may carry a trailing slash, a `.git`, a subpath (`/tree/main`),
+ * a query or a hash; only its owner and repository segments are kept. Without
+ * both (an account URL, or not a URL at all) there is no issue to open.
+ */
+function feedbackIssueHref(
+	github: string | undefined,
+	title: string,
+	pathname: string
+): string | undefined {
+	if (!github) return undefined;
+	let url: URL;
+	try {
+		url = new URL(github);
+	} catch {
+		return undefined;
+	}
+	const [owner, repo] = url.pathname.split('/').filter(Boolean);
+	if (!owner || !repo) return undefined;
 	const issueTitle = encodeURIComponent(`Feedback: ${title}`);
 	const body = encodeURIComponent(`Page: ${pathname}\n\n<!-- What was unclear or missing? -->\n`);
-	return `${join(repo, 'issues/new')}?title=${issueTitle}&body=${body}`;
+	return `${url.origin}/${owner}/${repo.replace(/\.git$/, '')}/issues/new?title=${issueTitle}&body=${body}`;
 }
 
 /**

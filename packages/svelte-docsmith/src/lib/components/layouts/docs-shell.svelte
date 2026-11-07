@@ -171,13 +171,7 @@
 	const tocItems = $derived(toc.items.length ? toc.items : view.toc);
 </script>
 
-<SeoHead
-	config={site}
-	title={seo?.title ?? view.entry?.title}
-	description={seo?.description ?? view.entry?.description}
-	canonical={view.canonicalUrl}
-	noindex={view.activeVersion?.noindex}
-/>
+<SeoHead title={seo?.title} description={seo?.description} />
 
 <div class="relative isolate flex min-h-screen flex-col">
 	<!-- Keyboard skip link: first focusable element, visible only on focus. -->
@@ -299,6 +293,6 @@
 	{#if footer}
 		{@render footer()}
 	{:else if site.footer}
-		<DocsFooter config={site} />
+		<DocsFooter />
 	{/if}
 </div>
