@@ -18,6 +18,8 @@ export default defineConfig({
 	},
 	plugins: [
 		docsmith({
+			// The default preset, named anyway so the docs show where a theme is chosen.
+			theme: 'darkmatter',
 			// One config for the whole site: the docs shell, the landing page, the
 			// themes page and the route handlers all read it, so the header and
 			// footer stay identical everywhere.

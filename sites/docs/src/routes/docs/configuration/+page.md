@@ -27,7 +27,7 @@ their own pages in the [Components](/docs/components/callout) section.
 - **`svelte-docsmith/changelog`**: the generated release index, exported as `releases`, with the route it is served at as `changelogPath` (see [Changelog](/docs/changelog)).
 - **`svelte-docsmith/mermaid`**: the diagram component, imported for you by a ` ```mermaid ` fence. You never import it directly.
 - **`svelte-docsmith/theme.css`**: the base style contract.
-- **`svelte-docsmith/themes/*.css`**: the pre-installed theme presets (see [Theming](/docs/theming)).
+- **`svelte-docsmith/themes/*.css`**: the presets as theme files. Choose one with `theme` rather than importing it (see [Theming](/docs/theming)).
 
 ## docsmith()
 
@@ -76,9 +76,17 @@ editing them restarts the dev server.
 		The current version and the archived ones. See <a href="/docs/versioning">Versioning</a>.
 		Experimental.
 	</Prop>
-	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
-		Shiki themes for every code block: markdown fences and the source panels of
-		<a href="/docs/live-examples">Live Examples</a> alike.
+	<Prop name="theme" type="string" default="'darkmatter'">
+		The site's theme: a preset name (<code>'ocean'</code>) or a path to a theme file
+		(<code>'./src/theme.css'</code>), relative to the Vite root. See
+		<a href="/docs/theming">Theming</a>.
+	</Prop>
+	<Prop name="codeTheme" type={'{ light: string; dark: string }'}>
+		An exact pair of Shiki themes, one per colour mode, for every code block:
+		markdown fences and the source panels of
+		<a href="/docs/live-examples">Live Examples</a> alike. Leave it out and code
+		blocks follow the theme. Replaces <code>themes</code>, which still works until the
+		next minor.
 	</Prop>
 	<Prop name="markdown" type="DocsmithMarkdownOptions">
 		How markdown pages are compiled. See <a href="#markdown">markdown</a> below.
@@ -313,12 +321,13 @@ It reads the site config from `svelte-docsmith/site` itself.
 	</Prop>
 </PropsTable>
 
-<Callout variant="note" title="Theming needs no setup">
+<Callout variant="note" title="Colour mode needs no setup">
 
-`ThemeProvider` and `ThemeToggle` handle light and dark with no consumer wiring.
+`ModeProvider` and `ModeToggle` handle light and dark with no consumer wiring.
 `DocsShell` mounts the provider internally, so you never touch `mode-watcher`
-yourself. Use `ThemeProvider` directly to wrap a page you build outside
-`DocsShell`.
+yourself. Use `ModeProvider` directly to wrap a page you build outside
+`DocsShell`. (They were called `ThemeProvider` and `ThemeToggle`; the old names
+still work until the next minor.)
 
 </Callout>
 

@@ -47,7 +47,7 @@ chrome and navigation keep up.
 - **Markdown as routes.** `.md` files compile to real Svelte components via
   mdsvex. No loader, no catch-all route.
 - **Syntax highlighting.** Shiki runs at build time on the HAST tree, with a
-  generous language set and dual light/dark themes.
+  generous language set, coloured by your theme in light and dark.
 - **Nav derives itself.** The sidebar is built from each page's frontmatter,
   never hand-written.
 - **The whole chrome.** Header, collapsible sidebar, mobile nav, in-page table
