@@ -2,6 +2,7 @@
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import type { ExtractedProp, ExtractedProps } from '../../core/extracted-props.js';
 	import { controlledProps, usageLine, type PlaygroundValues } from '../../core/playground.js';
+	import { plainDescription } from '../../core/props-reference.js';
 	import { useClipboard } from '#lib/utils/clipboard.svelte.js';
 	import { Button } from '../shadcn/button/index.js';
 	import CopyButton from '../chrome/copy-button.svelte';
@@ -33,18 +34,6 @@
 	 */
 	const unsettable = (prop: ExtractedProp) => prop.literalDefault === undefined;
 
-	const ENTITIES: Record<string, string> = {
-		'&amp;': '&',
-		'&lt;': '<',
-		'&gt;': '>',
-		'&quot;': '"',
-		'&#39;': "'"
-	};
-
-	/** The JSDoc description, rendered to HTML at build time, as plain text for a tooltip. */
-	const descriptionText = (html: string | undefined) =>
-		html?.replace(/<[^>]+>/g, '').replace(/&(?:amp|lt|gt|quot|#39);/g, (e) => ENTITIES[e]);
-
 	const setValue = (name: string, value: unknown) => {
 		values[name] = value;
 	};
@@ -63,7 +52,7 @@
 		{#each controlled as prop (prop.name)}
 			{@const control = prop.control!}
 			{@const value = values[prop.name]}
-			<code class="control-name" title={descriptionText(prop.description)}>{prop.name}</code>
+			<code class="control-name" title={plainDescription(prop.description)}>{prop.name}</code>
 			<div class="control-input">
 				{#if control.kind === 'boolean'}
 					<button
