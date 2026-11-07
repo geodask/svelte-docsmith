@@ -21,7 +21,7 @@
 	} = $props();
 
 	const reference = $derived(of && propsReference(of, title));
-	const caption = $derived(reference?.caption ?? title);
+	const caption = $derived(reference ? reference.caption : title);
 </script>
 
 <!--

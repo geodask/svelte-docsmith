@@ -79,13 +79,12 @@ const ENTITIES: Record<string, string> = {
 	'&quot;': '"',
 	'&#39;': "'"
 };
+const ENTITY = new RegExp(Object.keys(ENTITIES).join('|'), 'g');
 
 /**
  * A description from the page's props import (inline HTML rendered at build
  * time) as plain text, for places that take no markup, like a tooltip.
  */
 export function plainDescription(html: string | undefined): string | undefined {
-	return html
-		?.replace(/<[^>]+>/g, '')
-		.replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => ENTITIES[entity]);
+	return html?.replace(/<[^>]+>/g, '').replace(ENTITY, (entity) => ENTITIES[entity]);
 }
