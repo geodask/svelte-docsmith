@@ -1,5 +1,23 @@
 # svelte-docsmith
 
+## 0.20.3
+
+### Patch Changes
+
+- 3d121dc: Resolve the page chrome once for both headers. The header links and which one is current, the archived-version banner, the feedback issue link and the canonical URL now come from the same resolved page view as the sidebar and breadcrumbs, and the desktop and mobile headers both read it. This fixes two places where the mobile header disagreed with the desktop one: its menu now marks the current section's link with `aria-current="page"`, and it shows `site.logo` instead of always falling back to the book icon. The feedback issue link also no longer doubles the slash when `site.github` ends in one.
+- 5629ee2: Harden the page chrome. Two `site.nav` links, or two footer links or columns, that share an `href` or a title no longer crash the header or footer render. The feedback widget's "open an issue" link now keeps only the owner and repository of `site.github`, so a URL with `.git`, a subpath like `/tree/main`, a query or a hash still opens the issue form; an account or org URL, a `git+https:` URL or a value that isn't a URL shows no issue link instead of a broken one. The head tags and the footer now read the site config and the resolved page directly, like the headers, and `site.logo` takes the same classes as the built-in mark.
+- 20b62c4: Move the props playground's state into one module, separate from `LiveExample` and its controls. No API change; `controls` and `args` work as before. These behavior changes come with it:
+
+  - The usage line lists props in the order the component declares them, instead of the order they were first set.
+  - A number control treats `Infinity` (say, `1e999` typed in) as unset, like any other value that isn't a finite number.
+  - Swapping the props import passed to `controls` now starts a fresh playground for it, instead of keeping the previous component's values.
+
+- b26a920: Share the props table rules between the page and agent markdown. One props reference module decides what a generated props table says (the caption, each prop row with its deprecation note and description, the inherited attributes notes and the "No props." case), and `<PropsTable of={…}>` and the agent markdown writer only render it, so the two can no longer drift. The playground's control tooltips take their plain-text description from the same module. No change to what pages, `llms-full.txt`, the `.md` twins or the MCP server serve.
+- 3f7e54c: Fix three small props table quirks. A `@deprecated` tag with more than one paragraph now reads "Deprecated: …" as one sentence on the page, as it already did in agent markdown, instead of a bare "Deprecated:" above the paragraphs. A props playground control's tooltip keeps line breaks where the description has a `<br>`, a new paragraph or a list item, instead of running the words together. It also decodes numeric character references (`&#8212;`, `&#x2014;`) and common named ones (`&nbsp;`, `&mdash;`) instead of showing them literally.
+- 373cb06: - Fixing a broken `tsconfig.json` now brings props tables' types back in `vite dev`. Before, a props table read while TypeScript couldn't be set up kept showing names only until its component file changed or the server restarted.
+  - `archive-version` now escapes quotes in the `versions` block it prints, so a label like `Bob's 1.x` pastes as valid code.
+  - The frontmatter typo warning no longer reads a built-in key with one letter in front as a typo (`border` is not `order`), and it skips any custom key your `schema` declares.
+
 ## 0.20.2
 
 ### Patch Changes

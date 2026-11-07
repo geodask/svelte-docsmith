@@ -1,5 +1,13 @@
 # create-svelte-docsmith
 
+## 0.5.1
+
+### Patch Changes
+
+- 373cb06: - The landing page of a new project shows the site title again. It was left as an unfilled `{{ SITE_TITLE }}` placeholder, and now reads the title from `site` in `vite.config.ts`.
+  - A site title with a quote, such as `Bob's Docs`, no longer breaks `vite.config.ts`.
+- cc992d1: The theme prompt's preset list is now generated from the library's preset CSS instead of written by hand, so it can't fall out of step with the presets the library ships. Rosé is now spelled as the library names it.
+
 ## 0.5.0
 
 ### Minor Changes
