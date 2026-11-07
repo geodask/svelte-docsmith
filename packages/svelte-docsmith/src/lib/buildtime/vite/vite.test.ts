@@ -668,3 +668,186 @@ describe('docsmith() markdown pages', () => {
 		expect(warn).not.toHaveBeenCalled();
 	});
 });
+
+// --- broken links -----------------------------------------------------------
+//
+// Which links are broken is tested against literal pages in `../links.test.ts`.
+// These prove how the plugin reports them: once per build, failing it under
+// `error`, and as a dev warning that follows the pages as they change.
+
+/** The content plugin pointed at the fixture root, told whether it is building or serving. */
+function contentPlugin(
+	command: 'build' | 'serve',
+	options: Omit<TestOptions, 'content' | 'routes'> = {}
+) {
+	const plugin = pluginNamed('docsmith-content', {
+		content: path.join(routesDir, 'docs'),
+		routes: routesDir,
+		...options
+	});
+	(plugin.configResolved as unknown as (config: { command: string }) => void)({ command });
+	const load = () =>
+		(plugin.load as unknown as Load).call(
+			{ addWatchFile: vi.fn() },
+			'\0svelte-docsmith:content'
+		) as Promise<string>;
+	const configureServer = (server: ReturnType<typeof fakeServer>) =>
+		(plugin.configureServer as unknown as (s: typeof server) => void).call({}, server);
+	return { load, configureServer };
+}
+
+/** A dev server double that keeps the watcher's handlers, so a test can fire them. */
+function fakeServer() {
+	const handlers: Record<string, (file: string) => void> = {};
+	return {
+		handlers,
+		watcher: {
+			add: vi.fn(),
+			on: vi.fn((event: string, cb: (file: string) => void) => (handlers[event] = cb))
+		},
+		moduleGraph: { getModuleById: vi.fn(() => undefined), invalidateModule: vi.fn() },
+		ws: { send: vi.fn() }
+	};
+}
+
+const REPORT_LINE = /intro\/\+page\.md:5 {2}\/docs\/theeming {2}no page at \/docs\/theeming/;
+
+describe('docsmith() broken links', () => {
+	it('fails `vite build` after printing every broken link, by default', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'See [theming](/docs/theeming).');
+		writePage('docs/setup', 'title: Setup', '[a](/docs/intro) [b](/docs/nope)');
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(contentPlugin('build').load()).rejects.toThrow(
+			/2 broken links.*links: \{ broken: 'warn' \}/s
+		);
+
+		// One report with every link in it, sorted by page file.
+		expect(error).toHaveBeenCalledTimes(1);
+		const report = String(error.mock.calls[0][0]);
+		expect(report).toMatch(/^\[svelte-docsmith\] 2 broken links in doc pages\n/);
+		expect(report).toMatch(REPORT_LINE);
+		expect(report).toMatch(/setup\/\+page\.md:5 {2}\/docs\/nope {2}no page at \/docs\/nope/);
+		expect(report.indexOf('intro/+page.md')).toBeLessThan(report.indexOf('setup/+page.md'));
+		error.mockRestore();
+	});
+
+	it('prints the report and builds under `warn`', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'See [theming](/docs/theeming).');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const out = await contentPlugin('build', { links: { broken: 'warn' } }).load();
+
+		expect(out).toContain('"path": "/docs/intro"');
+		expect(warn).toHaveBeenCalledWith(expect.stringMatching(REPORT_LINE));
+		warn.mockRestore();
+	});
+
+	it('skips the check under `ignore`', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'See [theming](/docs/theeming).');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await contentPlugin('build', { links: { broken: 'ignore' } }).load();
+
+		expect(warn).not.toHaveBeenCalled();
+		expect(error).not.toHaveBeenCalled();
+		warn.mockRestore();
+		error.mockRestore();
+	});
+
+	it('builds quietly when no link is broken', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'See [setup](/docs/setup).');
+		writePage('docs/setup', 'title: Setup');
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await contentPlugin('build').load();
+
+		expect(error).not.toHaveBeenCalled();
+		error.mockRestore();
+	});
+
+	it('warns in dev at startup and as pages change, never throwing or repeating itself', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'See [theming](/docs/theeming).');
+		const intro = path.join(routesDir, 'docs', 'intro', '+page.md');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+		const dev = contentPlugin('serve');
+		const server = fakeServer();
+
+		dev.configureServer(server);
+		expect(warn).toHaveBeenCalledTimes(1);
+		expect(warn).toHaveBeenLastCalledWith(expect.stringMatching(REPORT_LINE));
+
+		// Serving the index never throws, even under the default `error`.
+		await expect(dev.load()).resolves.toContain('"path": "/docs/intro"');
+
+		// A save that leaves the same links broken says nothing new, even when
+		// the link moved down a line.
+		writePage('docs/intro', 'title: Intro', 'Intro.\nSee [theming](/docs/theeming).');
+		server.handlers.change(intro);
+		expect(warn).toHaveBeenCalledTimes(1);
+
+		// A new broken link warns again, with the whole set.
+		writePage('docs/intro', 'title: Intro', 'See [theming](/docs/theeming) and [x](/docs/x).');
+		server.handlers.change(intro);
+		expect(warn).toHaveBeenCalledTimes(2);
+		expect(warn).toHaveBeenLastCalledWith(expect.stringContaining('2 broken links'));
+
+		// Adding the pages they point at fixes them, and says so once.
+		writePage('docs/theeming', 'title: Theeming');
+		writePage('docs/x', 'title: X');
+		server.handlers.add(path.join(routesDir, 'docs', 'x', '+page.md'));
+		expect(warn).toHaveBeenCalledTimes(2);
+		expect(info).toHaveBeenCalledTimes(1);
+		expect(info).toHaveBeenCalledWith(expect.stringContaining('no broken links left'));
+
+		// Removing one breaks its link again.
+		fs.rmSync(path.join(routesDir, 'docs', 'x'), { recursive: true });
+		server.handlers.unlink(path.join(routesDir, 'docs', 'x', '+page.md'));
+		expect(warn).toHaveBeenCalledTimes(3);
+		expect(warn).toHaveBeenLastCalledWith(expect.stringContaining('/docs/x'));
+
+		warn.mockRestore();
+		info.mockRestore();
+	});
+
+	it('keeps the dev server up while a page has half-typed frontmatter', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: "unterminated');
+		const dev = contentPlugin('serve');
+		const server = fakeServer();
+
+		expect(() => dev.configureServer(server)).not.toThrow();
+		expect(() =>
+			server.handlers.change(path.join(routesDir, 'docs', 'intro', '+page.md'))
+		).not.toThrow();
+	});
+
+	it('stays quiet in dev under `ignore`', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'See [theming](/docs/theeming).');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		contentPlugin('serve', { links: { broken: 'ignore' } }).configureServer(fakeServer());
+
+		expect(warn).not.toHaveBeenCalled();
+		warn.mockRestore();
+	});
+
+	it('fails at startup on a `broken` value it does not know, naming the ones it does', () => {
+		expect(() =>
+			// @ts-expect-error — exercising the runtime guard for untyped callers
+			docsmith({ site: SITE, links: { broken: 'erorr' } })
+		).toThrow(/links\.broken must be 'error', 'warn' or 'ignore', got "erorr"/);
+		expect(() =>
+			// @ts-expect-error — exercising the runtime guard for untyped callers
+			docsmith({ site: SITE, links: 'warn' })
+		).toThrow(/docsmith\(\{ links \}\) takes an object/);
+	});
+});

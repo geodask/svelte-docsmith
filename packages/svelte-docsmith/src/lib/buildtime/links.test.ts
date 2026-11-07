@@ -176,10 +176,7 @@ describe('brokenLinks', () => {
 	});
 
 	it('sorts what it finds by page file, then line', () => {
-		const pages = [
-			page('b', '[x](/docs/b2)\n\n[x](/docs/b1)'),
-			page('a', '[x](/docs/a1)')
-		];
+		const pages = [page('b', '[x](/docs/b2)\n\n[x](/docs/b1)'), page('a', '[x](/docs/a1)')];
 
 		const found = brokenLinks(pages, options);
 

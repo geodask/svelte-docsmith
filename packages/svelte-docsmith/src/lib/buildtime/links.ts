@@ -11,12 +11,14 @@
  *  1. {@link writtenLinks} reads the links a page writes, with their lines.
  *  2. {@link targetOf} decides which of them point at a path on this site.
  *  3. {@link problemWith} checks that path against the {@link Site}.
+ *
+ * {@link brokenLinksReport} words the result; printing it is the plugin's job.
  */
 import path from 'node:path';
 import { Marked, type Token, type Tokens } from 'marked';
 import { under } from '../utils/url.js';
 import { splitFrontmatter } from './markdown-source.js';
-import { docsBaseFrom, urlFor } from './paths.js';
+import { docsBaseFrom, relativeToCwd, urlFor } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
 import type { SourcePage } from './vite/pages.js';
 
@@ -84,6 +86,25 @@ export function brokenLinks(pages: SourcePage[], options: IndexOptions): BrokenL
 	}
 
 	return broken.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
+}
+
+/**
+ * The report of `broken`, as the plugin prints it: a count, then one line per
+ * link, `file:line  <link as written>  <what is wrong>`, in the order given
+ * ({@link brokenLinks} sorts by page file). Files are relative to the working
+ * directory, the path an author would type to open them.
+ */
+export function brokenLinksReport(broken: BrokenLink[]): string {
+	const count = broken.length === 1 ? '1 broken link' : `${broken.length} broken links`;
+	const lines = broken.map(
+		({ file, line, link, problem }) =>
+			`  ${relativeToCwd(file)}:${line}  ${link}  ${describeProblem(problem)}`
+	);
+	return [`[svelte-docsmith] ${count} in doc pages`, ...lines].join('\n');
+}
+
+function describeProblem(problem: LinkProblem): string {
+	return `no page at ${problem.path}`;
 }
 
 /**

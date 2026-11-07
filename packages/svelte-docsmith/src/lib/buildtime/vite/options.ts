@@ -25,6 +25,35 @@ export interface DocsmithChangelogOptions {
 	path?: string;
 }
 
+/**
+ * What a broken link does to the build: `'error'` prints every broken link and
+ * fails `vite build`, `'warn'` prints them and builds, `'ignore'` skips the
+ * check. `vite dev` only ever warns.
+ */
+export type BrokenLinksLevel = 'error' | 'warn' | 'ignore';
+
+const BROKEN_LINKS_LEVELS: readonly BrokenLinksLevel[] = ['error', 'warn', 'ignore'];
+
+/** How DocSmith treats the links doc pages write. */
+export interface DocsmithLinksOptions {
+	/**
+	 * What a broken link does: a link from a doc page to a path under the docs
+	 * base that is no page of the site. Default: `'error'`, so a typo'd link
+	 * never ships.
+	 */
+	broken?: BrokenLinksLevel;
+}
+
+/** The links options with every default applied. */
+export interface ResolvedLinksOptions {
+	broken: BrokenLinksLevel;
+	/**
+	 * Outside paths: same-origin path prefixes that something other than this
+	 * SvelteKit app serves. Empty unless declared.
+	 */
+	outside: string[];
+}
+
 export interface DocsmithOptions {
 	/**
 	 * The site config: title, links, SEO defaults and the rest of what
@@ -79,6 +108,12 @@ export interface DocsmithOptions {
 	 * content entry's `data` as written, so leave transforms and defaults out.
 	 */
 	schema?: StandardSchemaV1;
+	/**
+	 * How doc pages' links are checked. Which paths the site serves is a fact
+	 * about the site rather than about compiling markdown, so it sits here
+	 * beside `content` and `routes`, not under `markdown`.
+	 */
+	links?: DocsmithLinksOptions;
 }
 
 /** The options with every default applied and every path made absolute. */
@@ -95,6 +130,7 @@ export interface ResolvedDocsmithOptions {
 	markdown: DocsmithMarkdownOptions;
 	tsconfig?: string;
 	schema?: StandardSchemaV1;
+	links: ResolvedLinksOptions;
 }
 
 /** Options from an older release that now live elsewhere, and where. */
@@ -138,6 +174,27 @@ export function resolveOptions(
 		themes: options.themes,
 		markdown: options.markdown ?? {},
 		tsconfig: options.tsconfig,
-		schema: options.schema
+		schema: options.schema,
+		links: resolveLinks(options.links)
 	};
+}
+
+/**
+ * Check `links` and apply its defaults. A plain JavaScript config reaches here
+ * unchecked, and a typo'd level quietly falling back to the default would leave
+ * the author believing they had chosen otherwise, so it fails at startup.
+ */
+function resolveLinks(links: DocsmithLinksOptions | undefined): ResolvedLinksOptions {
+	if (links !== undefined && (typeof links !== 'object' || links === null)) {
+		throw new Error(
+			"[svelte-docsmith] docsmith({ links }) takes an object, e.g. links: { broken: 'warn' }."
+		);
+	}
+	const broken = links?.broken ?? 'error';
+	if (!BROKEN_LINKS_LEVELS.includes(broken)) {
+		throw new Error(
+			`[svelte-docsmith] links.broken must be 'error', 'warn' or 'ignore', got ${JSON.stringify(broken)}.`
+		);
+	}
+	return { broken, outside: [] };
 }
