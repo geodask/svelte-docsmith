@@ -15,23 +15,21 @@
  *     — the same pages reduced to plain-text bodies, in a separate chunk so it
  *     can be lazy-loaded only when search opens. (An `svelte-docsmith/llms`
  *     index of full markdown bodies is wired the same way.)
- *  5. The **`?source` transform** powering `LiveExample`: importing
- *     `Component.svelte?source` yields that file's highlighted source, drawn by
- *     the same code block renderer as a markdown fence.
- *  6. The **`?props` transform** powering generated props tables: importing
- *     `Component.svelte?props` yields that component's extracted props, for
- *     `<PropsTable of={…}>` (see `../props/extract.js`).
+ *  5. The **doc imports** a page makes for its examples and props tables:
+ *     `Component.svelte?source` yields that file's highlighted source for
+ *     `LiveExample`, and `Component.svelte?props` its extracted props for
+ *     `<PropsTable of={…}>`. Each kind lives in `./doc-imports/`, with the page
+ *     side served here and the agent side written into the llms index.
  *
  * The options themselves are resolved in `./options.js`. Reading the docs root
  * lives in `./pages.js` and building each index from what it read lives in
- * `./collect.js`. The `?source` and `?props` transforms share one plugin shape
- * (`./doc-import.js`), and props are read through `../props/reader.js`, which
- * owns the shared extractor, file watching and warn-once. This file owns the
- * Vite plugins and is the only layer that reports to the console.
+ * `./collect.js`; props are read through `../props/reader.js`, which owns the
+ * shared extractor, file watching and warn-once. This file owns the Vite
+ * plugins and is the only layer that reports to the console.
  */
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { codeBlockRenderer, sourcePanelHtml, type RenderCodeBlock } from '../code-block.js';
+import { codeBlockRenderer } from '../code-block.js';
 import { checkVersions, resolveVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
@@ -40,9 +38,8 @@ import { contentIndex, searchIndex } from './collect.js';
 import { llmsIndex } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
-import { createPropsReader, type PropsReader } from '../props/reader.js';
-import { docImportPlugin } from './doc-import.js';
-import { readExampleSource } from './example-source.js';
+import { createPropsReader } from '../props/reader.js';
+import { docImportReads, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
 import { checkFrontmatter } from './frontmatter-schema.js';
 import { markdownPlugin } from './markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
@@ -64,9 +61,6 @@ export type { DocsmithSite } from '../../core/config.js';
  */
 export function docsmith(options: DocsmithOptions): Plugin[] {
 	const resolved = resolveOptions(options);
-	// One props reader for the `?props` transform and the llms index, so both
-	// read components against one TypeScript program.
-	const props = createPropsReader({ tsconfig: resolved.tsconfig });
 	// One renderer for markdown fences and `?source` panels: one set of themes,
 	// one Shiki highlighter.
 	const renderCodeBlock = codeBlockRenderer({
@@ -75,11 +69,17 @@ export function docsmith(options: DocsmithOptions): Plugin[] {
 		lineNumbers: resolved.markdown.lineNumbers,
 		twoslash: resolved.markdown.twoslash
 	});
+	// What doc imports read through on both sides: one props reader, so a
+	// page's `?props` imports and the llms index read components against one
+	// TypeScript program.
+	const docImports: DocImportDeps = {
+		render: renderCodeBlock,
+		props: createPropsReader({ tsconfig: resolved.tsconfig })
+	};
 	return [
-		contentIndexPlugin(resolved, props, options),
+		contentIndexPlugin(resolved, docImports, options),
 		markdownPlugin(resolved.markdown, renderCodeBlock),
-		exampleSourcePlugin(renderCodeBlock),
-		propsPlugin(props)
+		docImportsPlugin(docImports)
 	];
 }
 
@@ -117,7 +117,7 @@ function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number)
 
 function contentIndexPlugin(
 	options: ResolvedDocsmithOptions,
-	props: PropsReader,
+	docImports: DocImportDeps,
 	authored: DocsmithOptions
 ): Plugin {
 	const { contentDir, routesDir, versions, changelogFile } = options;
@@ -206,15 +206,14 @@ function contentIndexPlugin(
 				const { pages } = readSourcePages(contentDir);
 				watch(pages);
 				// What agents read: each page as agent markdown. Its imports resolve
-				// the way Vite resolves the page's own, and props come from the shared
-				// extractor, so pages without a props import never load TypeScript.
+				// the way Vite resolves the page's own, and each kind reads the way its
+				// page side does, so pages without a props import never load TypeScript.
 				const docs = await llmsIndex(pages, indexOptions, {
 					resolve: async (specifier, importer) =>
 						(await this.resolve(specifier, importer, { skipSelf: true }))?.id,
 					watch: (file) => this.addWatchFile(file),
 					warn: (message) => this.warn(message),
-					source: readExampleSource,
-					props: async (file) => (await props.read(file, this)).markdown
+					...docImportReads(docImports, this)
 				});
 				return `export const docs = ${JSON.stringify(docs)};\n`;
 			}
@@ -245,34 +244,6 @@ function contentIndexPlugin(
 			server.watcher.on('add', onChange);
 			server.watcher.on('unlink', onChange);
 			server.watcher.on('change', onChange);
-		}
-	};
-}
-
-// --- ?source and ?props transforms -------------------------------------
-
-function exampleSourcePlugin(renderCodeBlock: RenderCodeBlock): Plugin {
-	return docImportPlugin('docsmith-example-source', 'source', async (file, hook) => {
-		hook.addWatchFile(file);
-		const code = readExampleSource(file);
-		if (code === undefined) throw new Error(`[svelte-docsmith] could not read ${file}`);
-		// The same renderer as a markdown fence, so the panel matches one.
-		const html = sourcePanelHtml(await renderCodeBlock(code, 'svelte'));
-		return `export default ${JSON.stringify(html)};`;
-	});
-}
-
-function propsPlugin(reader: PropsReader): Plugin {
-	return {
-		...docImportPlugin('docsmith-props', 'props', async (file, hook) => {
-			const { props } = await reader.read(file, hook);
-			return `export default ${JSON.stringify(props)};`;
-		}),
-		// The one place the reader learns the root: `docsmith()` returns this
-		// plugin with the content plugin, whose llms index reads through the
-		// same reader, and every `configResolved` runs before any `load`.
-		configResolved(config) {
-			reader.configure(config.root);
 		}
 	};
 }

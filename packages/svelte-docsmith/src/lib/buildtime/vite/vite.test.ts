@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { docsmith, type DocsmithOptions } from './index.js';
 import { ARCHIVE_MARKER, markerContents } from '../archives.js';
 import type { Plugin } from 'vite';
@@ -19,119 +19,22 @@ const SITE = { title: 'Docs' };
 const pluginNamed = (name: string, options: TestOptions = {}): Plugin =>
 	docsmith({ site: SITE, ...options }).find((p) => p.name === name) as Plugin;
 
-// --- ?source transform ---------------------------------------------------
-
-let fixture: string;
-
-beforeAll(() => {
-	fixture = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-')), 'Example.svelte');
-	fs.writeFileSync(fixture, '<script>\n\tlet count = 0;\n</script>\n');
-});
-
-afterAll(() => {
-	fs.rmSync(path.dirname(fixture), { recursive: true, force: true });
-});
-
-/**
- * Import `specifier` through a transform plugin as Vite would: resolve it (to
- * `file`), then load whatever id the plugin resolved it to.
- */
-async function importThrough(plugin: Plugin, specifier: string, file: string) {
-	const resolve = vi.fn().mockResolvedValue({ id: file });
-	const id = await (plugin.resolveId as unknown as ResolveId).call({ resolve }, specifier, '/page');
-	expect(resolve).toHaveBeenCalledWith(specifier.replace(/\?\w+$/, ''), '/page', {
-		skipSelf: true
-	});
-	if (id === undefined) return { id, out: undefined, ctx: undefined };
-	const ctx = { addWatchFile: vi.fn(), warn: vi.fn() };
-	const out = await (plugin.load as unknown as Load).call(ctx, id);
-	return { id, out, ctx };
-}
-
-describe('docsmith() ?source transform', () => {
-	it('returns the highlighted file source as the default export and watches the file', async () => {
-		const plugin = pluginNamed('docsmith-example-source');
-
-		const { id, out, ctx } = await importThrough(plugin, './Example.svelte?source', fixture);
-
-		// vite-plugin-svelte must not take the virtual module for a component.
-		expect(id).not.toMatch(/\.svelte$/);
-		expect(ctx?.addWatchFile).toHaveBeenCalledWith(fixture);
-		expect(out).toMatch(/^export default /);
-		expect(out).toContain('shiki');
-		expect(out).toContain('count');
-		// Shiki's own surface is stripped so the source sits on the component bg.
-		expect(out).not.toContain('background-color');
-		expect(out).not.toContain('--shiki-dark-bg');
-	});
-
-	it('leaves other imports, and components that do not resolve, to Vite', async () => {
-		const resolveId = pluginNamed('docsmith-example-source').resolveId as unknown as ResolveId;
-		const resolve = vi.fn().mockResolvedValue(null);
-		expect(await resolveId.call({ resolve }, 'Foo.svelte?props', '/page')).toBeUndefined();
-		expect(await resolveId.call({ resolve }, 'Foo.svelte', '/page')).toBeUndefined();
-		expect(await resolveId.call({ resolve }, 'Missing.svelte?source', '/page')).toBeUndefined();
-	});
-
-	it('fails the import when the example cannot be read', async () => {
-		const plugin = pluginNamed('docsmith-example-source');
-		const missing = path.join(path.dirname(fixture), 'Missing.svelte');
-		await expect(importThrough(plugin, './Missing.svelte?source', missing)).rejects.toThrow(
-			`could not read ${missing}`
-		);
-	});
-});
-
-// --- ?props transform ----------------------------------------------------
+// --- doc imports ----------------------------------------------------------
+//
+// Each kind's page side is tested in `doc-imports/doc-imports.test.ts`; this
+// proves `docsmith()` serves them.
 
 const propsFixture = (name: string) =>
 	path.resolve(import.meta.dirname, '../props/_fixtures', `${name}.svelte`);
 
-// The first load builds a TypeScript program: seconds on a cold coverage run.
-describe('docsmith() ?props transform', { timeout: 60_000 }, () => {
-	it('exports the extracted props and watches what they were read from', async () => {
-		const plugin = pluginNamed('docsmith-props');
-		const root = path.resolve(import.meta.dirname, '../../../..');
-		(plugin.configResolved as unknown as (c: { root: string }) => void)({ root });
-
-		const { id, out, ctx } = await importThrough(
-			plugin,
-			'./notice.svelte?props',
-			propsFixture('notice')
-		);
-
-		expect(id).not.toMatch(/\.svelte$/);
-		expect(out).toMatch(/^export default /);
-		const props = JSON.parse(
-			String(out)
-				.replace(/^export default /, '')
-				.replace(/;$/, '')
-		);
-		expect(props.name).toBe('Notice');
-		expect(props.props[0]).toMatchObject({ name: 'tone', type: "'neutral' | 'info' | 'danger'" });
-		expect(ctx?.addWatchFile).toHaveBeenCalledWith(propsFixture('notice'));
-		expect(ctx?.addWatchFile).toHaveBeenCalledWith(
-			path.resolve(import.meta.dirname, '../props/_fixtures/types.ts')
-		);
-		expect(ctx?.warn).not.toHaveBeenCalled();
-	});
-
-	it('passes extraction problems on as warnings', async () => {
-		const plugin = pluginNamed('docsmith-props');
-		const { ctx } = await importThrough(plugin, './static.svelte?props', propsFixture('static'));
-		expect(ctx?.warn).toHaveBeenCalledWith(expect.stringContaining('no `$props()` found'));
-	});
-
-	it('leaves other imports, and components that do not resolve, to Vite', async () => {
-		const resolveId = pluginNamed('docsmith-props').resolveId as unknown as ResolveId;
-		const resolve = vi.fn().mockResolvedValue(null);
-		expect(await resolveId.call({ resolve }, 'Foo.svelte?source', '/page')).toBeUndefined();
-		expect(await resolveId.call({ resolve }, 'Missing.svelte?props', '/page')).toBeUndefined();
-	});
-
-	it('ignores ids that are not props modules', async () => {
-		const load = pluginNamed('docsmith-props').load as unknown as Load;
-		expect(await load.call({}, '/abs/Foo.svelte')).toBeUndefined();
+describe('docsmith() doc imports', () => {
+	it('serves ?source and ?props imports through one plugin', async () => {
+		const plugin = pluginNamed('docsmith-doc-imports');
+		const resolveId = plugin.resolveId as unknown as ResolveId;
+		const resolve = vi.fn().mockResolvedValue({ id: '/abs/Foo.svelte' });
+		expect(await resolveId.call({ resolve }, 'Foo.svelte?source', '/page')).toBeDefined();
+		expect(await resolveId.call({ resolve }, 'Foo.svelte?props', '/page')).toBeDefined();
+		expect(await resolveId.call({ resolve }, 'Foo.svelte', '/page')).toBeUndefined();
 	});
 });
 

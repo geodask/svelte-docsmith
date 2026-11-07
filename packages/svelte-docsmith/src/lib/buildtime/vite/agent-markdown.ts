@@ -3,11 +3,12 @@
  * `.md` twins, the MCP server), and the llms index that carries it. The page as
  * written keeps `<LiveExample source={…}>` and `<PropsTable of={…}>` as bare
  * tags and their imports are stripped with the `<script>` block, so an agent
- * would never see the example code or the component's props. Here each
- * `LiveExample` whose source is a `?source` import becomes a fenced `svelte`
- * block of the example file's raw source, and each `PropsTable` whose `of` is a
- * props import becomes a heading and a markdown table of the same rows the page
- * renders.
+ * would never see the example code or the component's props. Here each tag
+ * whose attribute binds a doc import is written out by that import's kind (see
+ * `./doc-imports/`): a `LiveExample`'s `?source` as a fenced `svelte` block, a
+ * `PropsTable`'s props import as a heading and a markdown table of the same
+ * rows the page renders. This module only finds the tags and the imports; what
+ * each becomes is the kind's.
  *
  * {@link llmsIndex} is the whole of it: pages and a host in, finished index
  * entries out. Resolving imports and reading files is the host's job, so the
@@ -15,23 +16,21 @@
  * a test hands it literals.
  */
 import type { LlmsDoc } from '../../core/content.js';
-import {
-	propsCaption,
-	type ExtractedProp,
-	type ExtractedProps
-} from '../../core/extracted-props.js';
 import { outsideCodeFenceRuns, scriptBlocks } from '../markdown-source.js';
 import { relativeToCwd } from '../paths.js';
 import { indexedPages, type IndexedPage, type IndexOptions } from './collect.js';
 import { extractLlmsContent } from './extract.js';
 import { readField } from './fields.js';
 import type { SourcePage } from './pages.js';
+import {
+	DOC_IMPORT_KINDS,
+	type DocImportKind,
+	type DocImportReads,
+	type DocImportValues
+} from './doc-imports/index.js';
 
-/** Which build-time transform a page import goes through. */
-export type DocImportKind = 'source' | 'props';
-
-/** One `*.svelte?source` or `*.svelte?props` import in a page's `<script>`. */
-export type DocImport = {
+/** One doc import in a page's `<script>`. */
+type DocImport = {
 	kind: DocImportKind;
 	/** The specifier as written, query included, for messages. */
 	specifier: string;
@@ -47,25 +46,16 @@ export type DocImport = {
 export type ResolveImport = (specifier: string, importer: string) => Promise<string | undefined>;
 
 /**
- * What building agent markdown needs from its caller: Vite's resolver, watcher,
- * warnings and file reads in the plugin, literals in a test.
+ * What building agent markdown needs from its caller: Vite's resolver, watcher
+ * and warnings, and each doc import kind's read (by query: `source`, `props`),
+ * in the plugin; literals in a test. A read returns `undefined` when the file
+ * can't be read, and watches whatever it read beyond the file itself.
  */
-export type AgentMarkdownHost = {
+export type AgentMarkdownHost = DocImportReads & {
 	resolve: ResolveImport;
 	/** Record a file the agent markdown was read from, so editing it rebuilds the index. */
 	watch(file: string): void;
 	warn(message: string): void;
-	/**
-	 * An example file's raw source, as the `?source` transform reads it, or
-	 * `undefined` when it can't be read.
-	 */
-	source(file: string): string | undefined;
-	/**
-	 * A component's props as the `?props` transform extracts them, with
-	 * descriptions as markdown. The host watches the files they were read from
-	 * and passes on extraction warnings.
-	 */
-	props(file: string): Promise<ExtractedProps>;
 };
 
 /**
@@ -96,14 +86,21 @@ export async function llmsIndex(
 	}));
 }
 
-/** A default import of a `.svelte` file through `?source` or `?props`. */
-const DOC_IMPORT =
-	/\bimport\s+([A-Za-z_$][\w$]*)\s+from\s*(['"])([^'"\n]+?\.svelte)\?(source|props)\2/g;
+const KIND_BY_QUERY = new Map(DOC_IMPORT_KINDS.map((kind) => [kind.query, kind]));
+const KIND_BY_TAG = new Map(DOC_IMPORT_KINDS.map((kind) => [kind.tag, kind]));
+
+/** A default import of a `.svelte` file through one of the kinds' queries. */
+const DOC_IMPORT = new RegExp(
+	String.raw`\bimport\s+([A-Za-z_$][\w$]*)\s+from\s*(['"])([^'"\n]+?\.svelte)\?(${[
+		...KIND_BY_QUERY.keys()
+	].join('|')})\2`,
+	'g'
+);
 
 /**
- * A page's `?source` and `?props` imports, keyed by the local name each binds,
- * with every specifier resolved from the page. Imports inside fenced code
- * samples are not the page's, and are skipped.
+ * A page's doc imports, keyed by the local name each binds, with every
+ * specifier resolved from the page. Imports inside fenced code samples are not
+ * the page's, and are skipped.
  */
 async function docImports(
 	page: Pick<SourcePage, 'file' | 'source'>,
@@ -111,11 +108,11 @@ async function docImports(
 ): Promise<Map<string, DocImport>> {
 	const matches = scriptBlocks(page.source).flatMap((block) => [...block.matchAll(DOC_IMPORT)]);
 	const resolved = await Promise.all(
-		matches.map(async ([, local, , base, kind]): Promise<[string, DocImport]> => [
+		matches.map(async ([, local, , base, query]): Promise<[string, DocImport]> => [
 			local,
 			{
-				kind: kind as DocImportKind,
-				specifier: `${base}?${kind}`,
+				kind: KIND_BY_QUERY.get(query as keyof DocImportValues)!,
+				specifier: `${base}?${query}`,
 				file: await resolve(base, page.file)
 			}
 		])
@@ -123,147 +120,90 @@ async function docImports(
 	return new Map(resolved);
 }
 
-/**
- * A `<LiveExample …>…</LiveExample>` (or self-closing) tag starting a line.
- * Group 1 is its indentation, group 2 its attributes; an attribute value in
- * braces may contain `>`.
- */
-const LIVE_EXAMPLE =
-	/^([ \t]*)<LiveExample\b((?:[^>{}]|\{[^{}]*\})*?)(?:\/>|>[\s\S]*?<\/LiveExample\s*>)/gm;
-
-/** `source={name}`, or the `{source}` shorthand. */
-const SOURCE_ATTRIBUTE = /(?:\bsource\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}|\{\s*(source)\s*\})/;
-
-/** A backtick fence one longer than the longest backtick run in `text`, and at least `min`. */
-function fenceFor(text: string, min: number): string {
-	const longest = Math.max(0, ...[...text.matchAll(/`+/g)].map(([run]) => run.length));
-	return '`'.repeat(Math.max(min, longest + 1));
-}
-
-/** `text` with `indent` before each non-empty line. */
-function indented(text: string, indent: string): string {
-	return text
-		.split('\n')
-		.map((line) => (line ? indent + line : line))
-		.join('\n');
-}
-
-/** A fenced block of `code`, fenced longer than any backtick run inside it. */
-function fenced(code: string, lang: string, indent: string): string {
-	const fence = fenceFor(code, 3);
-	return indented([fence + lang, code, fence].join('\n'), indent);
-}
+/** One doc import and what it read to: `undefined` where it could not be read. */
+type DocImportRead = DocImport & { value: unknown };
 
 /**
- * What one page's doc imports read to: the import each local name binds, and
- * the example source or props behind it (`undefined` where it could not be
- * read).
- */
-type DocImportReads = {
-	imports: Map<string, DocImport>;
-	sources: Map<string, string | undefined>;
-	tables: Map<string, ExtractedProps | undefined>;
-};
-
-/**
- * Resolve and read a page's doc imports, watching each file they resolve to.
- * `undefined` when the page imports nothing agent markdown expands, so most
- * pages cost one scan of their script.
+ * Resolve and read a page's doc imports, keyed by local name, watching each
+ * file they resolve to. `undefined` when the page imports nothing agent
+ * markdown expands, so most pages cost one scan of their script.
  */
 async function readDocImports(
 	page: SourcePage,
 	host: AgentMarkdownHost
-): Promise<DocImportReads | undefined> {
+): Promise<Map<string, DocImportRead> | undefined> {
 	const imports = await docImports(page, host.resolve);
 	if (imports.size === 0) return undefined;
-
-	// Props extractions all start together, so the extractor batches them.
-	const sources = new Map<string, string | undefined>();
-	const tables = new Map<string, ExtractedProps | undefined>();
-	await Promise.all(
-		[...imports].map(async ([local, entry]) => {
+	// All reads start together, so the props extractor batches them.
+	const reads = await Promise.all(
+		[...imports].map(async ([local, entry]): Promise<[string, DocImportRead]> => {
 			// Watched even when it can't be read, so creating or fixing it rebuilds.
 			if (entry.file !== undefined) host.watch(entry.file);
-			if (entry.kind === 'source') {
-				sources.set(local, entry.file === undefined ? undefined : host.source(entry.file));
-			} else {
-				tables.set(local, entry.file === undefined ? undefined : await host.props(entry.file));
-			}
+			const value = entry.file === undefined ? undefined : await host[entry.kind.query](entry.file);
+			return [local, { ...entry, value }];
 		})
 	);
-	return { imports, sources, tables };
+	return new Map(reads);
+}
+
+/**
+ * A tag of one of the kinds starting a line: `<Tag …/>` or `<Tag …>…</Tag>`.
+ * Group 1 is its indentation, group 2 its name, group 3 its attributes; an
+ * attribute value in braces may contain `>`.
+ */
+const DOC_TAG = new RegExp(
+	String.raw`^([ \t]*)<(${[...KIND_BY_TAG.keys()].join('|')})\b((?:[^>{}]|\{[^{}]*\})*?)(?:\/>|>[\s\S]*?<\/\2\s*>)`,
+	'gm'
+);
+
+/** The local name `attribute={name}`, or the `{attribute}` shorthand, binds in `attributes`. */
+function boundName(attributes: string, attribute: string): string | undefined {
+	const match = new RegExp(
+		String.raw`(?:(?:^|\s)${attribute}\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}|\{\s*(${attribute})\s*\})`
+	).exec(attributes);
+	return match?.[1] ?? match?.[2];
 }
 
 /**
  * A page's agent markdown: the page as written with its frontmatter and setup
  * blocks dropped and its title as an `h1`, then each tag whose import was read
- * written out. The imports come from the raw source, as the setup blocks that
- * hold them are gone from the text being rewritten.
+ * written out by its kind. The imports come from the raw source, as the setup
+ * blocks that hold them are gone from the text being rewritten.
  */
 function agentMarkdown(
 	page: IndexedPage,
-	reads: DocImportReads | undefined,
+	reads: Map<string, DocImportRead> | undefined,
 	warn: (message: string) => void
 ): string {
 	const content = extractLlmsContent(page.source, page.title);
 	if (reads === undefined) return content;
-	const { imports, sources, tables } = reads;
 
-	const keepTag = (tag: string, local: string, attribute: string) => {
-		warn(
-			`${relativeToCwd(page.file)}: could not read \`${imports.get(local)?.specifier}\` ` +
-				`for <${tag} ${attribute}={${local}}>, so agent markdown keeps the tag.`
-		);
-	};
-
-	// The level of the heading a table sits under, carried across code fences.
+	// The level of the heading a tag sits under, carried across code fences.
 	let level = 1;
 	return outsideCodeFenceRuns(content, (prose) => {
 		const levelAt = (offset: number) => lastHeadingLevel(prose.slice(0, offset)) ?? level;
-		const withTables = prose.replace(
-			PROPS_TABLE,
-			(tag, indent: string, attributes: string, offset: number) => {
-				const match = OF_ATTRIBUTE.exec(attributes);
-				const local = match?.[1] ?? match?.[2];
-				if (local === undefined || !tables.has(local)) return tag;
-				const props = tables.get(local);
-				if (props === undefined) {
-					keepTag('PropsTable', local, 'of');
+		const written = prose.replace(
+			DOC_TAG,
+			(tag, indent: string, name: string, attributes: string, offset: number) => {
+				const kind = KIND_BY_TAG.get(name)!;
+				const local = boundName(attributes, kind.attribute);
+				const read = local === undefined ? undefined : reads.get(local);
+				// Not bound to an import of this kind: not ours to write out.
+				if (read === undefined || read.kind !== kind) return tag;
+				if (read.value === undefined) {
+					warn(
+						`${relativeToCwd(page.file)}: could not read \`${read.specifier}\` ` +
+							`for <${name} ${kind.attribute}={${local}}>, so agent markdown keeps the tag.`
+					);
 					return tag;
 				}
-				const title = TITLE_ATTRIBUTE.exec(attributes);
-				const caption = title ? title.slice(1).find((value) => value !== undefined) : undefined;
-				return propsTable(props, caption, Math.min(6, levelAt(offset) + 1), indent);
+				return kind.write(read.value as never, { attributes, indent, level: levelAt(offset) });
 			}
 		);
 		level = levelAt(prose.length);
-		return withTables.replace(LIVE_EXAMPLE, (tag, indent: string, attributes: string) => {
-			const match = SOURCE_ATTRIBUTE.exec(attributes);
-			const local = match?.[1] ?? match?.[2];
-			if (local === undefined || !sources.has(local)) return tag;
-			const code = sources.get(local);
-			if (code === undefined) {
-				keepTag('LiveExample', local, 'source');
-				return tag;
-			}
-			return fenced(code, 'svelte', indent);
-		});
+		return written;
 	});
 }
-
-/**
- * A `<PropsTable …/>` or `<PropsTable …>…</PropsTable>` tag starting a line,
- * grouped like {@link LIVE_EXAMPLE}.
- */
-const PROPS_TABLE =
-	/^([ \t]*)<PropsTable\b((?:[^>{}]|\{[^{}]*\})*?)(?:\/>|>[\s\S]*?<\/PropsTable\s*>)/gm;
-
-/** `of={name}`, or the `{of}` shorthand. */
-const OF_ATTRIBUTE = /(?:(?:^|\s)of\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}|\{\s*(of)\s*\})/;
-
-/** A `title` given as a string literal, quoted or in braces. */
-const TITLE_ATTRIBUTE =
-	/(?:^|\s)title\s*=\s*(?:"([^"]*)"|'([^']*)'|\{\s*(?:"([^"]*)"|'([^']*)')\s*\})/;
 
 /** An ATX heading's marker. */
 const HEADING = /^ {0,3}(#{1,6})(?:[ \t]|$)/gm;
@@ -271,73 +211,4 @@ const HEADING = /^ {0,3}(#{1,6})(?:[ \t]|$)/gm;
 /** The level of the last heading in `prose`, if it has one. */
 function lastHeadingLevel(prose: string): number | undefined {
 	return [...prose.matchAll(HEADING)].at(-1)?.[1].length;
-}
-
-/**
- * A generated props table as agent markdown: the caption as a heading, then a
- * `Prop | Type | Default | Description` table with the rows the page renders,
- * then the inherited attributes summary.
- */
-function propsTable(
-	props: ExtractedProps,
-	title: string | undefined,
-	level: number,
-	indent: string
-): string {
-	const blocks = [`${'#'.repeat(level)} ${code(title ?? propsCaption(props))}`];
-	if (props.props.length) {
-		blocks.push(
-			[
-				'| Prop | Type | Default | Description |',
-				'| --- | --- | --- | --- |',
-				...props.props.map((prop) => `| ${propCells(prop).join(' | ')} |`)
-			].join('\n')
-		);
-	}
-	for (const group of props.inherited) {
-		blocks.push(
-			group.kind === 'element'
-				? `Also accepts every ${code(`<${group.label}>`)} attribute.`
-				: `Also accepts every prop of ${code(group.label)}.`
-		);
-	}
-	if (props.props.length === 0 && props.inherited.length === 0) blocks.push('No props.');
-	return indented(blocks.join('\n\n'), indent);
-}
-
-/** One row's cells, marked as the rendered row is and escaped for a table. */
-function propCells(prop: ExtractedProp): string[] {
-	let name = code(prop.required ? prop.name : `${prop.name}?`);
-	if (prop.deprecated !== undefined) name = `~~${name}~~`;
-	const marks = [
-		prop.bindable && '*(bindable)*',
-		prop.deprecated !== undefined && '*(deprecated)*'
-	];
-	const description = [prop.deprecated && `Deprecated: ${prop.deprecated}`, prop.description]
-		.filter(Boolean)
-		.map((text) => inline(text as string))
-		.join('<br>');
-	return [
-		[name, ...marks.filter(Boolean)].join(' '),
-		prop.type === undefined ? '' : code(prop.type),
-		prop.default === undefined ? '' : code(prop.default),
-		description
-	].map((cell) => cell.replaceAll('|', '\\|'));
-}
-
-/** `text` as a code span on one line, fenced longer than any backtick run in it. */
-function code(text: string): string {
-	const flat = text.replace(/\s*\n\s*/g, ' ');
-	const fence = fenceFor(flat, 1);
-	const pad = flat.startsWith('`') || flat.endsWith('`') ? ' ' : '';
-	return fence + pad + flat + pad + fence;
-}
-
-/** Markdown on one line: paragraphs joined with `<br><br>`, soft breaks as spaces. */
-function inline(markdown: string): string {
-	return markdown
-		.trim()
-		.split(/\n[ \t]*\n\s*/)
-		.map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' '))
-		.join('<br><br>');
 }
