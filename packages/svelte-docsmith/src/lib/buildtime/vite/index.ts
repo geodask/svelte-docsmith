@@ -4,7 +4,8 @@
  * `vite.config.ts` wires:
  *
  *  1. The **site config** served as the virtual module `svelte-docsmith/site`,
- *     which `DocsShell`, `ErrorPage` and the route handlers read themselves.
+ *     which `DocsShell`, `ErrorPage` and the route handlers read themselves,
+ *     with the outside paths its links are marked `rel="external"` under.
  *  2. The **markdown compiler**, run on every doc page before
  *     vite-plugin-svelte sees it (see `./markdown.js`).
  *  3. A **content index** served as the virtual module `svelte-docsmith/content`
@@ -252,8 +253,12 @@ function contentIndexPlugin(
 
 			if (id === VIRTUAL_SITE_ID) {
 				// Checked as plain data when the options were resolved, so JSON is
-				// the whole of it.
-				return `export const site = ${JSON.stringify(options.site, null, 2)};\n`;
+				// the whole of it. The outside paths ride along, resolved, so the
+				// shell's site config links match them exactly as the compiler does.
+				return (
+					`export const site = ${JSON.stringify(options.site, null, 2)};\n` +
+					`export const outside = ${JSON.stringify(links.outside)};\n`
+				);
 			}
 			if (id === VIRTUAL_CONTENT_ID) {
 				// Before anything is read: a config that disagrees with the docs root

@@ -22,3 +22,25 @@ import { under } from '../utils/url.js';
 export function isOutsidePath(path: string, prefixes: readonly string[]): boolean {
 	return path.startsWith('/') && prefixes.some((prefix) => under(path, prefix));
 }
+
+/**
+ * The `rel` of a site config link (a `nav` or footer column link, or the
+ * announcement), or `undefined` for none. A link under an outside path gets
+ * `external`, so Kit's crawler skips it and the client router does a full page
+ * load that whatever serves the path can answer. `external: true` on the link
+ * itself is a different thing, a new tab, and keeps its `noopener noreferrer`
+ * beside it.
+ *
+ * Only a site-absolute `href` is matched: a relative one resolves against
+ * whichever page the shell is on, so there is no one path to match.
+ */
+export function siteLinkRel(
+	link: { href: string; external?: boolean },
+	outside: readonly string[]
+): string | undefined {
+	const rel = [
+		...(isOutsidePath(link.href, outside) ? ['external'] : []),
+		...(link.external ? ['noopener', 'noreferrer'] : [])
+	];
+	return rel.length ? rel.join(' ') : undefined;
+}

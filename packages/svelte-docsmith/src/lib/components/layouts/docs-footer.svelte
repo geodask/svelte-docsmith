@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { site } from 'svelte-docsmith/site';
+	import { outside, site } from 'svelte-docsmith/site';
+	import { siteLinkRel } from '#lib/core/outside-path.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 
 	const footer = $derived(site.footer);
@@ -24,7 +25,7 @@
 										<a
 											href={link.href}
 											target={link.external ? '_blank' : undefined}
-											rel={link.external ? 'noopener noreferrer' : undefined}
+											rel={siteLinkRel(link, outside)}
 											class="text-muted-foreground hover:text-foreground text-sm transition-colors"
 										>
 											{link.label}

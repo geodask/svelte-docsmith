@@ -14,11 +14,19 @@ const site: DocsmithSite = vi.hoisted(() => ({
 					{ label: 'Source', href: 'https://github.com/o/r', external: true }
 				]
 			},
-			{ title: 'Project', links: [{ label: 'Docs', href: '/docs' }] }
+			{
+				title: 'Project',
+				links: [
+					{ label: 'Docs', href: '/docs' },
+					{ label: 'API', href: '/relative/api' },
+					{ label: 'Relatives', href: '/relatives' }
+				]
+			}
 		]
 	}
 }));
-vi.mock('svelte-docsmith/site', () => ({ site }));
+// `/relative` is an outside path: served by something other than this app.
+vi.mock('svelte-docsmith/site', () => ({ site, outside: ['/relative'] }));
 import DocsFooter from './docs-footer.svelte';
 
 describe('DocsFooter', () => {
@@ -42,5 +50,18 @@ describe('DocsFooter', () => {
 			'https://github.com/o/r'
 		);
 		expect(screen.getAllByText('Project')).toHaveLength(2);
+	});
+
+	// Kit's crawler skips a `rel="external"` link, so a footer link to an
+	// outside path can't fail the build.
+	it('marks column links under an outside path rel="external", and only those', () => {
+		render(DocsFooter);
+		expect(screen.getByRole('link', { name: 'API' })).toHaveAttribute('rel', 'external');
+		expect(screen.getByRole('link', { name: 'Relatives' })).not.toHaveAttribute('rel');
+		expect(screen.getByRole('link', { name: 'Docs' })).not.toHaveAttribute('rel');
+		expect(screen.getByRole('link', { name: 'Repo' })).toHaveAttribute(
+			'rel',
+			'noopener noreferrer'
+		);
 	});
 });

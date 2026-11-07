@@ -555,6 +555,12 @@ describe('agent markdown props through the plugin', { timeout: 60_000 }, () => {
 
 // --- site config, options, markdown ---------------------------------------
 
+/** The `svelte-docsmith/site` module's exports, each a JSON value. */
+function siteModuleExports(code: string | undefined): Record<string, unknown> {
+	const exports = String(code).matchAll(/^export const (\w+) = ([\s\S]*?);$/gm);
+	return Object.fromEntries([...exports].map(([, name, json]) => [name, JSON.parse(json)]));
+}
+
 describe('docsmith() site config', () => {
 	it('serves the site options as svelte-docsmith/site', async () => {
 		const site = {
@@ -567,10 +573,7 @@ describe('docsmith() site config', () => {
 		expect(resolveId.call({}, 'svelte-docsmith/site')).toBe('\0svelte-docsmith:site');
 
 		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
-		const json = String(out)
-			.replace(/^export const site = /, '')
-			.replace(/;\n$/, '');
-		expect(JSON.parse(json)).toEqual(site);
+		expect(siteModuleExports(out).site).toEqual(site);
 	});
 
 	it('fails at startup without a site title, before anything is served', () => {
@@ -956,5 +959,21 @@ describe('docsmith() outside paths', () => {
 		expect(out.code).toContain('<a href="/relative/x" rel="external">');
 		expect(out.code).toContain('<a href="/relative" rel="external">');
 		expect(out.code).toContain('<a href="/docs">');
+	});
+
+	it('serves the outside paths beside the site config, for the shell links', async () => {
+		const plugin = pluginNamed('docsmith-content', {
+			links: { outside: ['/relative/', '/api'] }
+		});
+
+		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
+
+		// Resolved, so the browser matches them exactly as the compiler does.
+		expect(siteModuleExports(out)).toEqual({ site: SITE, outside: ['/relative', '/api'] });
+		const none = await (pluginNamed('docsmith-content').load as unknown as Load).call(
+			{},
+			'\0svelte-docsmith:site'
+		);
+		expect(siteModuleExports(none).outside).toEqual([]);
 	});
 });
