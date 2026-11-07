@@ -14,6 +14,7 @@
  *
  * {@link brokenLinksReport} words the result; printing it is the plugin's job.
  */
+import GithubSlugger from 'github-slugger';
 import path from 'node:path';
 import { Marked, type Token, type Tokens } from 'marked';
 import { under } from '../utils/url.js';
@@ -23,12 +24,23 @@ import type { IndexOptions } from './vite/collect.js';
 import type { SourcePage } from './vite/pages.js';
 
 /** Why a link is broken. */
-export type LinkProblem = {
-	/** The path is under the docs base, but no page of any version lives there. */
-	type: 'no-page';
-	/** The path the link points at. */
-	path: string;
-};
+export type LinkProblem =
+	| {
+			/** The path is under the docs base, but no page of any version lives there. */
+			type: 'no-page';
+			/** The path the link points at. */
+			path: string;
+	  }
+	| {
+			/** The page exists, but has no anchor the link's fragment names. */
+			type: 'no-anchor';
+			/** The page the link points at: the page it is written on, for `#x`. */
+			path: string;
+			/** The fragment as written, without the `#`. */
+			anchor: string;
+			/** Every anchor the page does have, in page order, so the author can pick one. */
+			anchors: string[];
+	  };
 
 /** One broken link: where it is written, what it says, and what is wrong with it. */
 export type BrokenLink = {
@@ -58,6 +70,8 @@ type Site = {
 	docsBase: string;
 	/** The URL of every page, of every version. */
 	pages: Set<string>;
+	/** The anchors of the doc page at a URL, read the first time a link asks; `undefined` for a route whose anchors the check can't read. */
+	anchors: (url: string) => string[] | undefined;
 };
 
 /** A link written in a page, before anything has decided what it points at. */
@@ -89,9 +103,9 @@ export function brokenLinks(pages: SourcePage[], options: LinkCheckOptions): Bro
 	const broken: BrokenLink[] = [];
 
 	for (const page of pages) {
-		const pageUrl = urlFor(options.routesDir, path.dirname(page.file));
+		const url = pageUrl(page, options);
 		for (const { href, line } of writtenLinks(page)) {
-			const target = targetOf(href, pageUrl);
+			const target = targetOf(href, url);
 			const problem = target && problemWith(target, site);
 			if (problem) broken.push({ file: page.file, line, link: href, problem });
 		}
@@ -116,40 +130,66 @@ export function brokenLinksReport(broken: BrokenLink[]): string {
 }
 
 function describeProblem(problem: LinkProblem): string {
+	if (problem.type === 'no-anchor') {
+		const has = problem.anchors.map((anchor) => `#${anchor}`).join(', ') || 'none';
+		return `no anchor #${problem.anchor} on ${problem.path} (has: ${has})`;
+	}
 	return `no page at ${problem.path}`;
+}
+
+/** The URL SvelteKit serves `page` at. */
+function pageUrl(page: SourcePage, options: IndexOptions): string {
+	return urlFor(options.routesDir, path.dirname(page.file));
 }
 
 /**
  * The site as the check sees it. Every page read counts, titled or not: an
  * untitled page is in no index, but SvelteKit still serves it, so a link to it
  * works. So does every other `+page.*` route the plugin found beside them.
+ *
+ * A page's anchors cost a parse, so they are read only for pages a fragment
+ * points at, once each. A route that is no doc page, such as a `+page.svelte`,
+ * has anchors the check can't read, so its are unknown.
  */
 function siteOf(pages: SourcePage[], options: LinkCheckOptions): Site {
-	const files = [...pages.map((page) => page.file), ...(options.pageRoutes ?? [])];
+	const byUrl = new Map(pages.map((page) => [pageUrl(page, options), page]));
+	const routes = (options.pageRoutes ?? []).map((file) =>
+		urlFor(options.routesDir, path.dirname(file))
+	);
+	const anchors = new Map<string, string[]>();
 	return {
 		docsBase: docsBaseFrom(options.routesDir, options.contentDir),
-		pages: new Set(files.map((file) => urlFor(options.routesDir, path.dirname(file))))
+		pages: new Set([...byUrl.keys(), ...routes]),
+		anchors: (url) => {
+			const page = byUrl.get(url);
+			if (!page) return undefined;
+			let found = anchors.get(url);
+			if (!found) anchors.set(url, (found = anchorsOf(page)));
+			return found;
+		}
 	};
 }
 
 /**
  * Where a link points, when that is a path on this site: one starting with `/`,
- * or a relative one starting `./` or `../`, which resolves against `pageUrl`. A
- * link with a scheme (`https:`, `mailto:`) or starting `//` names another
- * origin and is left alone.
+ * or a relative one starting `./` or `../`, which resolves against `writtenOn`,
+ * the URL of the page it is written on, as does a same-page `#fragment`. A link
+ * with a scheme (`https:`, `mailto:`) or starting `//` names another origin and
+ * is left alone.
  *
  * The path is reduced to the page it reaches: the query string goes, and so do
  * one trailing slash and a trailing `.md`, since `/docs/intro.md` is the agent
  * markdown twin of `/docs/intro` and stands or falls with it.
  */
-function targetOf(href: string, pageUrl: string): Target | undefined {
+function targetOf(href: string, writtenOn: string): Target | undefined {
+	if (href.startsWith('#')) return { path: writtenOn, fragment: href.slice(1) };
 	const relative = href.startsWith('./') || href.startsWith('../');
 	if (!relative && (!href.startsWith('/') || href.startsWith('//'))) return undefined;
 	const hash = href.indexOf('#');
 	const beforeHash = hash === -1 ? href : href.slice(0, hash);
 	const fragment = hash === -1 ? undefined : href.slice(hash + 1);
 	const written = beforeHash.split('?')[0];
-	return { path: pagePathOf(relative ? resolveRelative(written, pageUrl) : written), fragment };
+	return { path: pagePathOf(relative ? resolveRelative(written, writtenOn) : written), fragment };
 }
 
 /**
@@ -182,7 +222,26 @@ function pagePathOf(urlPath: string): string {
 function problemWith(target: Target, site: Site): LinkProblem | undefined {
 	if (!under(target.path, site.docsBase)) return undefined;
 	if (!site.pages.has(target.path)) return { type: 'no-page', path: target.path };
+	const anchors = target.fragment ? site.anchors(target.path) : undefined;
+	if (target.fragment && anchors && !hasAnchor(anchors, target.fragment)) {
+		return { type: 'no-anchor', path: target.path, anchor: target.fragment, anchors };
+	}
 	return undefined;
+}
+
+/**
+ * Whether a fragment lands on one of a page's anchors, as a browser finds it:
+ * the fragment as written or percent-decoded (`#caf%C3%A9` is `#café`), and
+ * `#top`, which scrolls to the top of any page. An empty fragment (`/docs/x#`)
+ * never reaches here: it names no anchor.
+ */
+function hasAnchor(anchors: string[], fragment: string): boolean {
+	if (anchors.includes(fragment) || fragment.toLowerCase() === 'top') return true;
+	try {
+		return anchors.includes(decodeURIComponent(fragment));
+	} catch {
+		return false;
+	}
 }
 
 // --- reading links ----------------------------------------------------------
@@ -289,4 +348,89 @@ function newlines(text: string): number {
 	let count = 0;
 	for (const char of text) if (char === '\n') count++;
 	return count;
+}
+
+// --- reading anchors --------------------------------------------------------
+
+/**
+ * Every anchor a page has, in page order: each heading's id, of every level,
+ * and each `id` written by hand on an HTML tag in its markdown.
+ *
+ * Heading ids are what `rehype-slug` gives the compiled page: one
+ * `github-slugger` per page, fed each heading's text in order, so a repeated
+ * heading gets `-1`, `-2` as it does there. `extractToc` slugs the same way but
+ * sees only h2 and h3, and a link may name any heading. Headings and tags in
+ * fenced, indented or inline code are code, and give the page no anchor. A test
+ * compiles a page and pins these ids to the ones it renders.
+ */
+function anchorsOf(page: SourcePage): string[] {
+	const slugger = new GithubSlugger();
+	const anchors = new Set<string>();
+	const visit = (token: Token) => {
+		if (token.type === 'heading') {
+			const id = slugger.slug(headingText((token as Tokens.Heading).tokens));
+			if (id) anchors.add(id);
+		}
+		if (token.type === 'html') for (const id of writtenIds(token.raw)) anchors.add(id);
+		childrenOf(token).forEach(visit);
+	};
+	markdown.lexer(splitFrontmatter(page.source).body).forEach(visit);
+	return [...anchors];
+}
+
+/**
+ * A heading's text as `rehype-slug` reads it from the compiled heading: the
+ * text of its text nodes. So inline code keeps its text, a link or emphasis
+ * gives its own, and an inline tag or image gives nothing.
+ *
+ * marked hands over text as written, where mdsvex has already decoded entities
+ * and run smartypants, which turns `--` into an em dash. Both are redone here,
+ * as far as a slug can tell them apart (see {@link decodeEntities}).
+ */
+function headingText(tokens: Token[] = []): string {
+	return tokens
+		.map((token) => {
+			if (token.type === 'escape' || token.type === 'codespan') return token.text as string;
+			if (token.type === 'text' && !token.tokens?.length) {
+				return decodeEntities(token.text as string).replace(/(?<!-)--(?!-)/g, '—');
+			}
+			if (token.type === 'html' || token.type === 'image') return '';
+			return 'tokens' in token && Array.isArray(token.tokens) ? headingText(token.tokens) : '';
+		})
+		.join('');
+}
+
+const NAMED_ENTITIES: Record<string, string> = {
+	amp: '&',
+	lt: '<',
+	gt: '>',
+	quot: '"',
+	apos: "'",
+	nbsp: ' '
+};
+
+/**
+ * Decode the character references in heading text. Numeric ones and the
+ * common named ones decode exactly. Any other named one decodes to nothing:
+ * nearly all of them name a symbol, which `github-slugger` drops anyway, where
+ * leaving it would slug its name (`&copy;` as `copy`). An entity for a letter
+ * (`&eacute;`) is the one case this gets wrong; a heading would write `é`.
+ */
+function decodeEntities(text: string): string {
+	return text.replace(/&(#x[\da-f]+|#\d+|[a-z][a-z\d]*);/gi, (_, name: string) => {
+		if (name[0] !== '#') return NAMED_ENTITIES[name] ?? '';
+		const code = name[1] === 'x' || name[1] === 'X' ? parseInt(name.slice(2), 16) : +name.slice(1);
+		return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+	});
+}
+
+/**
+ * The `id`s written on tags in a piece of HTML: quoted either way, or bare.
+ * `id={...}` is a Svelte expression, unknown until the page runs, so it gives
+ * no anchor. Script and style blocks are code, not tags, and are skipped.
+ */
+function writtenIds(html: string): string[] {
+	const tags = html.replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, '');
+	const ids = tags.matchAll(/\sid\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`{}]+))/g);
+	return [...ids].map((match) => match[1] ?? match[2] ?? match[3]).filter(Boolean);
 }
