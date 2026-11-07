@@ -174,6 +174,15 @@ heading, so start your content at `##`. Every heading gets an anchor id
 automatically, and the in-page table of contents is built from `##` and `###`
 headings as the page renders.
 
+## Links
+
+Link to another page by its URL, like `[Theming](/docs/theming)`, and to a
+heading on it by the heading's anchor, like `[Sitemap](/docs/seo#sitemap)`.
+`vite build` checks every link to a path under the docs base, and fails on one
+with no page or anchor behind it, listing every such link with its file and
+line. See [Links](/docs/links) for the rules, and for paths a Worker or proxy
+serves beside your app.
+
 ## Code blocks
 
 Fenced code blocks are highlighted by Shiki at build time; tag the fence with a

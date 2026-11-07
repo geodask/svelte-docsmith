@@ -89,8 +89,8 @@ On SvelteKit 2, `extensions` and `preprocess` go in `svelte.config.js` instead,
 and `sveltekit()` takes no options.
 
 By default it scans `src/routes/docs`; pass `content: 'src/routes/guide'` to
-point elsewhere. Code block themes, markdown options, versions and the
-changelog all go in the same call.
+point elsewhere. Code block themes, markdown options, versions, the changelog
+and link checking all go in the same call.
 
 **2. The stylesheet.** In your root `app.css`, once Tailwind v4 is set up the
 standard way (`tailwindcss` + the `@tailwindcss/vite` plugin, stylesheet imported
@@ -207,6 +207,11 @@ outside the 1.0 promise for now.
   Graph / Twitter tags for every page from its frontmatter, no per-page wiring.
 - **Error pages.** `ErrorPage` gives a styled 404 that keeps the site chrome;
   drop it into a SvelteKit `+error.svelte`.
+- **Broken-link check.** `vite build` fails when a doc page links to a docs path
+  with no page, or to an anchor the page doesn't have, and lists every one with
+  its file and line; `vite dev` warns. Paths a Worker or proxy serves beside the
+  app go in `links: { outside }`, so links to them pass the check and render
+  `rel="external"` for SvelteKit's crawler and router.
 - **Versioned docs.** Declare `versions` on the Vite plugin, freeze a release
   with `npx svelte-docsmith archive-version <id>`, and `DocsShell` picks the
   manifest up from the `content` it already takes. The sitemap and llms route
