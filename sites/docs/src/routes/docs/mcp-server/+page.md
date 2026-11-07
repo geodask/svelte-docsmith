@@ -33,10 +33,9 @@ Add `src/routes/mcp/+server.ts` with `mcpServer` from `svelte-docsmith/server`:
 
 ```ts title="src/routes/mcp/+server.ts"
 import { mcpServer } from 'svelte-docsmith/server';
-import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = false;
-export const { GET, POST, OPTIONS } = mcpServer(siteConfig);
+export const { GET, POST, OPTIONS } = mcpServer();
 ```
 
 One handler answers all three methods. POST carries the agent's requests.
@@ -44,8 +43,8 @@ OPTIONS answers the CORS preflight, so browser-based agents can connect too. GET
 is for a person who opens the URL in a browser: they get a short plain-text note
 on adding the server to their editor.
 
-It reads the generated indexes itself. Your config's `title` and
-`description` tell the agent what the docs are about, and `url` makes the page
+It reads your site config and the generated indexes itself. Your site's `title`
+and `description` tell the agent what the docs are about, and `url` makes the page
 links it gets back absolute. It sees every version and scopes to one itself
 (see [Versions](#versions)).
 
@@ -63,13 +62,15 @@ leave the route out. Nothing else depends on it.
 
 ## Tell readers about it
 
-Set `mcp` in your site config to the route's path:
+Set `mcp` in your `site` options to the route's path:
 
-```ts
-export const siteConfig = defineConfig({
-	title: 'My Library',
-	url: 'https://my-library.dev',
-	mcp: '/mcp'
+```ts title="vite.config.ts"
+docsmith({
+	site: {
+		title: 'My Library',
+		url: 'https://my-library.dev',
+		mcp: '/mcp'
+	}
 });
 ```
 

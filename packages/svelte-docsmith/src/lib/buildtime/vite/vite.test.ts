@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { docsmith, type DocsmithViteOptions } from './index.js';
+import { docsmith, type DocsmithOptions } from './index.js';
 import { ARCHIVE_MARKER, markerContents } from '../archives.js';
 import type { Plugin } from 'vite';
 
@@ -14,8 +14,13 @@ type Load = (this: unknown, id: string) => Promise<string | undefined> | string 
 const SOURCE_PREFIX = '\0docsmith-source:';
 const SOURCE_EXT = '.docsmith-src';
 
-const pluginNamed = (name: string, options: DocsmithViteOptions = {}): Plugin =>
-	docsmith(options).find((p) => p.name === name) as Plugin;
+/** `docsmith()`'s options, with a site filled in when the test doesn't care which. */
+type TestOptions = Omit<DocsmithOptions, 'site'> & Partial<Pick<DocsmithOptions, 'site'>>;
+
+const SITE = { title: 'Docs' };
+
+const pluginNamed = (name: string, options: TestOptions = {}): Plugin =>
+	docsmith({ site: SITE, ...options }).find((p) => p.name === name) as Plugin;
 
 // --- ?source transform ---------------------------------------------------
 
@@ -145,7 +150,7 @@ function markArchive(id: string) {
 }
 
 /** Load one virtual module from a content plugin pointed at the fixture root. */
-function loadVirtual(id: string, options: Omit<DocsmithViteOptions, 'content' | 'routes'> = {}) {
+function loadVirtual(id: string, options: Omit<TestOptions, 'content' | 'routes'> = {}) {
 	const plugin = pluginNamed('docsmith-content', {
 		content: path.join(routesDir, 'docs'),
 		routes: routesDir,
@@ -185,7 +190,9 @@ describe('docsmith() content plugin', () => {
 	it('serves the changelog route with the releases, so the feed links where they were dated', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 
-		const out = await loadVirtual('\0svelte-docsmith:changelog', { changelogPath: '/releases' });
+		const out = await loadVirtual('\0svelte-docsmith:changelog', {
+			changelog: { path: '/releases' }
+		});
 
 		expect(out).toContain('export const changelogPath = "/releases";');
 	});
@@ -257,6 +264,7 @@ describe('docsmith() content plugin', () => {
 		try {
 			const { docsmith: fresh } = await import('./index.js');
 			const plugins = fresh({
+				site: SITE,
 				content: path.join(routesDir, 'docs'),
 				routes: routesDir,
 				changelog: false
@@ -274,7 +282,7 @@ describe('docsmith() content plugin', () => {
 					'\0svelte-docsmith:llms',
 					'\0svelte-docsmith:changelog'
 				]) {
-					await (plugin.load as unknown as Load).call(ctx, id);
+					await (plugin.load as unknown as Load | undefined)?.call(ctx, id);
 				}
 			}
 		} finally {
@@ -327,7 +335,7 @@ describe('docsmith() content plugin', () => {
 	it('fails the content index on frontmatter the schema rejects', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: Intro\nordr: 2');
-		const schema: DocsmithViteOptions['schema'] = {
+		const schema: DocsmithOptions['schema'] = {
 			'~standard': {
 				version: 1,
 				vendor: 'test',
@@ -877,5 +885,121 @@ describe('agent markdown props tables', { timeout: 60_000 }, () => {
 		expect(ctx.addWatchFile).toHaveBeenCalledWith(
 			path.resolve(import.meta.dirname, '../props/_fixtures/types.ts')
 		);
+	});
+});
+
+// --- site config, options, markdown ---------------------------------------
+
+describe('docsmith() site config', () => {
+	it('serves the site options as svelte-docsmith/site', async () => {
+		const site = {
+			title: 'My Docs',
+			url: 'https://x.dev',
+			nav: [{ label: 'Docs', href: '/docs' }]
+		};
+		const plugin = pluginNamed('docsmith-content', { site });
+		const resolveId = plugin.resolveId as unknown as (id: string) => string | undefined;
+		expect(resolveId.call({}, 'svelte-docsmith/site')).toBe('\0svelte-docsmith:site');
+
+		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
+		const json = String(out)
+			.replace(/^export const site = /, '')
+			.replace(/;\n$/, '');
+		expect(JSON.parse(json)).toEqual(site);
+	});
+
+	it('fails at startup without a site title, before anything is served', () => {
+		// @ts-expect-error — exercising the runtime guard for untyped callers
+		expect(() => docsmith({})).toThrow(/needs a `site` object/);
+		// @ts-expect-error — exercising the runtime guard for untyped callers
+		expect(() => docsmith({ site: {} })).toThrow(/site\.title is required/);
+		// @ts-expect-error — exercising the runtime guard for untyped callers
+		expect(() => docsmith()).toThrow(/needs options with a `site`/);
+	});
+
+	it('fails at startup on a site value the browser would not receive as written', () => {
+		expect(() =>
+			// @ts-expect-error — a function is not plain data
+			docsmith({ site: { title: 'Docs', footer: { copyright: () => '©' } } })
+		).toThrow(/site\.footer\.copyright must be a string/);
+	});
+
+	it('points options that moved at their new home', () => {
+		// @ts-expect-error — the old option is gone from the type
+		expect(() => docsmith({ site: SITE, changelogPath: '/releases' })).toThrow(
+			/changelogPath \}\) moved to `changelog: \{ path \}`/
+		);
+		// @ts-expect-error — the old string form is gone from the type
+		expect(() => docsmith({ site: SITE, changelog: 'CHANGELOG.md' })).toThrow(
+			/changelog: \{ file: "CHANGELOG.md" \}/
+		);
+	});
+
+	it('carries its options as written, for the archive CLI to read', () => {
+		const options = {
+			site: SITE,
+			content: 'docs',
+			versions: { current: { id: 'v2', label: 'v2.x' } }
+		};
+		const plugin = docsmith(options).find((p) => p.name === 'docsmith-content');
+		expect((plugin?.api as { docsmith: unknown }).docsmith).toBe(options);
+	});
+});
+
+describe('docsmith() markdown pages', () => {
+	type Transform = { handler: (code: string, id: string) => Promise<{ code: string } | undefined> };
+	const transform = (options: TestOptions = {}) =>
+		pluginNamed('docsmith-markdown', options).transform as unknown as Transform;
+
+	it('compiles a markdown page into Svelte markup, ahead of vite-plugin-svelte', async () => {
+		const { handler, order } = transform() as Transform & { order: string };
+		expect(order).toBe('pre');
+		const out = await handler('## Hello\n\n```js\nconst a = 1;\n```', '/app/src/routes/x/+page.md');
+		expect(out?.code).toContain('id="hello"');
+		expect(out?.code).toContain('<Components.pre>');
+	});
+
+	it('leaves other files and non-page requests of a markdown file alone', async () => {
+		const { handler } = transform();
+		expect(await handler('<p>hi</p>', '/app/src/x.svelte')).toBeUndefined();
+		expect(await handler('# raw', '/app/README.md?raw')).toBeUndefined();
+		expect(await handler('p{}', '/app/x/+page.md?svelte&type=style&lang.css')).toBeUndefined();
+	});
+
+	it('still compiles a page requested with a cache-busting timestamp', async () => {
+		const out = await transform().handler('# Hi', '/app/x/+page.md?t=123');
+		expect(out?.code).toContain('Hi');
+	});
+
+	it('compiles the extensions the markdown options name', async () => {
+		const { handler } = transform({ markdown: { extensions: ['.svx'] } });
+		expect(await handler('# Hi', '/app/x/+page.md')).toBeUndefined();
+		expect((await handler('# Hi', '/app/x/+page.svx'))?.code).toContain('Hi');
+	});
+
+	it('draws fences with the themes and line numbers set once for the site', async () => {
+		const { handler } = transform({
+			themes: { light: 'min-light', dark: 'min-dark' },
+			markdown: { lineNumbers: true }
+		});
+		const out = await handler('```js\nconst a = 1;\n```', '/app/x/+page.md');
+		// min-light's keyword colour; github-light's is #D73A49.
+		expect(out?.code).toContain('#D32F2F');
+		expect(out?.code).toContain('lineNumbers');
+	});
+
+	it('warns when SvelteKit does not compile the markdown extensions', () => {
+		const plugin = pluginNamed('docsmith-markdown');
+		const warn = vi.fn();
+		const configResolved = plugin.configResolved as unknown as (config: unknown) => void;
+		const svelteWith = (extensions: string[]) => ({
+			name: 'vite-plugin-svelte:config',
+			api: { options: { extensions } }
+		});
+		configResolved({ plugins: [svelteWith(['.svelte'])], logger: { warn } });
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining("extensions: ['.svelte', '.md']"));
+		warn.mockClear();
+		configResolved({ plugins: [svelteWith(['.svelte', '.md'])], logger: { warn } });
+		expect(warn).not.toHaveBeenCalled();
 	});
 });

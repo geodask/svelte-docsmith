@@ -3,7 +3,6 @@
 	import type {
 		DocsContent,
 		DocsContentItem,
-		DocsmithConfig,
 		ResolvedVersion,
 		SearchDoc
 	} from '#lib/core/index.js';
@@ -12,7 +11,6 @@
 	import type { Snippet } from 'svelte';
 
 	const {
-		config,
 		content = [],
 		versions = [],
 		search,
@@ -24,7 +22,6 @@
 		pattern = true,
 		children
 	}: {
-		config: DocsmithConfig;
 		/**
 		 * The `content` export of `svelte-docsmith/content`, as for `DocsShell`, so
 		 * the error page keeps the site's header and footer, and an error under an
@@ -62,15 +59,7 @@
 	);
 </script>
 
-<DocsShell
-	{config}
-	{content}
-	{versions}
-	{search}
-	{pattern}
-	layout="page"
-	seo={{ title: resolvedTitle }}
->
+<DocsShell {content} {versions} {search} {pattern} layout="page" seo={{ title: resolvedTitle }}>
 	<section
 		class="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 py-20 text-center md:px-6"
 	>

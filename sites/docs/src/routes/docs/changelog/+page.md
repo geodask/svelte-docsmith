@@ -24,7 +24,7 @@ heading. No date is invented when the history is unavailable.
 ```ts title="vite.config.ts"
 // Defaults to CHANGELOG.md beside your app. In a monorepo, point it at the
 // package you actually publish.
-docsmith({ changelog: '../../packages/my-lib/CHANGELOG.md' });
+docsmith({ site, changelog: { file: '../../packages/my-lib/CHANGELOG.md' } });
 ```
 
 ## Add the page
@@ -34,10 +34,9 @@ docsmith({ changelog: '../../packages/my-lib/CHANGELOG.md' });
 	import { content } from 'svelte-docsmith/content';
 	import { releases } from 'svelte-docsmith/changelog';
 	import { DocsShell, Changelog } from 'svelte-docsmith';
-	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
-<DocsShell config={siteConfig} {content} layout="page">
+<DocsShell {content} layout="page">
 	<Changelog {releases} description="What shipped in each release." />
 </DocsShell>
 ```
@@ -49,14 +48,14 @@ something they have to check for.
 
 ```ts title="src/routes/changelog.xml/+server.ts"
 import { changelogFeed } from 'svelte-docsmith/server';
-import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-export const GET = changelogFeed(siteConfig);
+export const GET = changelogFeed();
 ```
 
-The feed takes its title, description and `url` from your config, and links to
-the changelog page at the plugin's `changelogPath`.
+The feed takes its title, description and `url` from your `site` options, and
+links to the changelog page at `changelog.path` (default `'/changelog'`), the
+same route the plugin finds hand-written release pages under.
 
 Atom rather than RSS, because it requires an unambiguous id and timestamp per
 entry, which a version and its release date give exactly.

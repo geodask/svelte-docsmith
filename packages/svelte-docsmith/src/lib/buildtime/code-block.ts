@@ -1,9 +1,9 @@
 /**
  * The code block renderer: every decision about how a code block is drawn, in
- * one place, for both build-time entries. A markdown fence (through
- * `svelte-docsmith/preprocess`) and a `?source` import (through
- * `svelte-docsmith/vite`) go through the same renderer, so a fence and a
- * LiveExample's source panel can never drift apart.
+ * one place. A markdown fence and a `?source` import go through the same
+ * renderer (one instance per `docsmith()` call, so one set of themes and one
+ * Shiki highlighter), so a fence and a LiveExample's source panel can never
+ * drift apart.
  *
  * Two steps, kept apart so each can be tested on its own:
  *

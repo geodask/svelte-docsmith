@@ -23,43 +23,45 @@ pieces. See [Installation](/docs/installation) for the scaffolder.
 <Steps>
 <Step title="Configure Vite">
 
-DocSmith has two halves, and both go in `vite.config.ts`:
+DocSmith is one Vite plugin, `docsmith()` from `svelte-docsmith/vite`, and it is
+the only place your docs are configured. It compiles your `.md` pages (mdsvex,
+Shiki highlighting with a generous language set, heading anchors, and the
+DocSmith page layout), scans their frontmatter into the sidebar, and powers live
+examples. Give it your site's title, put it before `sveltekit()`, and add `.md`
+to SvelteKit's extensions so markdown pages become routes:
 
-- The **Vite plugin**, `docsmith()` from `svelte-docsmith/vite`, scans your
-  pages' frontmatter into the `svelte-docsmith/content` module and powers live
-  examples. It goes before `sveltekit()`.
-- The **markdown pipeline**, `docsmith()` from `svelte-docsmith/preprocess`,
-  bundles mdsvex, Shiki highlighting with a generous language set, heading
-  anchors, and the DocSmith page layout. Register it as a preprocessor and add
-  `.md` to your extensions.
-
+<!-- prettier-ignore -->
 ```ts title="vite.config.ts"
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { docsmith } from 'svelte-docsmith/vite'; // [!code ++]
-import { docsmith as markdown } from 'svelte-docsmith/preprocess'; // [!code ++]
 import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [
-		docsmith(), // [!code ++]
+		docsmith({ // [!code ++]
+			site: { title: 'My Library', github: 'https://github.com/you/my-library' } // [!code ++]
+		}), // [!code ++]
 		tailwindcss(),
 		sveltekit({
 			extensions: ['.svelte', '.md'], // [!code ++]
-			preprocess: [vitePreprocess(), markdown()], // [!code ++]
+			preprocess: [vitePreprocess()],
 			adapter: adapter()
 		})
 	]
 });
 ```
 
+Every other option, from code block themes to versioning, goes in the same call.
+See [Configuration](/docs/configuration).
+
 <Callout variant="note" title="On SvelteKit 2?">
 
-DocSmith supports SvelteKit 2 and 3. On SvelteKit 2, `extensions` and
-`preprocess` go in `svelte.config.js` instead, and you import your own files
-from `$lib` rather than `#lib`.
+DocSmith supports SvelteKit 2 and 3. On SvelteKit 2, `extensions` goes in
+`svelte.config.js` instead, and you import your own files from `$lib` rather
+than `#lib`. `docsmith()` stays in `vite.config.ts`.
 
 </Callout>
 
@@ -67,21 +69,18 @@ from `$lib` rather than `#lib`.
 <Step title="Add the shell">
 
 In `src/routes/docs/+layout.svelte`, render `DocsShell`. It builds the sidebar
-from the generated content index, so there is no nav array to maintain:
+from the generated content index, so there is no nav array to maintain, and it
+reads your `site` options itself:
 
 ```svelte title="src/routes/docs/+layout.svelte"
 <script lang="ts">
 	import { content } from 'svelte-docsmith/content';
-	import { DocsShell, defineConfig } from 'svelte-docsmith';
+	import { DocsShell } from 'svelte-docsmith';
 
-	const config = defineConfig({
-		title: 'My Library',
-		github: 'https://github.com/you/my-library'
-	});
 	const { children } = $props();
 </script>
 
-<DocsShell {config} {content}>
+<DocsShell {content}>
 	{@render children()}
 </DocsShell>
 ```

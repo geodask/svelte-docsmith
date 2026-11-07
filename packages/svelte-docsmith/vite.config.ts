@@ -3,6 +3,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { svelteTesting } from '@testing-library/svelte/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
 	plugins: [
@@ -19,6 +20,12 @@ export default defineConfig({
 	],
 	test: {
 		passWithNoTests: true,
+		// The docsmith() plugin serves this module in a real site. Under test it
+		// resolves to the checked-in fallback (not `dist`, which may not be
+		// built yet); a test that renders the shell mocks it with a site.
+		alias: {
+			'svelte-docsmith/site': fileURLToPath(new URL('./src/lib/fallbacks/site.ts', import.meta.url))
+		},
 		coverage: {
 			provider: 'v8',
 			reporter: ['text', 'json', 'html', 'lcov'],
@@ -37,7 +44,7 @@ export default defineConfig({
 				'src/lib/utils/type-text.ts',
 				'src/lib/buildtime/archive.ts',
 				'src/lib/buildtime/git.ts',
-				'src/lib/buildtime/preprocess.ts',
+				'src/lib/buildtime/markdown.ts',
 				'src/lib/buildtime/code-block.ts',
 				'src/lib/utils/clipboard.svelte.ts',
 				'src/lib/utils/url.ts',

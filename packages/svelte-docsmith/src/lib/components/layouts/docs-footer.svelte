@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { DocsmithConfig } from '#lib/core/index.js';
+	import type { DocsmithSite } from '#lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 
-	const { config }: { config: DocsmithConfig } = $props();
+	const { config }: { config: DocsmithSite } = $props();
 	const footer = $derived(config.footer);
 	// Attribution is on by default; consumers opt out with `footer.poweredBy: false`.
 	const poweredBy = $derived(footer?.poweredBy ?? true);

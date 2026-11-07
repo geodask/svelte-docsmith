@@ -8,6 +8,8 @@ vi.mock('$app/state', () => ({
 	page: { url: new URL('http://localhost/docs/v1/missing'), status: 404, error: null }
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), afterNavigate: vi.fn() }));
+// The site config the docsmith() plugin would serve.
+vi.mock('svelte-docsmith/site', () => ({ site: { title: 'My Docs' } }));
 
 // The shell's theme provider pulls in mode-watcher, which reads localStorage as
 // it loads; jsdom's own is incomplete here, so stub one in before the imports.
@@ -26,8 +28,6 @@ vi.hoisted(() => {
 });
 
 import ErrorPage from './error-page.svelte';
-
-const config = { title: 'My Docs' };
 
 const content: DocsContentItem[] = [
 	{ title: 'Intro', path: '/docs/intro', version: 'v2' },
@@ -56,7 +56,7 @@ describe('ErrorPage on a versioned site', () => {
 	});
 
 	it('applies the archived version noindex to the error page', () => {
-		render(ErrorPage, { props: { config, content, versions } });
+		render(ErrorPage, { props: { content, versions } });
 		expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
 			'content',
 			'noindex, follow'
@@ -67,7 +67,7 @@ describe('ErrorPage on a versioned site', () => {
 		const load = vi.fn((versionId?: string) =>
 			Promise.resolve(docs.filter((doc) => !versionId || doc.version === versionId))
 		);
-		render(ErrorPage, { props: { config, content, versions, search: load } });
+		render(ErrorPage, { props: { content, versions, search: load } });
 
 		await fireEvent.keyDown(window, { key: 'k', metaKey: true });
 		await vi.waitFor(() => expect(load).toHaveBeenCalledWith('v1'));

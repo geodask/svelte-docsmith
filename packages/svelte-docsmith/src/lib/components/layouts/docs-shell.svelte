@@ -5,10 +5,10 @@
 		resolveDocsPage,
 		type DocsContent,
 		type DocsContentItem,
-		type DocsmithConfig,
 		type SearchDoc,
 		type ResolvedVersion
 	} from '#lib/core/index.js';
+	import { site } from 'svelte-docsmith/site';
 	import { createToc } from '#lib/toc/index.js';
 	import { createSearchState } from '#lib/search/context.svelte.js';
 	import { setDocsPage } from '../docs-page-context.js';
@@ -31,7 +31,6 @@
 	import type { Snippet } from 'svelte';
 
 	const {
-		config,
 		content = [],
 		versions = [],
 		children,
@@ -46,7 +45,6 @@
 		feedback,
 		layout = 'docs'
 	}: {
-		config: DocsmithConfig;
 		/**
 		 * The `content` export of `svelte-docsmith/content`: every page and the
 		 * version manifest together. On a versioned site the sidebar, search,
@@ -88,7 +86,7 @@
 		 * Show the "Copy page" split button on doc pages: copy the page as
 		 * Markdown, view the raw `.md`, or open it in ChatGPT / Claude. Requires a
 		 * catch-all `<path>.md` endpoint over the `svelte-docsmith/llms` index.
-		 * With `config.mcp` set, the menu also offers "Connect to your editor".
+		 * With `site.mcp` set, the menu also offers "Connect to your editor".
 		 */
 		copyPage?: boolean;
 		/**
@@ -129,8 +127,8 @@
 			content: Array.isArray(content) ? content : content.docs,
 			versions: Array.isArray(content) ? versions : content.versions,
 			pathname: page.url.pathname,
-			editUrl: config.editUrl,
-			siteTitle: config.title
+			editUrl: site.editUrl,
+			siteTitle: site.title
 		})
 	);
 
@@ -186,7 +184,7 @@
 </script>
 
 <SeoHead
-	{config}
+	config={site}
 	title={seo?.title ?? view.entry?.title}
 	description={seo?.description ?? view.entry?.description}
 	noindex={view.activeVersion?.noindex}
@@ -214,23 +212,23 @@
 
 	<!-- Announcement bar (if configured) sits above the sticky header, so it
 	     scrolls away while the header stays pinned. -->
-	{#if config.announcement}
-		<AnnouncementBar announcement={config.announcement} />
+	{#if site.announcement}
+		<AnnouncementBar announcement={site.announcement} />
 	{/if}
 
 	<!-- One header system everywhere: DocsHeader on desktop, DocsMobileHeader
 	     below lg. The `page` layout just omits the sidebar nav and in-page TOC. -->
-	<DocsHeader {config} {logo} {actions} />
+	<DocsHeader config={site} {logo} {actions} />
 
 	{#if layout === 'page'}
-		<DocsMobileHeader {config} {logo} {actions} />
+		<DocsMobileHeader config={site} {logo} {actions} />
 
 		<main id="main-content" tabindex="-1" class="flex-1">
 			{@render children()}
 		</main>
 	{:else}
 		<DocsMobileHeader
-			{config}
+			config={site}
 			nav={view.nav}
 			title={view.title}
 			{tocItems}
@@ -263,9 +261,9 @@
 						{#if copyPage && view.entry}
 							<CopyPageMenu
 								path={view.pathname}
-								origin={config.url ?? ''}
-								title={config.title}
-								mcp={config.mcp}
+								origin={site.url ?? ''}
+								title={site.title}
+								mcp={site.mcp}
 							/>
 						{/if}
 					</div>
@@ -300,8 +298,8 @@
 								path={view.pathname}
 								onfeedback={typeof feedback === 'function' ? feedback : undefined}
 								editHref={view.editHref}
-								issueHref={config.github
-									? `${config.github}/issues/new?title=${encodeURIComponent(`Feedback: ${view.title}`)}&body=${encodeURIComponent(`Page: ${view.pathname}\n\n<!-- What was unclear or missing? -->\n`)}`
+								issueHref={site.github
+									? `${site.github}/issues/new?title=${encodeURIComponent(`Feedback: ${view.title}`)}&body=${encodeURIComponent(`Page: ${view.pathname}\n\n<!-- What was unclear or missing? -->\n`)}`
 									: undefined}
 							/>
 						</div>
@@ -321,7 +319,7 @@
 
 	{#if footer}
 		{@render footer()}
-	{:else if config.footer}
-		<DocsFooter {config} />
+	{:else if site.footer}
+		<DocsFooter config={site} />
 	{/if}
 </div>

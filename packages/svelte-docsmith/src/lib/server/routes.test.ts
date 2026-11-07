@@ -40,19 +40,20 @@ const search: SearchDoc[] = llms.map((d) => ({
 	version: d.version
 }));
 
-const indexes: SiteIndexes = {
-	content: { docs, versions },
-	llms,
-	search,
-	releases: [{ version: '2.0.0', date: '2026-10-01T00:00:00.000Z', groups: [] }],
-	changelogPath: '/releases'
-};
-
 const site = {
 	title: 'My Docs',
 	description: 'Docs for a thing',
 	url: 'https://x.dev',
 	mcp: '/mcp'
+};
+
+const indexes: SiteIndexes = {
+	site,
+	content: { docs, versions },
+	llms,
+	search,
+	releases: [{ version: '2.0.0', date: '2026-10-01T00:00:00.000Z', groups: [] }],
+	changelogPath: '/releases'
 };
 
 const handlers = routeHandlers(indexes);
@@ -63,7 +64,7 @@ async function read(response: Response) {
 
 describe('sitemap', () => {
 	it('lists the extra pages and every current docs page, never an archived one', async () => {
-		const { type, body } = await read(handlers.sitemap(site, { extra: [{ path: '/' }] })());
+		const { type, body } = await read(handlers.sitemap({ extra: [{ path: '/' }] })());
 		expect(type).toBe('application/xml');
 		expect(body).toContain('<loc>https://x.dev/</loc>');
 		expect(body).toContain('<loc>https://x.dev/docs/intro</loc>');
@@ -71,15 +72,16 @@ describe('sitemap', () => {
 		expect(body).not.toContain('/docs/v1/');
 	});
 
-	it('keeps links site-relative when the config has no url', async () => {
-		const { body } = await read(handlers.sitemap({ title: 'T' })());
+	it('keeps links site-relative when the site has no url', async () => {
+		const bare = routeHandlers({ ...indexes, site: { title: 'T' } });
+		const { body } = await read(bare.sitemap()());
 		expect(body).toContain('<loc>/docs/intro</loc>');
 	});
 });
 
 describe('changelogFeed', () => {
 	it('links to the changelog at the path the plugin dated releases against', async () => {
-		const { type, body } = await read(handlers.changelogFeed(site)());
+		const { type, body } = await read(handlers.changelogFeed()());
 		expect(type).toBe('application/atom+xml; charset=utf-8');
 		expect(body).toContain('<link href="https://x.dev/releases" />');
 		expect(body).toContain('https://x.dev/releases#2.0.0');
@@ -89,7 +91,7 @@ describe('changelogFeed', () => {
 
 describe('llmsTxt and llmsFullTxt', () => {
 	it('index the current version only and point agents at the MCP server', async () => {
-		const { type, body } = await read(handlers.llmsTxt(site)());
+		const { type, body } = await read(handlers.llmsTxt()());
 		expect(type).toBe('text/plain; charset=utf-8');
 		expect(body).toContain('# My Docs');
 		expect(body).toContain('MCP server: https://x.dev/mcp');
@@ -98,7 +100,7 @@ describe('llmsTxt and llmsFullTxt', () => {
 	});
 
 	it('write the full text of current pages only', async () => {
-		const { body } = await read(handlers.llmsFullTxt(site)());
+		const { body } = await read(handlers.llmsFullTxt()());
 		expect(body).toContain('Current.');
 		expect(body).not.toContain('Archived.');
 	});
@@ -124,7 +126,7 @@ describe('agentMarkdown', () => {
 
 describe('mcpServer', () => {
 	it('answers every method with the same handler over the indexes', async () => {
-		const { GET, POST, OPTIONS } = handlers.mcpServer(site);
+		const { GET, POST, OPTIONS } = handlers.mcpServer();
 		expect(POST).toBe(GET);
 		expect(OPTIONS).toBe(GET);
 

@@ -1,30 +1,37 @@
 /**
- * `svelte-docsmith/vite` — the build-time half of the framework. Node context
- * only. One `docsmith()` call in `vite.config.ts` wires three things:
+ * `svelte-docsmith/vite` — the build-time half of the framework, and the one
+ * place a site is configured. Node context only. One `docsmith()` call in
+ * `vite.config.ts` wires:
  *
- *  1. A **content index** served as the virtual module `svelte-docsmith/content`
+ *  1. The **site config** served as the virtual module `svelte-docsmith/site`,
+ *     which `DocsShell`, `ErrorPage` and the route handlers read themselves.
+ *  2. The **markdown compiler**, run on every doc page before
+ *     vite-plugin-svelte sees it (see `./markdown.js`).
+ *  3. A **content index** served as the virtual module `svelte-docsmith/content`
  *     — your doc pages' frontmatter, scanned at build time, so the sidebar nav
  *     is derived from content and never hand-written. No collection config, no
  *     aliases.
- *  2. A **search index** served as the virtual module `svelte-docsmith/search`
+ *  4. A **search index** served as the virtual module `svelte-docsmith/search`
  *     — the same pages reduced to plain-text bodies, in a separate chunk so it
  *     can be lazy-loaded only when search opens. (An `svelte-docsmith/llms`
  *     index of full markdown bodies is wired the same way.)
- *  3. The **`?source` transform** powering `LiveExample`: importing
- *     `Component.svelte?source` yields that file's Shiki-highlighted source.
- *  4. The **`?props` transform** powering generated props tables: importing
+ *  5. The **`?source` transform** powering `LiveExample`: importing
+ *     `Component.svelte?source` yields that file's highlighted source, drawn by
+ *     the same code block renderer as a markdown fence.
+ *  6. The **`?props` transform** powering generated props tables: importing
  *     `Component.svelte?props` yields that component's extracted props, for
  *     `<PropsTable of={…}>` (see `../props/extract.js`).
  *
- * Reading the docs root lives in `./pages.js` and building each index from what
- * it read lives in `./collect.js`; this file owns the Vite plugins and the props
- * extractor they share, and is the only layer that reports to the console.
+ * The options themselves are resolved in `./options.js`. Reading the docs root
+ * lives in `./pages.js` and building each index from what it read lives in
+ * `./collect.js`; this file owns the Vite plugins and the props extractor they
+ * share, and is the only layer that reports to the console.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { codeBlockRenderer, sourcePanelHtml } from '../code-block.js';
-import { checkVersions, resolveVersions, type DocsVersions } from '../../core/version.js';
+import { codeBlockRenderer, sourcePanelHtml, type RenderCodeBlock } from '../code-block.js';
+import { checkVersions, resolveVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
 import { isPageFile, readSourcePages, titleOf, withCommitDates, type SourcePage } from './pages.js';
@@ -33,72 +40,40 @@ import { agentMarkdownFor, type AgentMarkdownHost } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
 import { createPropsExtractor, type ExtractResult, type PropsExtractor } from '../props/extract.js';
-import { checkFrontmatter, type StandardSchemaV1 } from './frontmatter-schema.js';
+import { checkFrontmatter } from './frontmatter-schema.js';
+import { markdownPlugin } from './markdown.js';
+import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
 
-export interface DocsmithViteOptions {
-	/** Directory scanned for doc pages. Default: `'src/routes/docs'`. */
-	content?: string;
-	/**
-	 * Routes root used to derive each page's URL from its location.
-	 * Default: `'src/routes'` (so `src/routes/docs/intro/+page.md` → `/docs/intro`).
-	 */
-	routes?: string;
-	/** Shiki themes for the `?source` render. Default: github-light/github-dark. */
-	themes?: { light: string; dark: string };
-	/**
-	 * Path to the `CHANGELOG.md` that feeds the generated
-	 * `svelte-docsmith/changelog` index. Default: `'CHANGELOG.md'` in the app
-	 * directory; point it at the package whose releases you publish. Set `false`
-	 * to skip the changelog entirely.
-	 */
-	changelog?: string | false;
-	/**
-	 * Route the changelog is served at, used to build feed links and to find
-	 * hand-written per-release pages. Default: `'/changelog'`.
-	 */
-	changelogPath?: string;
-	/**
-	 * Declare documentation versions to enable versioned docs. `current` is the
-	 * docs for the latest release: its pages sit directly under `<content>` and
-	 * keep their unprefixed URLs. Each archived version's pages live under
-	 * `<content>/<id>/` and are served at `/docs/<id>/…`. Omit for a single,
-	 * unversioned docs tree (the default).
-	 *
-	 * @experimental Outside the 1.0 stability promise. May change in a minor
-	 * until authors have used versioning for real. An archive freezes content,
-	 * not dependencies.
-	 */
-	versions?: DocsVersions;
-	/**
-	 * tsconfig used to read prop types for props imports (`?props`), relative
-	 * to the Vite root. Default: the root's `tsconfig.json`.
-	 *
-	 * @experimental Generated props tables are outside the 1.0 stability promise.
-	 */
-	tsconfig?: string;
-	/**
-	 * A schema for your pages' custom fields: every frontmatter key besides the
-	 * built-in ones, which are always checked. Any Standard Schema works (Zod,
-	 * Valibot, ArkType). Make it strict and a key you never declared, like a
-	 * typo'd `ordr`, fails the build. It only validates: custom fields reach each
-	 * content entry's `data` as written, so leave transforms and defaults out.
-	 */
-	schema?: StandardSchemaV1;
-}
+export type { DocsmithOptions, DocsmithChangelogOptions } from './options.js';
+export type { DocsmithMarkdownOptions } from '../markdown.js';
+export type { DocsmithSite } from '../../core/config.js';
 
 /**
- * The svelte-docsmith Vite plugin. Add it to `plugins` in `vite.config.ts`:
+ * The svelte-docsmith Vite plugin, and the one place a site is configured. Add
+ * it to `plugins` in `vite.config.ts`, before `sveltekit()`:
  *
  * ```ts
  * import { docsmith } from 'svelte-docsmith/vite';
- * export default defineConfig({ plugins: [docsmith(), tailwindcss(), sveltekit()] });
+ * export default defineConfig({
+ *   plugins: [docsmith({ site: { title: 'My Docs' } }), tailwindcss(), sveltekit()]
+ * });
  * ```
  */
-export function docsmith(options: DocsmithViteOptions = {}): Plugin[] {
-	const extractor = sharedPropsExtractor(options);
+export function docsmith(options: DocsmithOptions): Plugin[] {
+	const resolved = resolveOptions(options);
+	const extractor = sharedPropsExtractor(resolved);
+	// One renderer for markdown fences and `?source` panels: one set of themes,
+	// one Shiki highlighter.
+	const renderCodeBlock = codeBlockRenderer({
+		themes: resolved.themes,
+		langs: resolved.markdown.langs,
+		lineNumbers: resolved.markdown.lineNumbers,
+		twoslash: resolved.markdown.twoslash
+	});
 	return [
-		contentIndexPlugin(options, extractor),
-		exampleSourcePlugin(options),
+		contentIndexPlugin(resolved, extractor, options),
+		markdownPlugin(resolved.markdown, renderCodeBlock),
+		exampleSourcePlugin(renderCodeBlock),
 		propsPlugin(extractor)
 	];
 }
@@ -123,7 +98,7 @@ interface SharedPropsExtractor {
 // extractor means one TypeScript program and one result cache for both.
 const extractors = new Map<string, PropsExtractor>();
 
-function sharedPropsExtractor(options: DocsmithViteOptions): SharedPropsExtractor {
+function sharedPropsExtractor(options: ResolvedDocsmithOptions): SharedPropsExtractor {
 	let root = process.cwd();
 	return {
 		configure(next) {
@@ -151,6 +126,8 @@ const LLMS_SPECIFIER = 'svelte-docsmith/llms';
 const VIRTUAL_LLMS_ID = '\0svelte-docsmith:llms';
 const CHANGELOG_SPECIFIER = 'svelte-docsmith/changelog';
 const VIRTUAL_CHANGELOG_ID = '\0svelte-docsmith:changelog';
+const SITE_SPECIFIER = 'svelte-docsmith/site';
+const VIRTUAL_SITE_ID = '\0svelte-docsmith:site';
 
 /**
  * Tell the author when their docs root produced nothing, and why. An empty
@@ -171,14 +148,14 @@ function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number)
 	}
 }
 
-function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedPropsExtractor): Plugin {
-	const contentDir = path.resolve(options.content ?? 'src/routes/docs');
-	const routesDir = path.resolve(options.routes ?? 'src/routes');
-	const versions = options.versions;
+function contentIndexPlugin(
+	options: ResolvedDocsmithOptions,
+	extractor: SharedPropsExtractor,
+	authored: DocsmithOptions
+): Plugin {
+	const { contentDir, routesDir, versions, changelogFile } = options;
 	const docsBase = docsBaseFrom(routesDir, contentDir);
-	const changelogFile =
-		options.changelog === false ? undefined : path.resolve(options.changelog ?? 'CHANGELOG.md');
-	const changelogRoute = options.changelogPath ?? '/changelog';
+	const changelogRoute = options.changelogPath;
 	const changelogOverrides = path.join(routesDir, changelogRoute);
 	const indexOptions = { contentDir, routesDir, versions };
 
@@ -226,6 +203,10 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 	return {
 		name: 'docsmith-content',
 		enforce: 'pre',
+		// Read by the archive CLI, which loads `vite.config` to find these
+		// rather than asking for the same directories and versions again. As
+		// written, so the CLI resolves the paths against its own directory.
+		api: { docsmith: authored },
 
 		configResolved(config) {
 			extractor.configure(config.root);
@@ -236,6 +217,7 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 			if (id === SEARCH_SPECIFIER) return VIRTUAL_SEARCH_ID;
 			if (id === LLMS_SPECIFIER) return VIRTUAL_LLMS_ID;
 			if (id === CHANGELOG_SPECIFIER) return VIRTUAL_CHANGELOG_ID;
+			if (id === SITE_SPECIFIER) return VIRTUAL_SITE_ID;
 		},
 
 		async load(id) {
@@ -247,6 +229,11 @@ function contentIndexPlugin(options: DocsmithViteOptions, extractor: SharedProps
 				for (const page of pages) this.addWatchFile(page.file);
 			};
 
+			if (id === VIRTUAL_SITE_ID) {
+				// Checked as plain data when the options were resolved, so JSON is
+				// the whole of it.
+				return `export const site = ${JSON.stringify(options.site, null, 2)};\n`;
+			}
 			if (id === VIRTUAL_CONTENT_ID) {
 				// Before anything is read: a config that disagrees with the docs root
 				// produces an index that is wrong rather than empty, so it has to fail
@@ -326,9 +313,7 @@ const SOURCE_PREFIX = '\0docsmith-source:';
 const SOURCE_EXT = '.docsmith-src';
 const SOURCE_SUFFIX = '?source';
 
-function exampleSourcePlugin(options: DocsmithViteOptions): Plugin {
-	const renderCodeBlock = codeBlockRenderer({ themes: options.themes });
-
+function exampleSourcePlugin(renderCodeBlock: RenderCodeBlock): Plugin {
 	return {
 		name: 'docsmith-example-source',
 		enforce: 'pre',

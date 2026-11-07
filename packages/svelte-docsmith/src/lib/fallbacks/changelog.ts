@@ -10,7 +10,7 @@ import type { ChangelogRelease } from '#lib/core/changelog.js';
 import { missingPluginError } from './missing-plugin.js';
 
 export const releases: ChangelogRelease[] = [];
-/** The route the changelog is served at: the plugin's `changelogPath`. */
+/** The route the changelog is served at: `docsmith({ changelog: { path } })`. */
 export const changelogPath: string = '/changelog';
 
 throw missingPluginError('changelog');

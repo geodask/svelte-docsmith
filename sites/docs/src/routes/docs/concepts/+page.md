@@ -33,26 +33,22 @@ The file above serves `/docs/guides/routing`. Because it is a normal SvelteKit
 route, you can drop interactive Svelte components straight into the markdown and
 they run as part of the same app.
 
-## One name, two plugins
+## One plugin, one config
 
-DocSmith ships two things both called `docsmith()`, imported from two entry
-points. They do different jobs:
+Everything DocSmith does at build time comes from one `docsmith()` call in
+`vite.config.ts`, from `svelte-docsmith/vite`:
 
-- `svelte-docsmith/preprocess` is a **Svelte preprocessor**, passed to
-  `sveltekit({ preprocess })` in `vite.config.ts`. It runs at compile time and turns each `.md` file into a
-  styled, highlighted page (mdsvex, Shiki, heading anchors, the page layout).
-- `svelte-docsmith/vite` is a **Vite plugin**, added in `vite.config.ts`. It
-  runs at build time and generates the content index (below) plus the `?source`
-  transform that powers live examples.
+- It **compiles each `.md` file** into a styled, highlighted page (mdsvex,
+  Shiki, heading anchors, the page layout) before SvelteKit compiles it like
+  any component.
+- It **generates the content index** (below), the search and llms indexes, and
+  the `?source` and `?props` imports that power live examples and props tables.
+- It **serves your site config** as `svelte-docsmith/site`, where `DocsShell`,
+  `ErrorPage` and the route handlers read it.
 
-<Callout variant="warning" title="You need both">
-
-The preprocessor and the Vite plugin are not interchangeable. The preprocessor
-renders your pages; the Vite plugin builds the sidebar and live-example source.
-Register one without the other and either your pages or your navigation goes
-missing.
-
-</Callout>
+So each setting has one home. The themes you pick colour markdown fences and
+live example source alike, and the changelog route the feed links to is the one
+the changelog is served at.
 
 ## Nav is derived, never written
 
@@ -84,8 +80,8 @@ DocSmith keeps two structures, and they never overlap:
 
 ## The highlighting pipeline
 
-Code blocks are highlighted by [Shiki](https://shiki.style) inside the
-`docsmith()` preprocessor, with a generous default language set. Unknown
+Code blocks are highlighted by [Shiki](https://shiki.style) when `docsmith()`
+compiles the page, with a generous default language set. Unknown
 languages fall back to plain text instead of failing the build:
 
 ```python

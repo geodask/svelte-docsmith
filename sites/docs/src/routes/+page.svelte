@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { DocsShell, LiveExample, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
-	import { siteConfig } from '#lib/site-config.ts';
 	import CodeWindow from '#lib/components/landing/code-window.svelte';
 	import EarlyReleaseAlert from '#lib/components/early-release-alert.svelte';
 	import { reveal } from '#lib/actions/reveal.ts';
@@ -72,7 +71,6 @@
 
 <DocsShell
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
-	config={siteConfig}
 	layout="page"
 	pattern
 >

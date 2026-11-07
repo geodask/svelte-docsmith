@@ -5,7 +5,7 @@
 import { run, CliError } from '../dist/buildtime/cli/run.js';
 
 try {
-	run(process.argv.slice(2));
+	await run(process.argv.slice(2));
 } catch (error) {
 	if (error instanceof CliError) {
 		// A mistake the user can fix. The message says how; a stack would not help.

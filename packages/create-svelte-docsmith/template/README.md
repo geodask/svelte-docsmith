@@ -30,7 +30,7 @@ Save it and the page appears in the sidebar, styled and highlighted.
 
 ## Configure
 
-- **Site title, nav, footer, SEO** — `src/lib/site-config.ts`
+- **Site title, nav, footer, SEO** — `site` in `docsmith()`, in `vite.config.ts`
 - **Theme** — `src/app.css` (import a preset, or override tokens)
 
 ## Build

@@ -18,3 +18,7 @@ declare module 'svelte-docsmith/changelog' {
 	export const releases: import('../core/changelog.js').ChangelogRelease[];
 	export const changelogPath: string;
 }
+
+declare module 'svelte-docsmith/site' {
+	export const site: import('../core/config.js').DocsmithSite;
+}

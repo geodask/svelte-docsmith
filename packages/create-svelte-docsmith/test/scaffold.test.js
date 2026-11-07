@@ -50,7 +50,10 @@ function scaffold(tmp) {
 	// Resolve svelte-docsmith to the workspace package, not the pin.
 	const pkgPath = path.join(dest, 'package.json');
 	const pkg = readJson(pkgPath);
-	assert.ok(pkg.dependencies?.['svelte-docsmith'], 'template must declare a svelte-docsmith dependency');
+	assert.ok(
+		pkg.dependencies?.['svelte-docsmith'],
+		'template must declare a svelte-docsmith dependency'
+	);
 	pkg.dependencies['svelte-docsmith'] = `file:${libRoot}`;
 	writeJson(pkgPath, pkg);
 
@@ -90,11 +93,10 @@ function downgradeToKit2(dest) {
 		path.join(dest, 'svelte.config.js'),
 		`import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { docsmith } from 'svelte-docsmith/preprocess';
 
 export default {
 	extensions: ['.svelte', '.md'],
-	preprocess: [vitePreprocess(), docsmith()],
+	preprocess: [vitePreprocess()],
 	kit: { adapter: adapter() }
 };
 `
@@ -107,7 +109,7 @@ import { defineConfig } from 'vite';
 import { docsmith } from 'svelte-docsmith/vite';
 
 export default defineConfig({
-	plugins: [docsmith(), tailwindcss(), sveltekit()]
+	plugins: [docsmith({ site: { title: 'Kit 2 Docs' } }), tailwindcss(), sveltekit()]
 });
 `
 	);

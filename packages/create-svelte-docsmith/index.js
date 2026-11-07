@@ -70,7 +70,7 @@ function applyOptions(dest, { pkgName, title, preset }) {
 	};
 	edit('package.json', (t) => t.replaceAll('{{PROJECT_NAME}}', pkgName));
 	edit('README.md', (t) => t.replaceAll('{{PROJECT_NAME}}', title));
-	edit('src/lib/site-config.ts', (t) => t.replaceAll('{{SITE_TITLE}}', title));
+	edit('vite.config.ts', (t) => t.replaceAll('{{SITE_TITLE}}', title));
 	edit('src/routes/+page.svelte', (t) => t.replaceAll('{{SITE_TITLE}}', title));
 	if (preset && preset !== 'default') {
 		edit('src/app.css', (t) =>
