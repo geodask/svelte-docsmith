@@ -10,16 +10,23 @@
 import { under } from '../utils/url.js';
 
 /**
+ * The outside paths, as `docsmith()` resolves them: each starting with `/`,
+ * without a trailing slash. The one shape they travel in, from the options to
+ * the broken-link check, the compiler and the shell.
+ */
+export type OutsidePaths = readonly string[];
+
+/**
  * Whether `path` is under an outside path: equal to one of `prefixes` or
  * beneath it on a segment boundary, so `/relative` covers `/relative/x` but
  * not `/relatives`. A trailing slash, query or fragment on `path` doesn't
  * change the answer, so an href can be passed as written once it is
  * site-absolute.
  *
- * `prefixes` are expected as `docsmith()` resolves them: each starting with
- * `/`, without a trailing slash.
+ * `prefixes` are expected as `docsmith()` resolves them (see
+ * {@link OutsidePaths}).
  */
-export function isOutsidePath(path: string, prefixes: readonly string[]): boolean {
+export function isOutsidePath(path: string, prefixes: OutsidePaths): boolean {
 	return path.startsWith('/') && prefixes.some((prefix) => under(path, prefix));
 }
 
@@ -36,7 +43,7 @@ export function isOutsidePath(path: string, prefixes: readonly string[]): boolea
  */
 export function siteLinkRel(
 	link: { href: string; external?: boolean },
-	outside: readonly string[]
+	outside: OutsidePaths
 ): string | undefined {
 	const rel = [
 		...(isOutsidePath(link.href, outside) ? ['external'] : []),

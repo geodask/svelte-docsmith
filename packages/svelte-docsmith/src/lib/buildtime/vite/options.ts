@@ -7,6 +7,7 @@
 import path from 'node:path';
 import { normalizePath } from '../../utils/url.js';
 import { checkSite, type DocsmithSite } from '../../core/config.js';
+import type { OutsidePaths } from '../../core/outside-path.js';
 import type { DocsVersions } from '../../core/version.js';
 import type { DocsmithMarkdownOptions } from '../markdown.js';
 import type { StandardSchemaV1 } from './frontmatter-schema.js';
@@ -62,7 +63,7 @@ export interface ResolvedLinksOptions {
 	 * SvelteKit app serves, each starting with `/` and without a trailing
 	 * slash, as `isOutsidePath` expects them. Empty unless declared.
 	 */
-	outside: string[];
+	outside: OutsidePaths;
 }
 
 export interface DocsmithOptions {

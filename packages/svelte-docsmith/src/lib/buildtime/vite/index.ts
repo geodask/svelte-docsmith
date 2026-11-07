@@ -94,10 +94,7 @@ export function docsmith(options: DocsmithOptions): Plugin[] {
 	};
 	return [
 		contentIndexPlugin(resolved, docImports, options),
-		markdownPlugin(resolved.markdown, renderCodeBlock, {
-			outside: resolved.links.outside,
-			routesDir: resolved.routesDir
-		}),
+		markdownPlugin(resolved.markdown, renderCodeBlock, resolved.links.outside, resolved.routesDir),
 		docImportsPlugin(docImports)
 	];
 }
@@ -190,7 +187,7 @@ function contentIndexPlugin(
 		if (links.broken === 'ignore') return;
 		let broken: BrokenLink[];
 		try {
-			broken = brokenLinks(readSourcePages(contentDir).pages, linkCheckOptions(), links);
+			broken = brokenLinks(readSourcePages(contentDir).pages, linkCheckOptions(), links.outside);
 		} catch {
 			// Frontmatter that doesn't parse, mid-edit. The content index reports
 			// it with the page's name; checking links can wait for the next save.
@@ -278,7 +275,7 @@ function contentIndexPlugin(
 				if (typos) console.warn(typos);
 				// Here for the same reason: once per build, with the pages already read.
 				if (building && links.broken !== 'ignore') {
-					reportBrokenLinks(brokenLinks(pages, linkCheckOptions(), links), links.broken);
+					reportBrokenLinks(brokenLinks(pages, linkCheckOptions(), links.outside), links.broken);
 				}
 				// Only this index has a date field, so only this one pays for git.
 				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);

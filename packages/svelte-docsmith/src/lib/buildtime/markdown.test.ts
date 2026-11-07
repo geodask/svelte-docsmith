@@ -142,10 +142,12 @@ describe('markdown compiler with outside paths', () => {
 		filename = intro
 	): Promise<string> {
 		const renderer = codeBlockRenderer({});
-		const compile = markdownCompiler({ layout: false, ...options }, renderer, {
-			outside: ['/relative'],
+		const compile = markdownCompiler(
+			{ layout: false, ...options },
+			renderer,
+			['/relative'],
 			routesDir
-		});
+		);
 		const result = await compile(content, filename);
 		if (!result) throw new Error('compiler returned nothing');
 		return result.code;
@@ -250,10 +252,12 @@ describe('markdown compiler with outside paths', () => {
 
 	it('marks a relative link to an outside path without percent-encoding it', async () => {
 		// The broken-link check accepts this same link; see `links.test.ts`.
-		const compile = markdownCompiler({ layout: false }, codeBlockRenderer({}), {
-			outside: ['/docs/café'],
+		const compile = markdownCompiler(
+			{ layout: false },
+			codeBlockRenderer({}),
+			['/docs/café'],
 			routesDir
-		});
+		);
 		const result = await compile('[a](./café/x) <a href="./café">b</a> [c](./cafe)', intro);
 		// remark writes the markdown link's href encoded; the raw <a> keeps it as written.
 		expect(result?.code).toContain('<a href="./caf%C3%A9/x" rel="external">');

@@ -13,20 +13,12 @@
  * marks the site config's links the same way in the browser.
  */
 import path from 'node:path';
-import { isOutsidePath } from '../core/outside-path.js';
+import { isOutsidePath, type OutsidePaths } from '../core/outside-path.js';
 import { sitePathOf } from '../utils/url.js';
 import { rawLinks } from './raw-html.js';
 import { pageUrlFor, relativeToCwd } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
 import type { SourcePage } from './vite/pages.js';
-
-/** What the compiler needs to know which links point at an outside path. */
-export interface OutsidePathsOptions {
-	/** The outside paths, as `docsmith()` resolves them. */
-	outside: readonly string[];
-	/** Absolute routes root, to give a page the URL its relative links resolve against. */
-	routesDir: string;
-}
 
 /**
  * Throw when any page in `pages` is served under an outside path, naming every
@@ -36,7 +28,7 @@ export interface OutsidePathsOptions {
 export function checkOutsidePaths(
 	pages: SourcePage[],
 	options: Pick<IndexOptions, 'routesDir'>,
-	outside: readonly string[]
+	outside: OutsidePaths
 ): void {
 	if (!outside.length) return;
 	const clashes: string[] = [];
@@ -78,11 +70,11 @@ type HastNode = {
  * it is left alone, as is a `rel={...}` it couldn't add to.
  *
  * Relative hrefs (`./x`, `../x`) resolve against the page's URL, as the
- * crawler resolves them, which only a file under the routes root has. They go
- * through `sitePathOf`, the resolver the broken-link check uses, so a link it
- * accepts as an outside path is a link marked here.
+ * crawler resolves them, which only a file under `routesDir`, the absolute
+ * routes root, has. They go through `sitePathOf`, the resolver the broken-link
+ * check uses, so a link it accepts as an outside path is a link marked here.
  */
-export function rehypeOutsidePaths({ outside, routesDir }: OutsidePathsOptions) {
+export function rehypeOutsidePaths(outside: OutsidePaths, routesDir: string) {
 	return () => (tree: HastNode, file: { filename?: string }) => {
 		if (!outside.length) return;
 		const pageUrl = pageUrlOf(file.filename, routesDir);

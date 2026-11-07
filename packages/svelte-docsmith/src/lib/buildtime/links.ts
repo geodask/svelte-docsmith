@@ -16,13 +16,12 @@
  */
 import GithubSlugger from 'github-slugger';
 import { Marked, type Token, type Tokens } from 'marked';
-import { isOutsidePath } from '../core/outside-path.js';
+import { isOutsidePath, type OutsidePaths } from '../core/outside-path.js';
 import { normalizePath, sitePathOf, under } from '../utils/url.js';
 import { splitFrontmatter } from './markdown-source.js';
 import { liveMarkup, rawLinks } from './raw-html.js';
 import { docsBaseFrom, pageUrlFor, relativeToCwd } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
-import type { ResolvedLinksOptions } from './vite/options.js';
 import type { SourcePage } from './vite/pages.js';
 
 /** Why a link is broken. */
@@ -100,13 +99,13 @@ type Target = {
  * archive's own links to stay inside it, so no rule here needs to know which
  * version a page belongs to.
  *
- * A link to an outside path is never broken, so `links.outside` is passed
- * along; without it, no path is outside.
+ * A link to an outside path is never broken, so the outside paths are passed
+ * along; without them, no path is outside.
  */
 export function brokenLinks(
 	pages: SourcePage[],
 	options: LinkCheckOptions,
-	links: Pick<ResolvedLinksOptions, 'outside'> = { outside: [] }
+	outside: OutsidePaths = []
 ): BrokenLink[] {
 	const site = siteOf(pages, options);
 	const broken: BrokenLink[] = [];
@@ -115,7 +114,7 @@ export function brokenLinks(
 		const url = pageUrlFor(options.routesDir, page.file);
 		for (const { href, line } of writtenLinks(page)) {
 			const target = targetOf(href, url);
-			const problem = target && problemWith(target, site, links);
+			const problem = target && problemWith(target, site, outside);
 			if (problem) broken.push({ file: page.file, line, link: href, problem });
 		}
 	}
@@ -208,12 +207,8 @@ function targetOf(href: string, writtenOn: string): Target | undefined {
  * outside path, even under the docs base: the author has said something other
  * than this app serves it.
  */
-function problemWith(
-	target: Target,
-	site: Site,
-	links: Pick<ResolvedLinksOptions, 'outside'>
-): LinkProblem | undefined {
-	if (isOutsidePath(target.path, links.outside)) return undefined;
+function problemWith(target: Target, site: Site, outside: OutsidePaths): LinkProblem | undefined {
+	if (isOutsidePath(target.path, outside)) return undefined;
 	if (!under(target.path, site.docsBase)) return undefined;
 	if (!site.pages.has(target.path)) return { type: 'no-page', path: target.path };
 	const anchors = target.fragment ? site.anchors(target.path) : undefined;

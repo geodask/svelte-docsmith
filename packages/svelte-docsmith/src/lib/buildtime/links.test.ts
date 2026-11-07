@@ -551,18 +551,18 @@ describe('brokenLinksReport', () => {
 });
 
 describe('brokenLinks with outside paths', () => {
-	const links = { outside: ['/relative', '/docs/api'] };
+	const outside = ['/relative', '/docs/api'];
 
 	it('never reports a link to an outside path, even under the docs base', () => {
 		const body = '[a](/relative/x) [b](/docs/api/users) [c](/docs/api#top) [d](/docs/api?v=2)';
 
-		expect(brokenLinks([page('intro', body)], options, links)).toEqual([]);
+		expect(brokenLinks([page('intro', body)], options, outside)).toEqual([]);
 	});
 
 	it('still reports a broken link beside an outside path, on a segment boundary', () => {
 		const body = '[a](/docs/api/users) [b](/docs/apis)';
 
-		const found = brokenLinks([page('intro', body)], options, links);
+		const found = brokenLinks([page('intro', body)], options, outside);
 
 		expect(found.map(({ link }) => link)).toEqual(['/docs/apis']);
 	});
@@ -571,7 +571,7 @@ describe('brokenLinks with outside paths', () => {
 		// The compiler marks this same link rel="external"; see `markdown.test.ts`.
 		const body = '[a](./café/x) [b](/docs/café) [c](./cafe) [d](./caf%C3%A9/y)';
 
-		const found = brokenLinks([page('intro', body)], options, { outside: ['/docs/café'] });
+		const found = brokenLinks([page('intro', body)], options, ['/docs/café']);
 
 		expect(found.map(({ link }) => link)).toEqual(['./cafe']);
 	});

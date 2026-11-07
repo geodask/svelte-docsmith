@@ -12,7 +12,8 @@ import { mdsvex, type MdsvexOptions } from 'mdsvex';
 import { fileURLToPath } from 'node:url';
 import rehypeSlug from 'rehype-slug';
 import { codeBlockMarkup, type RenderCodeBlock } from './code-block.js';
-import { rehypeOutsidePaths, type OutsidePathsOptions } from './outside-paths.js';
+import type { OutsidePaths } from '../core/outside-path.js';
+import { rehypeOutsidePaths } from './outside-paths.js';
 
 /** The `markdown` options of `docsmith()`: how doc pages are compiled. */
 export interface DocsmithMarkdownOptions {
@@ -74,13 +75,15 @@ export type CompileMarkdown = (
  * panels share one renderer, and with it one set of themes and one Shiki
  * highlighter.
  *
- * `links` names the outside paths whose links compile with `rel="external"`;
- * without it, no link is marked.
+ * `outside` names the outside paths whose links compile with `rel="external"`,
+ * and `routesDir`, the absolute routes root, gives each page the URL its
+ * relative links resolve against. Without outside paths, no link is marked.
  */
 export function markdownCompiler(
 	options: DocsmithMarkdownOptions,
 	renderCodeBlock: RenderCodeBlock,
-	links: OutsidePathsOptions = { outside: [], routesDir: '' }
+	outside: OutsidePaths = [],
+	routesDir = ''
 ): CompileMarkdown {
 	const layout =
 		options.layout === false
@@ -100,7 +103,7 @@ export function markdownCompiler(
 		rehypePlugins: [
 			rehypeSlug,
 			[rehypeSectionize, { idPropertyName: 'data-section-id' }],
-			rehypeOutsidePaths(links),
+			rehypeOutsidePaths(outside, routesDir),
 			...(options.rehypePlugins ?? [])
 		] as MdsvexOptions['rehypePlugins']
 	});
