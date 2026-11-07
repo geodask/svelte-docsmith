@@ -13,7 +13,7 @@
 	import { setDocsPage } from '../docs-page-context.js';
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
-	import ThemeProvider from '../chrome/theme-provider.svelte';
+	import ModeProvider from '../chrome/mode-provider.svelte';
 	import AnnouncementBar from '../chrome/announcement-bar.svelte';
 	import DocsHeader from './docs-header.svelte';
 	import DocsFooter from './docs-footer.svelte';
@@ -183,7 +183,7 @@
 	</a>
 
 	<!-- Owns light/dark for the whole app — consumers never wire mode-watcher. -->
-	<ThemeProvider />
+	<ModeProvider />
 
 	{#if search}
 		<Search />

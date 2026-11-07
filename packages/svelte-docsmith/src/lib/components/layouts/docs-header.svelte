@@ -5,7 +5,7 @@
 	import GithubIcon from '#lib/components/icons/github.svelte';
 	import SearchTrigger from '../chrome/search-trigger.svelte';
 	import { useSearchSession } from '#lib/search/session.svelte.js';
-	import ThemeToggle from '../chrome/theme-toggle.svelte';
+	import ModeToggle from '../chrome/mode-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
 	import { outside, site } from 'svelte-docsmith/site';
 	import type { Snippet } from 'svelte';
@@ -114,7 +114,7 @@
 					</Button>
 				{/if}
 
-				<ThemeToggle />
+				<ModeToggle />
 			</div>
 		</div>
 	</div>

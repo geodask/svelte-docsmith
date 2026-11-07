@@ -5,7 +5,7 @@
 	import type { TocItem } from '#lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
-	import ThemeToggle from '../chrome/theme-toggle.svelte';
+	import ModeToggle from '../chrome/mode-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
 	import { Button } from '#lib/components/shadcn/button/index.js';
 	import * as Popover from '#lib/components/shadcn/popover/index.js';
@@ -141,7 +141,7 @@
 				</Button>
 			{/if}
 
-			<ThemeToggle />
+			<ModeToggle />
 
 			{#if tocItems.length > 0}
 				<Popover.Root bind:open={isTocOpen}>

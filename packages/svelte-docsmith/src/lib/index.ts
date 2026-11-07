@@ -2,11 +2,16 @@
 // shadcn primitives, the TOC engine, the clipboard helper, the markdown
 // renderer map — is internal and may change between releases.
 
-// Chrome (site shell and theming)
+// Chrome (site shell and colour mode)
+import ModeProvider from './components/chrome/mode-provider.svelte';
+import ModeToggle from './components/chrome/mode-toggle.svelte';
 export { default as DocsShell } from './components/layouts/docs-shell.svelte';
 export { default as ErrorPage } from './components/layouts/error-page.svelte';
-export { default as ThemeProvider } from './components/chrome/theme-provider.svelte';
-export { default as ThemeToggle } from './components/chrome/theme-toggle.svelte';
+export { ModeProvider, ModeToggle };
+/** @deprecated Renamed to `ModeProvider`: it controls colour mode, not the theme. This alias goes in the next minor. */
+export const ThemeProvider = ModeProvider;
+/** @deprecated Renamed to `ModeToggle`: it switches colour mode, not the theme. This alias goes in the next minor. */
+export const ThemeToggle = ModeToggle;
 
 // Docs components (authored inside markdown or composed in pages)
 export { default as LiveExample } from './components/docs/live-example.svelte';
