@@ -1,7 +1,7 @@
 /**
  * The code block renderer: every decision about how a code block is drawn, in
  * one place. A markdown fence and a `?source` import go through the same
- * renderer (one instance per `docsmith()` call, so one set of themes and one
+ * renderer (one instance per `docsmith()` call, so one code theme and one
  * Shiki highlighter), so a fence and a LiveExample's source panel can never
  * drift apart.
  *
@@ -25,12 +25,28 @@ import {
 	transformerNotationHighlight,
 	transformerNotationWordHighlight
 } from '@shikijs/transformers';
-import { createHighlighter, type Highlighter, type ShikiTransformer } from 'shiki';
+import {
+	createCssVariablesTheme,
+	createHighlighter,
+	type Highlighter,
+	type ShikiTransformer
+} from 'shiki';
 import { hasTwoslash, parseFenceMeta } from './fence-meta.js';
 import { twoslashFailure, twoslashTransformer } from './twoslash.js';
 
-/** The default Shiki themes for the dual light/dark render. */
-export const DEFAULT_THEMES = { light: 'github-light', dark: 'github-dark' };
+/**
+ * The theme a block is coloured with when the site names no `codeTheme`:
+ * Shiki's CSS-variables theme, so every colour is a `--code-*` token the site's
+ * theme sets (see ADR-0011). Colour mode changes the tokens themselves, so one
+ * render serves light and dark, and switching theme recolours code with no
+ * rebuild. `theme.css` gives every token a fallback derived from the theme's
+ * own colours.
+ */
+const TOKENS_THEME = createCssVariablesTheme({
+	name: 'docsmith-tokens',
+	variablePrefix: '--code-',
+	fontStyle: true
+});
 
 /** A generous default language set for documentation code fences. */
 export const DEFAULT_LANGS = [
@@ -53,8 +69,11 @@ export const DEFAULT_LANGS = [
 ];
 
 export type CodeBlockOptions = {
-	/** Shiki themes for the dual light/dark render. Default: {@link DEFAULT_THEMES}. */
-	themes?: { light: string; dark: string };
+	/**
+	 * An exact Shiki pair, one per colour mode, rendered dual. Default: none, so
+	 * code reads the theme's `--code-*` tokens.
+	 */
+	codeTheme?: { light: string; dark: string };
 	/** Extra Shiki languages to load on top of {@link DEFAULT_LANGS}. */
 	langs?: string[];
 	/** Number every block whose fence doesn't say otherwise. Default: `false`. */
@@ -114,7 +133,8 @@ const notation = (): ShikiTransformer[] => [
  * and reused after, so a site with no code pays nothing for it.
  */
 export function codeBlockRenderer(options: CodeBlockOptions = {}): RenderCodeBlock {
-	const themes = options.themes ?? DEFAULT_THEMES;
+	const pair = options.codeTheme;
+	const colours = pair ? { themes: pair } : { theme: TOKENS_THEME.name };
 	const langs = [...new Set([...DEFAULT_LANGS, ...(options.langs ?? [])])];
 	const warn = options.warn ?? ((message: string) => console.warn(message));
 	let highlighter: Promise<Highlighter> | undefined;
@@ -124,7 +144,7 @@ export function codeBlockRenderer(options: CodeBlockOptions = {}): RenderCodeBlo
 		if (lang === 'mermaid') return { kind: 'diagram', code };
 
 		const shiki = await (highlighter ??= createHighlighter({
-			themes: [themes.light, themes.dark],
+			themes: pair ? [pair.light, pair.dark] : [TOKENS_THEME],
 			langs
 		}));
 		// An unknown language falls back to plain text instead of failing the build.
@@ -132,7 +152,7 @@ export function codeBlockRenderer(options: CodeBlockOptions = {}): RenderCodeBlo
 		const render = (extra: ShikiTransformer[] = []) =>
 			shiki.codeToHtml(code, {
 				lang: language,
-				themes,
+				...colours,
 				// transformerMetaHighlight reads the raw fence meta from here.
 				meta: { __raw: meta ?? '' },
 				transformers: [...extra, ...notation()]

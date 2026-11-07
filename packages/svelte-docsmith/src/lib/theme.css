@@ -142,6 +142,21 @@
 		--shadow-offset-y: 1px;
 		--tracking-normal: 0em;
 		--spacing: 0.25rem;
+		/* Code colours, read by every code block unless docsmith({ codeTheme })
+		 * names a Shiki pair. A theme sets its own; these fallbacks derive them
+		 * from its palette, pulled toward the foreground so syntax colours stay
+		 * readable on the page in both colour modes. */
+		--code-foreground: var(--foreground);
+		--code-background: var(--muted);
+		--code-token-keyword: color-mix(in oklch, var(--primary) 80%, var(--foreground));
+		--code-token-string: color-mix(in oklch, var(--chart-2) 65%, var(--foreground));
+		--code-token-string-expression: var(--code-token-string);
+		--code-token-function: color-mix(in oklch, var(--chart-1) 65%, var(--foreground));
+		--code-token-constant: color-mix(in oklch, var(--chart-3) 55%, var(--foreground));
+		--code-token-parameter: color-mix(in oklch, var(--chart-4) 50%, var(--foreground));
+		--code-token-punctuation: color-mix(in oklch, var(--muted-foreground) 70%, var(--foreground));
+		--code-token-comment: var(--muted-foreground);
+		--code-token-link: var(--primary);
 	}
 
 	* {
@@ -177,13 +192,16 @@
 }
 
 /*
- * Shiki dual-theme output: light colors are inline, dark colors ship as
- * --shiki-dark/--shiki-dark-bg variables. Flip to them under `.dark`.
+ * Shiki dual-theme output, only when docsmith({ codeTheme }) names a pair:
+ * light colors are inline, dark colors ship as --shiki-dark/--shiki-dark-bg
+ * variables. Flip to them under `.dark`. Only elements that carry their own
+ * --shiki-dark are repainted, so the default output, which colours tokens with
+ * the theme's --code-* tokens and needs no flip, is never touched.
  * Code fences strip Shiki's <pre> (their bg-muted wrapper shows through);
  * LiveExample keeps Shiki's <pre>, so the background flip darkens it.
  */
-html.dark .shiki,
-html.dark .shiki span {
+html.dark .shiki[style*='--shiki-dark'],
+html.dark .shiki span[style*='--shiki-dark'] {
 	color: var(--shiki-dark) !important;
 }
 

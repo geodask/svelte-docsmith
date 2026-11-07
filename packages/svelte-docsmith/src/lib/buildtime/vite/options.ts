@@ -108,8 +108,15 @@ export interface DocsmithOptions {
 	 */
 	theme?: string;
 	/**
-	 * Shiki themes for every code block: markdown fences and `LiveExample`
-	 * source panels alike. Default: github-light/github-dark.
+	 * An exact pair of Shiki themes, one per colour mode, for every code block:
+	 * markdown fences and `LiveExample` source panels alike. Default: none, so
+	 * code blocks follow the theme, reading its `--code-*` tokens. Set
+	 * `{ light: 'github-light', dark: 'github-dark' }` for the look code blocks
+	 * had before themes coloured them.
+	 */
+	codeTheme?: { light: string; dark: string };
+	/**
+	 * @deprecated Renamed to `codeTheme`. Still read until the next minor.
 	 */
 	themes?: { light: string; dark: string };
 	/** How markdown doc pages are compiled. */
@@ -149,7 +156,10 @@ export interface ResolvedDocsmithOptions {
 	changelogPath: string;
 	/** Absolute path of the theme file the plugin serves. */
 	themeFile: string;
-	themes?: { light: string; dark: string };
+	/** The exact Shiki pair, when one is named; otherwise code reads the theme's tokens. */
+	codeTheme?: { light: string; dark: string };
+	/** One-line notices about deprecated options in use, for the plugin to print. */
+	deprecations: string[];
 	markdown: DocsmithMarkdownOptions;
 	tsconfig?: string;
 	schema?: StandardSchemaV1;
@@ -185,6 +195,17 @@ export function resolveOptions(
 				`Write changelog: { file: ${JSON.stringify(options.changelog)} }.`
 		);
 	}
+	if (options.themes !== undefined && options.codeTheme !== undefined) {
+		throw new Error(
+			'[svelte-docsmith] docsmith() sets both `themes` and `codeTheme`. `themes` was renamed to `codeTheme`: keep only that one.'
+		);
+	}
+	const deprecations: string[] = [];
+	if (options.themes !== undefined) {
+		deprecations.push(
+			'[svelte-docsmith] docsmith({ themes }) is renamed to `codeTheme`, and `themes` stops working in the next minor.'
+		);
+	}
 	const site = checkSite(options.site);
 	const changelog = options.changelog === false ? undefined : (options.changelog ?? {});
 	return {
@@ -195,7 +216,8 @@ export function resolveOptions(
 		changelogFile: changelog && path.resolve(cwd, changelog.file ?? 'CHANGELOG.md'),
 		changelogPath: (options.changelog || undefined)?.path ?? '/changelog',
 		themeFile: resolveTheme(options.theme, cwd),
-		themes: options.themes,
+		codeTheme: options.codeTheme ?? options.themes,
+		deprecations,
 		markdown: options.markdown ?? {},
 		tsconfig: options.tsconfig,
 		schema: options.schema,

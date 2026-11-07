@@ -645,15 +645,34 @@ describe('docsmith() markdown pages', () => {
 		expect((await handler('# Hi', '/app/x/+page.svx'))?.code).toContain('Hi');
 	});
 
-	it('draws fences with the themes and line numbers set once for the site', async () => {
+	it('draws fences with the code theme and line numbers set once for the site', async () => {
 		const { handler } = transform({
-			themes: { light: 'min-light', dark: 'min-dark' },
+			codeTheme: { light: 'min-light', dark: 'min-dark' },
 			markdown: { lineNumbers: true }
 		});
 		const out = await handler('```js\nconst a = 1;\n```', '/app/x/+page.md');
 		// min-light's keyword colour; github-light's is #D73A49.
 		expect(out?.code).toContain('#D32F2F');
 		expect(out?.code).toContain('lineNumbers');
+	});
+
+	it('still reads the deprecated `themes`, and says it was renamed', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const { handler } = transform({ themes: { light: 'min-light', dark: 'min-dark' } });
+			const out = await handler('```js\nconst a = 1;\n```', '/app/x/+page.md');
+			expect(out?.code).toContain('#D32F2F');
+			expect(warn).toHaveBeenCalledWith(expect.stringContaining('renamed to `codeTheme`'));
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it('refuses `themes` and `codeTheme` together', () => {
+		const pair = { light: 'min-light', dark: 'min-dark' };
+		expect(() => docsmith({ site: SITE, themes: pair, codeTheme: pair })).toThrow(
+			/both `themes` and `codeTheme`/
+		);
 	});
 
 	it('warns when SvelteKit does not compile the markdown extensions', () => {

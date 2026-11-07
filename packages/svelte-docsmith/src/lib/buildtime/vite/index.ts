@@ -74,10 +74,11 @@ export type { DocsmithSite } from '../../core/config.js';
  */
 export function docsmith(options: DocsmithOptions): Plugin[] {
 	const resolved = resolveOptions(options);
-	// One renderer for markdown fences and `?source` panels: one set of themes,
+	for (const notice of resolved.deprecations) console.warn(notice);
+	// One renderer for markdown fences and `?source` panels: one code theme,
 	// one Shiki highlighter.
 	const renderCodeBlock = codeBlockRenderer({
-		themes: resolved.themes,
+		codeTheme: resolved.codeTheme,
 		langs: resolved.markdown.langs,
 		lineNumbers: resolved.markdown.lineNumbers,
 		twoslash: resolved.markdown.twoslash

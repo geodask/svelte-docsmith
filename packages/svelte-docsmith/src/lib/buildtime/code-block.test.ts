@@ -56,12 +56,22 @@ const code = (block: CodeBlock) => {
 };
 
 describe('codeBlockRenderer', () => {
-	it('highlights with both themes and keeps Shiki’s <pre>', async () => {
+	it('colours code with the theme’s tokens and keeps Shiki’s <pre>', async () => {
 		const block = code(await render('const a = 1;', 'js'));
 		expect(block.html).toMatch(/^<pre class="shiki/);
-		expect(block.html).toContain('--shiki-dark');
+		expect(block.html).toContain('color:var(--code-token-keyword)');
+		expect(block.html).toContain('background-color:var(--code-background)');
+		// One render serves both colour modes: nothing to flip under `.dark`.
+		expect(block.html).not.toContain('--shiki-dark');
 		expect(block.lineNumbers).toBe(false);
 		expect(block).not.toHaveProperty('title');
+	});
+
+	it('renders an exact Shiki pair dual when codeTheme names one', async () => {
+		const paired = codeBlockRenderer({ codeTheme: { light: 'github-light', dark: 'github-dark' } });
+		const block = code(await paired('const a = 1;', 'js'));
+		expect(block.html).toContain('--shiki-dark');
+		expect(block.html).not.toContain('var(--code-');
 	});
 
 	it('renders a mermaid fence as a diagram with its source untouched', async () => {
@@ -98,6 +108,14 @@ describe('codeBlockRenderer', () => {
 	it('highlights the lines the meta names', async () => {
 		const block = code(await render('a\nb\nc', 'ts', '{2-3}'));
 		expect((block.html.match(/highlighted/g) ?? []).length).toBe(2);
+	});
+
+	it('applies the notation transformers with the token theme', async () => {
+		const block = code(
+			await render('const a = 1; // [!code ++]\nconst b = 2; // [!code focus]', 'ts')
+		);
+		expect(block.html).toContain('diff add');
+		expect(block.html).toContain('focused');
 	});
 
 	it('warns once the twoslash fallback kicks in, and still renders the block', async () => {
