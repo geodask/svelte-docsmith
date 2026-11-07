@@ -1,5 +1,11 @@
 # svelte-docsmith
 
+## 0.20.2
+
+### Patch Changes
+
+- c7814f0: Build agent markdown and the llms index in one module. No change to what `llms.txt`, `llms-full.txt`, the `.md` twins or the MCP server serve: the docs site's prerendered output is byte-for-byte the same.
+
 ## 0.20.1
 
 ### Patch Changes
