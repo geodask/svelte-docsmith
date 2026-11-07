@@ -16,7 +16,7 @@ import path from 'node:path';
 import { isOutsidePath } from '../core/outside-path.js';
 import { sitePathOf } from '../utils/url.js';
 import { rawLinks } from './raw-html.js';
-import { relativeToCwd, urlFor } from './paths.js';
+import { pageUrlFor, relativeToCwd } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
 import type { SourcePage } from './vite/pages.js';
 
@@ -41,7 +41,7 @@ export function checkOutsidePaths(
 	if (!outside.length) return;
 	const clashes: string[] = [];
 	for (const page of pages) {
-		const url = urlFor(options.routesDir, path.dirname(page.file));
+		const url = pageUrlFor(options.routesDir, page.file);
 		const prefix = outside.find((p) => isOutsidePath(url, [p]));
 		if (prefix) {
 			clashes.push(`  ${relativeToCwd(page.file)}  ${url}  under outside path '${prefix}'`);
@@ -104,7 +104,7 @@ function pageUrlOf(filename: string | undefined, routesDir: string): string | un
 	if (!filename || !path.isAbsolute(filename)) return undefined;
 	const rel = path.relative(routesDir, path.dirname(filename));
 	if (rel.startsWith('..') || path.isAbsolute(rel)) return undefined;
-	return urlFor(routesDir, path.dirname(filename));
+	return pageUrlFor(routesDir, filename);
 }
 
 function markElement(node: HastNode, isOutside: (href: string) => boolean) {

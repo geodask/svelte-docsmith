@@ -15,13 +15,12 @@
  * {@link brokenLinksReport} words the result; printing it is the plugin's job.
  */
 import GithubSlugger from 'github-slugger';
-import path from 'node:path';
 import { Marked, type Token, type Tokens } from 'marked';
 import { isOutsidePath } from '../core/outside-path.js';
 import { normalizePath, sitePathOf, under } from '../utils/url.js';
 import { splitFrontmatter } from './markdown-source.js';
 import { liveMarkup, rawLinks } from './raw-html.js';
-import { docsBaseFrom, relativeToCwd, urlFor } from './paths.js';
+import { docsBaseFrom, pageUrlFor, relativeToCwd } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
 import type { ResolvedLinksOptions } from './vite/options.js';
 import type { SourcePage } from './vite/pages.js';
@@ -113,7 +112,7 @@ export function brokenLinks(
 	const broken: BrokenLink[] = [];
 
 	for (const page of pages) {
-		const url = pageUrl(page, options);
+		const url = pageUrlFor(options.routesDir, page.file);
 		for (const { href, line } of writtenLinks(page)) {
 			const target = targetOf(href, url);
 			const problem = target && problemWith(target, site, links);
@@ -147,11 +146,6 @@ function describeProblem(problem: LinkProblem): string {
 	return `no page at ${problem.path}`;
 }
 
-/** The URL SvelteKit serves `page` at. */
-function pageUrl(page: SourcePage, options: IndexOptions): string {
-	return urlFor(options.routesDir, path.dirname(page.file));
-}
-
 /**
  * The site as the check sees it. Every page read counts, titled or not: an
  * untitled page is in no index, but SvelteKit still serves it, so a link to it
@@ -162,10 +156,8 @@ function pageUrl(page: SourcePage, options: IndexOptions): string {
  * has anchors the check can't read, so its are unknown.
  */
 function siteOf(pages: SourcePage[], options: LinkCheckOptions): Site {
-	const byUrl = new Map(pages.map((page) => [pageUrl(page, options), page]));
-	const routes = (options.pageRoutes ?? []).map((file) =>
-		urlFor(options.routesDir, path.dirname(file))
-	);
+	const byUrl = new Map(pages.map((page) => [pageUrlFor(options.routesDir, page.file), page]));
+	const routes = (options.pageRoutes ?? []).map((file) => pageUrlFor(options.routesDir, file));
 	const anchors = new Map<string, string[]>();
 	return {
 		docsBase: docsBaseFrom(options.routesDir, options.contentDir),
