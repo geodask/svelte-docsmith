@@ -10,7 +10,7 @@
 	}: {
 		/** The shell's `logo` snippet, which wins over `site.logo`. */
 		logo?: Snippet;
-		/** Classes for the built-in book mark only. */
+		/** Classes for the `site.logo` image or the built-in book mark (not the snippet). */
 		class?: string;
 	} = $props();
 </script>
@@ -20,7 +20,7 @@
 {#if logo}
 	{@render logo()}
 {:else if site.logo}
-	<img src={site.logo} alt="" class="size-5 object-contain" />
+	<img src={site.logo} alt="" class={cn('size-5 object-contain', className)} />
 {:else}
 	<BookOpenText class={cn('size-5', className)} />
 {/if}

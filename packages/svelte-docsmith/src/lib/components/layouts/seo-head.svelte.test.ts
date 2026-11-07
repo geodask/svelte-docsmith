@@ -1,55 +1,82 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
-import SeoHead from './seo-head.svelte';
+import { resolveDocsPage, resolveVersions, type DocsmithSite } from '#lib/core/index.js';
+import type { DocsContentItem } from '#lib/core/index.js';
 
-const config = { title: 'My Docs' };
+const site: DocsmithSite = vi.hoisted(() => ({ title: 'My Docs', description: 'Site blurb' }));
+vi.mock('svelte-docsmith/site', () => ({ site }));
+import Harness from './_fixtures/seo-head-harness.svelte';
 
-describe('SeoHead robots', () => {
-	afterEach(() => {
-		document.head.querySelectorAll('meta[name="robots"]').forEach((n) => n.remove());
+const content: DocsContentItem[] = [
+	{ title: 'Intro', path: '/docs/intro', description: 'Start here', version: 'v2' },
+	{ title: 'Intro', path: '/docs/v1/intro', version: 'v1' }
+];
+const versions = resolveVersions(
+	{ current: { id: 'v2', label: 'v2' }, archived: [{ id: 'v1', label: 'v1', noindex: true }] },
+	'/docs',
+	content
+);
+
+const view = (pathname: string, over: Partial<DocsmithSite> = {}) =>
+	resolveDocsPage({ content, versions, pathname, site: { ...site, ...over } });
+
+const head = (selector: string) => document.head.querySelector(selector);
+
+afterEach(() => {
+	document.head
+		.querySelectorAll('title, meta, link[rel="canonical"]')
+		.forEach((node) => node.remove());
+});
+
+// What the page is (its entry, canonical URL and version) is resolved and tested
+// in `core/docs-page.ts`; this pins which tags the head emits from it.
+describe('SeoHead title and description', () => {
+	it("uses the doc page's frontmatter, suffixed with the site title", () => {
+		render(Harness, { props: { view: view('/docs/intro') } });
+		expect(document.title).toBe('Intro · My Docs');
+		expect(head('meta[name="description"]')).toHaveAttribute('content', 'Start here');
 	});
 
-	it('emits noindex for a hidden version', () => {
-		render(SeoHead, { props: { config, title: 'Intro', noindex: true } });
-		expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
-			'content',
-			'noindex, follow'
-		);
+	it('lets the shell override both', () => {
+		render(Harness, {
+			props: { view: view('/docs/intro'), title: 'Custom', description: 'Custom blurb' }
+		});
+		expect(document.title).toBe('Custom · My Docs');
+		expect(head('meta[name="description"]')).toHaveAttribute('content', 'Custom blurb');
+	});
+
+	it('falls back to the site title and description off a doc page', () => {
+		render(Harness, { props: { view: view('/') } });
+		expect(document.title).toBe('My Docs');
+		expect(head('meta[name="description"]')).toHaveAttribute('content', 'Site blurb');
+	});
+});
+
+describe('SeoHead robots', () => {
+	it('emits noindex on a version marked hidden', () => {
+		render(Harness, { props: { view: view('/docs/v1/intro') } });
+		expect(head('meta[name="robots"]')).toHaveAttribute('content', 'noindex, follow');
 	});
 
 	it('omits the robots meta by default (indexable)', () => {
-		render(SeoHead, { props: { config, title: 'Intro' } });
-		expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
+		render(Harness, { props: { view: view('/docs/intro') } });
+		expect(head('meta[name="robots"]')).toBeNull();
 	});
 });
 
 describe('SeoHead canonical', () => {
-	afterEach(() => {
-		document.head
-			.querySelectorAll('link[rel="canonical"], meta[property="og:url"]')
-			.forEach((n) => {
-				n.remove();
-			});
-	});
-
-	const canonical = () => document.head.querySelector('link[rel="canonical"]');
-
-	// The URL itself is resolved with the page view (`core/docs-page.ts`), which
-	// covers the origin join and the missing-origin case; this pins the tags.
-	it('emits the canonical link and og:url from the resolved URL', () => {
-		render(SeoHead, {
-			props: { config, title: 'Intro', canonical: 'https://x.dev/docs/v1/intro' }
-		});
-		expect(canonical()).toHaveAttribute('href', 'https://x.dev/docs/v1/intro');
-		expect(document.head.querySelector('meta[property="og:url"]')).toHaveAttribute(
+	it("emits the canonical link and og:url from the view's canonical URL", () => {
+		render(Harness, { props: { view: view('/docs/v1/intro', { url: 'https://x.dev' }) } });
+		expect(head('link[rel="canonical"]')).toHaveAttribute('href', 'https://x.dev/docs/v1/intro');
+		expect(head('meta[property="og:url"]')).toHaveAttribute(
 			'content',
 			'https://x.dev/docs/v1/intro'
 		);
 	});
 
-	it('omits both without a canonical URL', () => {
-		render(SeoHead, { props: { config, title: 'Intro' } });
-		expect(canonical()).toBeNull();
-		expect(document.head.querySelector('meta[property="og:url"]')).toBeNull();
+	it('omits both without site.url', () => {
+		render(Harness, { props: { view: view('/docs/intro') } });
+		expect(head('link[rel="canonical"]')).toBeNull();
+		expect(head('meta[property="og:url"]')).toBeNull();
 	});
 });

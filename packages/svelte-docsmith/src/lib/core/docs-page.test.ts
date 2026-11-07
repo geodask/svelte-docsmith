@@ -371,6 +371,34 @@ describe('resolveDocsPage: issueHref', () => {
 		);
 	});
 
+	it.each([
+		['a .git suffix', 'https://github.com/o/r.git'],
+		['a subpath', 'https://github.com/o/r/tree/main/docs'],
+		['a query', 'https://github.com/o/r?tab=readme'],
+		['a hash', 'https://github.com/o/r#readme']
+	])('keeps only the owner and repository when site.github has %s', (_, url) => {
+		expect(resolve('/docs/intro', { site: { github: url } }).issueHref).toMatch(
+			/^https:\/\/github\.com\/o\/r\/issues\/new\?title=/
+		);
+	});
+
+	it('keeps the host, for a GitHub Enterprise repository', () => {
+		expect(
+			resolve('/docs/intro', { site: { github: 'https://git.corp.dev/o/r' } }).issueHref
+		).toMatch(/^https:\/\/git\.corp\.dev\/o\/r\/issues\/new\?/);
+	});
+
+	it.each([
+		['an account', 'https://github.com/o'],
+		['an org page', 'https://github.com/orgs/acme'],
+		['a sponsors page', 'https://github.com/sponsors/acme'],
+		['an empty repository segment', 'https://github.com/o/.git'],
+		['a non-web URL', 'git+https://github.com/o/r.git'],
+		['not a URL', 'o/r']
+	])('is absent when site.github is %s', (_, url) => {
+		expect(resolve('/docs/intro', { site: { github: url } }).issueHref).toBeUndefined();
+	});
+
 	it('is absent without site.github, or off a doc page', () => {
 		expect(resolve('/docs/intro').issueHref).toBeUndefined();
 		expect(resolve('/', { site: { github } }).issueHref).toBeUndefined();

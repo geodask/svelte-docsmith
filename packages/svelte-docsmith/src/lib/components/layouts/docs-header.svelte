@@ -53,7 +53,7 @@
 		<div class="ml-auto flex items-center gap-2">
 			{#if docsPage.view.headerLinks.length}
 				<nav aria-label="Main" class="mr-1 flex items-center gap-1">
-					{#each docsPage.view.headerLinks as link (link.href)}
+					{#each docsPage.view.headerLinks as link, i (i)}
 						<a
 							href={link.href}
 							target={link.external ? '_blank' : undefined}

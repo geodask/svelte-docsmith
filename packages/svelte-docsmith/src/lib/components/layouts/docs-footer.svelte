@@ -1,9 +1,8 @@
 <script lang="ts">
-	import type { DocsmithSite } from '#lib/core/index.js';
+	import { site } from 'svelte-docsmith/site';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 
-	const { config }: { config: DocsmithSite } = $props();
-	const footer = $derived(config.footer);
+	const footer = $derived(site.footer);
 	// Attribution is on by default; consumers opt out with `footer.poweredBy: false`.
 	const poweredBy = $derived(footer?.poweredBy ?? true);
 	const hasColumns = $derived(!!footer?.columns?.length);
@@ -14,11 +13,13 @@
 		<div class="mx-auto max-w-7xl px-4 py-10 md:px-6 lg:px-8">
 			{#if hasColumns}
 				<div class="mb-10 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-8">
-					{#each footer.columns! as column (column.title)}
+					<!-- Keyed by position: config lists are static, and two columns or links
+					     may share a title or an href. -->
+					{#each footer.columns! as column, c (c)}
 						<div>
 							<p class="mb-3 text-sm font-semibold">{column.title}</p>
 							<ul class="space-y-2">
-								{#each column.links as link (link.href)}
+								{#each column.links as link, i (i)}
 									<li>
 										<a
 											href={link.href}
