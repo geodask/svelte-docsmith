@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ExtractedProps } from './extracted-props.js';
-import { plainDescription, propsReference } from './props-reference.js';
+import { deprecationNote, plainDescription, propsReference } from './props-reference.js';
 
 const props = (rest: Partial<ExtractedProps> = {}): ExtractedProps => ({
 	name: 'Select',
@@ -95,11 +95,37 @@ describe('propsReference', () => {
 	});
 });
 
+describe('deprecationNote', () => {
+	it('prefixes the text', () => {
+		expect(deprecationNote('Use <code>value</code>.')).toBe('Deprecated: Use <code>value</code>.');
+	});
+
+	it('opens the first paragraph when the text is paragraphs of HTML', () => {
+		// The agent markdown row reads `Deprecated: Use a.<br><br>Removed in 2.0.`
+		expect(deprecationNote('<p>Use a.</p>\n<p>Removed in 2.0.</p>')).toBe(
+			'<p>Deprecated: Use a.</p>\n<p>Removed in 2.0.</p>'
+		);
+	});
+});
+
 describe('plainDescription', () => {
 	it('drops tags and decodes the entities the build-time renderer writes', () => {
 		expect(plainDescription('Use <code>a &lt; b</code> &amp; &quot;c&quot; &#39;d&#39;.')).toBe(
 			`Use a < b & "c" 'd'.`
 		);
 		expect(plainDescription(undefined)).toBeUndefined();
+	});
+
+	it('breaks lines where the HTML does, and joins soft breaks with a space', () => {
+		expect(plainDescription('First line<br>Second line')).toBe('First line\nSecond line');
+		expect(plainDescription('<p>One\nsentence.</p>\n<p>Two.</p>')).toBe('One sentence.\nTwo.');
+		expect(plainDescription('<ul>\n<li>a</li><li>b</li>\n</ul>')).toBe('a\nb');
+	});
+
+	it('decodes numeric and common named references, and leaves unknown ones as written', () => {
+		expect(plainDescription('a&nbsp;b &mdash; c &#8212; d &#x2014; e')).toBe(
+			'a\u00a0b \u2014 c \u2014 d \u2014 e'
+		);
+		expect(plainDescription('&notanentity; &#0;')).toBe('&notanentity; &#0;');
 	});
 });

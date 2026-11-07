@@ -67,24 +67,66 @@ export function propsReference(props: ExtractedProps, title?: string): PropsRefe
 	};
 }
 
-/** What a deprecated prop says about it: `Deprecated: Use value.` */
+/**
+ * What a deprecated prop says about it: `Deprecated: Use value.` When the
+ * text is paragraphs of HTML, the prefix opens the first one, so the note
+ * reads as one sentence on the page as it does in agent markdown.
+ */
 export function deprecationNote(text: string): string {
-	return `Deprecated: ${text}`;
+	return text.replace(/^(<p>)?/, '$1Deprecated: ');
 }
 
-const ENTITIES: Record<string, string> = {
-	'&amp;': '&',
-	'&lt;': '<',
-	'&gt;': '>',
-	'&quot;': '"',
-	'&#39;': "'"
+/** Tags whose end breaks the line in plain text. */
+const LINE_BREAK = /<br\s*\/?>|<\/(?:p|li|h[1-6]|blockquote|pre|div|tr|dt|dd)>/gi;
+
+/** The named references markdown escapes to, and ones raw HTML in a JSDoc commonly writes. */
+const NAMED_ENTITIES: Record<string, string> = {
+	amp: '&',
+	lt: '<',
+	gt: '>',
+	quot: '"',
+	apos: "'",
+	nbsp: '\u00a0',
+	ndash: '\u2013',
+	mdash: '\u2014',
+	hellip: '\u2026',
+	lsquo: '\u2018',
+	rsquo: '\u2019',
+	ldquo: '\u201c',
+	rdquo: '\u201d',
+	laquo: '\u00ab',
+	raquo: '\u00bb',
+	middot: '\u00b7',
+	bull: '\u2022',
+	times: '\u00d7',
+	larr: '\u2190',
+	rarr: '\u2192',
+	copy: '\u00a9',
+	reg: '\u00ae',
+	trade: '\u2122'
 };
-const ENTITY = new RegExp(Object.keys(ENTITIES).join('|'), 'g');
+
+/** A numeric (`&#8212;`, `&#x2014;`) or named (`&mdash;`) character reference. */
+const ENTITY = /&(?:#(\d+)|#x([\da-f]+)|([a-z]+\d*));/gi;
 
 /**
  * A description from the page's props import (inline HTML rendered at build
- * time) as plain text, for places that take no markup, like a tooltip.
+ * time) as plain text, for places that take no markup, like a tooltip. Line
+ * breaks and block ends become new lines, soft breaks become spaces, and
+ * character references are decoded (named ones it doesn't know stay as written).
  */
 export function plainDescription(html: string | undefined): string | undefined {
-	return html?.replace(/<[^>]+>/g, '').replace(ENTITY, (entity) => ENTITIES[entity]);
+	return html
+		?.replace(/\s+/g, ' ')
+		.replace(LINE_BREAK, (tag) => `${tag}\n`)
+		.replace(/<[^>]+>/g, '')
+		.replace(ENTITY, (entity, decimal?: string, hex?: string, name?: string) => {
+			if (name) return NAMED_ENTITIES[name] ?? entity;
+			const code = decimal ? Number(decimal) : parseInt(hex!, 16);
+			return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : entity;
+		})
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.join('\n');
 }
