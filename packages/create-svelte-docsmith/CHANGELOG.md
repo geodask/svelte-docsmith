@@ -1,5 +1,15 @@
 # create-svelte-docsmith
 
+## 0.5.0
+
+### Minor Changes
+
+- 383a0a3: New projects configure the whole site in the one `docsmith()` call in `vite.config.ts`, for svelte-docsmith 0.20: the site title, nav and footer live under `site`, there is no `src/lib/site-config.ts`, and no markdown preprocessor to register.
+
+### Patch Changes
+
+- Pin the starter template to `svelte-docsmith@^0.20.0` so freshly scaffolded projects install the current release.
+
 ## 0.4.5
 
 ### Patch Changes
