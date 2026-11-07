@@ -33,7 +33,14 @@ import { codeBlockRenderer } from '../code-block.js';
 import { checkVersions, resolveVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
-import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
+import {
+	isPageFile,
+	isRouteFile,
+	listRouteFiles,
+	readSourcePages,
+	withCommitDates,
+	type SourcePage
+} from './pages.js';
 import { contentIndex, searchIndex } from './collect.js';
 import { llmsIndex } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
@@ -159,6 +166,13 @@ function contentIndexPlugin(
 	const changelogRoute = options.changelogPath;
 	const changelogOverrides = path.join(routesDir, changelogRoute);
 	const indexOptions = { contentDir, routesDir, versions };
+	// A link to a `+page.svelte` beside the doc pages is a link to a page too.
+	// Listed afresh on every check, as the pages are read afresh.
+	const markdownExtensions = options.markdown.extensions ?? ['.md'];
+	const linkCheckOptions = () => ({
+		...indexOptions,
+		pageRoutes: listRouteFiles(contentDir, markdownExtensions)
+	});
 
 	// `vite build` checks links where the content index reads the pages, and
 	// reports at the author's level. `vite dev` checks from the page watcher
@@ -171,7 +185,7 @@ function contentIndexPlugin(
 		if (links.broken === 'ignore') return;
 		let broken: BrokenLink[];
 		try {
-			broken = brokenLinks(readSourcePages(contentDir).pages, indexOptions);
+			broken = brokenLinks(readSourcePages(contentDir).pages, linkCheckOptions());
 		} catch {
 			// Frontmatter that doesn't parse, mid-edit. The content index reports
 			// it with the page's name; checking links can wait for the next save.
@@ -252,7 +266,7 @@ function contentIndexPlugin(
 				if (typos) console.warn(typos);
 				// Here for the same reason: once per build, with the pages already read.
 				if (building && links.broken !== 'ignore') {
-					reportBrokenLinks(brokenLinks(pages, indexOptions), links.broken);
+					reportBrokenLinks(brokenLinks(pages, linkCheckOptions()), links.broken);
 				}
 				// Only this index has a date field, so only this one pays for git.
 				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
@@ -299,7 +313,11 @@ function contentIndexPlugin(
 			server.watcher.add(contentDir);
 			warnAboutBrokenLinks();
 			const onChange = (file: string) => {
-				if (!isPageFile(file)) return;
+				if (!isPageFile(file)) {
+					// No index reads a `+page.svelte`, but links to it count.
+					if (isRouteFile(file, markdownExtensions)) warnAboutBrokenLinks();
+					return;
+				}
 				warnAboutBrokenLinks();
 				let invalidated = false;
 				for (const virtualId of [VIRTUAL_CONTENT_ID, VIRTUAL_SEARCH_ID, VIRTUAL_LLMS_ID]) {

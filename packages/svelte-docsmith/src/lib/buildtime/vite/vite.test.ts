@@ -817,6 +817,51 @@ describe('docsmith() broken links', () => {
 		info.mockRestore();
 	});
 
+	it('counts any +page route under the docs root as a page, Svelte and markdown alike', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		const route = (relDir: string, name: string) => {
+			fs.mkdirSync(path.join(routesDir, relDir), { recursive: true });
+			fs.writeFileSync(path.join(routesDir, relDir, name), '<h1>A route</h1>\n');
+		};
+		route('docs/playground', '+page.svelte');
+		route('docs/api', '+page.markdown');
+		route('docs/data', '+page.server.ts');
+		writePage(
+			'docs/intro',
+			'title: Intro',
+			'[a](/docs/playground) [b](/docs/api) [c](/docs/data) [d](./playground/)'
+		);
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		// A load module alone renders nothing, so it isn't a page.
+		await expect(
+			contentPlugin('build', { markdown: { extensions: ['.md', '.markdown'] } }).load()
+		).rejects.toThrow(/1 broken link/);
+		const report = String(error.mock.calls[0][0]);
+		expect(report).toMatch(/intro\/\+page\.md:5 {2}\/docs\/data {2}no page at \/docs\/data/);
+		error.mockRestore();
+	});
+
+	it('re-checks links in dev when a Svelte page route comes or goes', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', 'Try the [playground](/docs/playground).');
+		const playground = path.join(routesDir, 'docs', 'playground', '+page.svelte');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+		const server = fakeServer();
+
+		contentPlugin('serve').configureServer(server);
+		expect(warn).toHaveBeenLastCalledWith(expect.stringContaining('/docs/playground'));
+
+		fs.mkdirSync(path.dirname(playground), { recursive: true });
+		fs.writeFileSync(playground, '<h1>Playground</h1>\n');
+		server.handlers.add(playground);
+		expect(info).toHaveBeenCalledWith(expect.stringContaining('no broken links left'));
+
+		warn.mockRestore();
+		info.mockRestore();
+	});
+
 	it('keeps the dev server up while a page has half-typed frontmatter', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: "unterminated');

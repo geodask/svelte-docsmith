@@ -193,6 +193,106 @@ describe('brokenLinks', () => {
 		expect(found.map(({ line }) => line)).toEqual([7]);
 	});
 
+	it('checks raw <a> links like markdown links, in both quote styles, with their lines', () => {
+		const body = [
+			'Inline <a href="/docs/one">one</a> and <a class="x" href=\'/docs/two\'>two</a>.', // 5
+			'',
+			'A tag over <a', // 7
+			'  title="a > b"',
+			"  href='/docs/three'>three</a>.", // 9
+			'',
+			'<div>', // 11
+			'  <p>A block of HTML.</p>',
+			'  <A HREF="/docs/four">four</A>', // 13
+			'</div>',
+			'',
+			'- an item with <a href="/docs/five">five</a>', // 16
+			'',
+			'<a href="/docs/setup">fine</a> <abbr title="/docs/nope">no link</abbr>' // 18
+		].join('\n');
+
+		const found = brokenLinks([page('intro', body), page('setup')], options);
+
+		expect(found.map(({ line, link }) => `${line} ${link}`)).toEqual([
+			'5 /docs/one',
+			'5 /docs/two',
+			'9 /docs/three',
+			'13 /docs/four',
+			'16 /docs/five'
+		]);
+		expect(found[0]).toEqual({
+			file: fileOf('intro'),
+			line: 5,
+			link: '/docs/one',
+			problem: { type: 'no-page', path: '/docs/one' }
+		});
+	});
+
+	it('skips raw <a> hrefs that are Svelte expressions, and <a> that is not live markup', () => {
+		const body = [
+			'<a href={base}>expression</a> <a href="/docs/{slug}">interpolated</a>',
+			'',
+			'<a {href}>shorthand</a> <a title="href=\'/docs/nope\'">no href</a>',
+			'',
+			'Write `<a href="/docs/inline">` to link.',
+			'',
+			'```svelte',
+			'<a href="/docs/fenced">x</a>',
+			'```',
+			'',
+			'<!-- <a href="/docs/commented">x</a> -->',
+			'',
+			'<script>',
+			'  const tag = \'<a href="/docs/scripted">\';',
+			'</script>'
+		].join('\n');
+
+		expect(brokenLinks([page('intro', body)], options)).toEqual([]);
+	});
+
+	it('resolves relative links against the page URL, and reports them as written', () => {
+		const body = [
+			'[sibling](./theming) [child-free](theming) [up](../intro) [gone](./nope)',
+			'',
+			'<a href="../../outside">outside the docs</a> <a href="./nope-too">raw</a>'
+		].join('\n');
+		const pages = [page('guide/setup', body), page('guide/theming'), page('intro')];
+
+		const found = brokenLinks(pages, options);
+
+		// `/docs/guide/setup` is the page URL, so `./x` is a sibling of `setup`.
+		expect(found.map(({ link, problem }) => ({ link, problem }))).toEqual([
+			{ link: './nope', problem: { type: 'no-page', path: '/docs/guide/nope' } },
+			{ link: './nope-too', problem: { type: 'no-page', path: '/docs/guide/nope-too' } }
+		]);
+	});
+
+	it('accepts a trailing slash, a query and the agent markdown twin on a link to a page', () => {
+		const body = [
+			'[a](/docs/intro/) [b](/docs/intro?tab=svelte) [c](/docs/intro.md)',
+			'',
+			'[e](/docs/) [f](/docs.md) [g](./intro/) [h](/docs/nope/?tab=x)'
+		].join('\n');
+
+		const found = brokenLinks([page('', body), page('intro')], options);
+
+		expect(found.map(({ link, problem }) => ({ link, problem }))).toEqual([
+			{ link: '/docs/nope/?tab=x', problem: { type: 'no-page', path: '/docs/nope' } }
+		]);
+	});
+
+	it('counts every +page route it is told of as a page, not only doc pages', () => {
+		const body = '[playground](/docs/playground) [api](./api) [gone](/docs/gone)';
+		const pageRoutes = [
+			path.join(contentDir, 'playground', '+page.svelte'),
+			path.join(contentDir, 'api', '+page.markdown')
+		];
+
+		const found = brokenLinks([page('intro', body)], { ...options, pageRoutes });
+
+		expect(found.map(({ link }) => link)).toEqual(['/docs/gone']);
+	});
+
 	it('works with the docs at the routes root', () => {
 		const pages = [toPage(path.join(routesDir, 'intro', '+page.md'), '[x](/nope) [y](/intro)')];
 

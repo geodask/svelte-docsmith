@@ -41,6 +41,17 @@ export type BrokenLink = {
 	problem: LinkProblem;
 };
 
+/** Where the docs live, and which routes beside the doc pages serve a page. */
+export type LinkCheckOptions = IndexOptions & {
+	/**
+	 * Absolute paths of the `+page.*` route files under the content directory,
+	 * such as a `+page.svelte`. The check reads no links from them, but SvelteKit
+	 * serves each as a page, so a link to one is not a broken link. Doc pages may
+	 * be listed too: they count either way.
+	 */
+	pageRoutes?: string[];
+};
+
 /** What the check knows about the site a link points into. */
 type Site = {
 	/** The docs base, e.g. `/docs`. Only links under it are checked. */
@@ -73,13 +84,14 @@ type Target = {
  * archive's own links to stay inside it, so no rule here needs to know which
  * version a page belongs to.
  */
-export function brokenLinks(pages: SourcePage[], options: IndexOptions): BrokenLink[] {
+export function brokenLinks(pages: SourcePage[], options: LinkCheckOptions): BrokenLink[] {
 	const site = siteOf(pages, options);
 	const broken: BrokenLink[] = [];
 
 	for (const page of pages) {
+		const pageUrl = urlFor(options.routesDir, path.dirname(page.file));
 		for (const { href, line } of writtenLinks(page)) {
-			const target = targetOf(href);
+			const target = targetOf(href, pageUrl);
 			const problem = target && problemWith(target, site);
 			if (problem) broken.push({ file: page.file, line, link: href, problem });
 		}
@@ -110,26 +122,56 @@ function describeProblem(problem: LinkProblem): string {
 /**
  * The site as the check sees it. Every page read counts, titled or not: an
  * untitled page is in no index, but SvelteKit still serves it, so a link to it
- * works.
+ * works. So does every other `+page.*` route the plugin found beside them.
  */
-function siteOf(pages: SourcePage[], options: IndexOptions): Site {
+function siteOf(pages: SourcePage[], options: LinkCheckOptions): Site {
+	const files = [...pages.map((page) => page.file), ...(options.pageRoutes ?? [])];
 	return {
 		docsBase: docsBaseFrom(options.routesDir, options.contentDir),
-		pages: new Set(pages.map((page) => urlFor(options.routesDir, path.dirname(page.file))))
+		pages: new Set(files.map((file) => urlFor(options.routesDir, path.dirname(file))))
 	};
 }
 
 /**
- * Where a link points, when that is a path on this site: one starting with `/`.
- * A link with a scheme (`https:`, `mailto:`) or starting `//` names another
+ * Where a link points, when that is a path on this site: one starting with `/`,
+ * or a relative one starting `./` or `../`, which resolves against `pageUrl`. A
+ * link with a scheme (`https:`, `mailto:`) or starting `//` names another
  * origin and is left alone.
+ *
+ * The path is reduced to the page it reaches: the query string goes, and so do
+ * one trailing slash and a trailing `.md`, since `/docs/intro.md` is the agent
+ * markdown twin of `/docs/intro` and stands or falls with it.
  */
-function targetOf(href: string): Target | undefined {
-	if (!href.startsWith('/') || href.startsWith('//')) return undefined;
+function targetOf(href: string, pageUrl: string): Target | undefined {
+	const relative = href.startsWith('./') || href.startsWith('../');
+	if (!relative && (!href.startsWith('/') || href.startsWith('//'))) return undefined;
 	const hash = href.indexOf('#');
 	const beforeHash = hash === -1 ? href : href.slice(0, hash);
 	const fragment = hash === -1 ? undefined : href.slice(hash + 1);
-	return { path: beforeHash.split('?')[0], fragment };
+	const written = beforeHash.split('?')[0];
+	return { path: pagePathOf(relative ? resolveRelative(written, pageUrl) : written), fragment };
+}
+
+/**
+ * `relative` resolved against `pageUrl` the way a browser resolves it: pages
+ * are served without a trailing slash, so `./theming` on `/docs/guide/setup`
+ * is the sibling `/docs/guide/theming`, and `../intro` is `/docs/intro`.
+ * Segment by segment rather than through `URL`, which would percent-encode the
+ * path and stop it matching a page directory named as written.
+ */
+function resolveRelative(relative: string, pageUrl: string): string {
+	const segments = pageUrl.split('/').slice(1, -1);
+	for (const segment of relative.split('/')) {
+		if (segment === '..') segments.pop();
+		else if (segment !== '.') segments.push(segment);
+	}
+	return '/' + segments.join('/');
+}
+
+/** `urlPath` without one trailing slash, then without a trailing `.md`. */
+function pagePathOf(urlPath: string): string {
+	const trimmed = urlPath.length > 1 && urlPath.endsWith('/') ? urlPath.slice(0, -1) : urlPath;
+	return trimmed.endsWith('.md') ? trimmed.slice(0, -'.md'.length) : trimmed;
 }
 
 /**
@@ -175,16 +217,19 @@ function writtenLinks(page: SourcePage): WrittenLink[] {
 	for (const block of markdown.lexer(text)) {
 		let cursor = 0;
 		const visit = (token: Token) => {
-			if (token.type === 'link' || token.type === 'codespan') {
+			if (token.type === 'link' || token.type === 'codespan' || token.type === 'html') {
 				const firstLine = token.raw.split('\n', 1)[0];
 				const at = block.raw.indexOf(firstLine, cursor);
 				const start = at === -1 ? cursor : at;
 				if (at !== -1) cursor = at + firstLine.length;
+				const tokenLine = blockLine + newlines(block.raw.slice(0, start));
 				if (token.type === 'link') {
-					links.push({
-						href: (token as Tokens.Link).href,
-						line: blockLine + newlines(block.raw.slice(0, start))
-					});
+					links.push({ href: (token as Tokens.Link).href, line: tokenLine });
+				}
+				if (token.type === 'html') {
+					for (const { href, offset } of anchorHrefs(token.raw)) {
+						links.push({ href, line: tokenLine + newlines(token.raw.slice(0, offset)) });
+					}
 				}
 				return;
 			}
@@ -195,6 +240,39 @@ function writtenLinks(page: SourcePage): WrittenLink[] {
 	}
 
 	return links;
+}
+
+/**
+ * Markup in raw HTML that never renders as a link: comments, and the bodies of
+ * `<script>` and `<style>`, where `<a href>` can only be text in a string.
+ */
+const NOT_MARKUP = /<!--[\s\S]*?-->|<(script|style)\b[\s\S]*?<\/\1\s*>/gi;
+
+/**
+ * An `<a>` tag's `href="…"` or `href='…'`, captured whole in group 1 and its
+ * value in group 2 or 3. Quoted values and Svelte `{…}` attributes are stepped
+ * over whole, so neither an `href=` inside another attribute's value nor a `>`
+ * inside an expression ends the search early. An `href={…}` never matches: it
+ * is only known at runtime.
+ */
+const ANCHOR_HREF =
+	/<a(?=[\s/>])(?:[^>"'{]|"[^"]*"|'[^']*'|\{[^}]*\})*?\s(href\s*=\s*(?:"([^"]*)"|'([^']*)'))/gi;
+
+/**
+ * The `href` of every `<a>` in a piece of raw HTML a page writes, each with the
+ * offset of its `href` attribute in `html`, so a tag spread over lines reports
+ * the line its link is on. A quoted value that interpolates (`"/docs/{slug}"`)
+ * is skipped like a bare expression: no build-time path to check.
+ */
+function anchorHrefs(html: string): { href: string; offset: number }[] {
+	const markup = html.replace(NOT_MARKUP, (text) => text.replace(/[^\n]/g, ' '));
+	const found: { href: string; offset: number }[] = [];
+	for (const match of markup.matchAll(ANCHOR_HREF)) {
+		const href = (match[2] ?? match[3]).trim();
+		if (href.includes('{')) continue;
+		found.push({ href, offset: match.index + match[0].length - match[1].length });
+	}
+	return found;
 }
 
 /** A token's nested tokens, wherever its type keeps them. */
