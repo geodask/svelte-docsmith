@@ -126,6 +126,21 @@ describe('plainDescription', () => {
 		expect(plainDescription('a&nbsp;b &mdash; c &#8212; d &#x2014; e')).toBe(
 			'a\u00a0b \u2014 c \u2014 d \u2014 e'
 		);
-		expect(plainDescription('&notanentity; &#0;')).toBe('&notanentity; &#0;');
+		expect(plainDescription('&LT;b&GT;')).toBe('<b>');
+		expect(plainDescription('&notanentity; &#0; &#xD800;')).toBe('&notanentity; &#0; &#xD800;');
+	});
+
+	it('keeps non-breaking spaces', () => {
+		expect(plainDescription('10\u00a0px, &nbsp;&nbsp;indented')).toBe(
+			'10\u00a0px, \u00a0\u00a0indented'
+		);
+	});
+
+	it("keeps a code block's lines and indentation", () => {
+		expect(
+			plainDescription(
+				'<p>For example:</p>\n<pre><code class="language-ts">if (a) {\n  b &amp;&amp; c;\n}\n</code></pre>\n<p>Then.</p>'
+			)
+		).toBe('For example:\nif (a) {\n  b && c;\n}\nThen.');
 	});
 });

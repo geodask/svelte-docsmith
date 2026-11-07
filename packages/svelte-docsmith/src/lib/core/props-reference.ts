@@ -76,15 +76,25 @@ export function deprecationNote(text: string): string {
 	return text.replace(/^(<p>)?/, '$1Deprecated: ');
 }
 
+/** A code block, whose lines and spacing plain text keeps as written. */
+const CODE_BLOCK = /(<pre[\s>][\s\S]*?<\/pre>)/i;
+
 /** Tags whose end breaks the line in plain text. */
-const LINE_BREAK = /<br\s*\/?>|<\/(?:p|li|h[1-6]|blockquote|pre|div|tr|dt|dd)>/gi;
+const LINE_BREAK = /<br\s*\/?>|<\/(?:p|li|h[1-6]|blockquote|div|tr|dt|dd)>/gi;
+
+/** Whitespace HTML collapses: not U+00A0, which a `&nbsp;` or a literal one means to keep. */
+const SPACES = /[ \t\r\n\f]+/g;
 
 /** The named references markdown escapes to, and ones raw HTML in a JSDoc commonly writes. */
 const NAMED_ENTITIES: Record<string, string> = {
 	amp: '&',
+	AMP: '&',
 	lt: '<',
+	LT: '<',
 	gt: '>',
+	GT: '>',
 	quot: '"',
+	QUOT: '"',
 	apos: "'",
 	nbsp: '\u00a0',
 	ndash: '\u2013',
@@ -107,26 +117,39 @@ const NAMED_ENTITIES: Record<string, string> = {
 };
 
 /** A numeric (`&#8212;`, `&#x2014;`) or named (`&mdash;`) character reference. */
-const ENTITY = /&(?:#(\d+)|#x([\da-f]+)|([a-z]+\d*));/gi;
+const ENTITY = /&(?:#(\d+|[xX][\da-fA-F]+)|([a-zA-Z][a-zA-Z\d]*));/g;
 
 /**
  * A description from the page's props import (inline HTML rendered at build
  * time) as plain text, for places that take no markup, like a tooltip. Line
- * breaks and block ends become new lines, soft breaks become spaces, and
- * character references are decoded (named ones it doesn't know stay as written).
+ * breaks and block ends become new lines, soft breaks become spaces, code
+ * blocks keep their lines, and character references are decoded (one it
+ * doesn't know, or that names no character, stays as written).
  */
 export function plainDescription(html: string | undefined): string | undefined {
+	if (html === undefined) return undefined;
 	return html
-		?.replace(/\s+/g, ' ')
-		.replace(LINE_BREAK, (tag) => `${tag}\n`)
-		.replace(/<[^>]+>/g, '')
-		.replace(ENTITY, (entity, decimal?: string, hex?: string, name?: string) => {
-			if (name) return NAMED_ENTITIES[name] ?? entity;
-			const code = decimal ? Number(decimal) : parseInt(hex!, 16);
-			return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : entity;
-		})
-		.split('\n')
-		.map((line) => line.trim())
+		.split(CODE_BLOCK)
+		.map((part, i) =>
+			// `split` with a capture group puts the code blocks at the odd indexes.
+			i % 2
+				? stripTags(part).replace(/\n$/, '')
+				: stripTags(part.replace(SPACES, ' ').replace(LINE_BREAK, (tag) => `${tag}\n`))
+						.split('\n')
+						.map((line) => line.replace(/^ +| +$/g, ''))
+						.filter(Boolean)
+						.join('\n')
+		)
 		.filter(Boolean)
-		.join('\n');
+		.join('\n')
+		.replace(ENTITY, (reference, number?: string, name?: string) => {
+			if (name) return NAMED_ENTITIES[name] ?? reference;
+			const code = Number(number!.replace(/^x/i, '0x'));
+			const character = code > 0 && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff);
+			return character ? String.fromCodePoint(code) : reference;
+		});
+}
+
+function stripTags(html: string): string {
+	return html.replace(/<[^>]+>/g, '');
 }
