@@ -160,14 +160,28 @@ _Avoid_: MCP endpoint, MCP route, docs API
 
 ### Theming
 
-**Theme preset**:
-A ready palette a site switches to with one CSS import after `theme.css`, such
-as `themes/ocean.css`. Its file is the source of truth for its name and tokens.
-Darkmatter is the default preset, which `theme.css` already ships.
-_Avoid_: theme (that is the whole token contract in `theme.css`), skin, palette
+**Theme**:
+The whole look of a site as one set of tokens: colours, radius, fonts,
+shadows, spacing, letter spacing and code colours, each for both colour modes.
+A preset or the author's own; a site has exactly one.
+_Avoid_: skin, palette, style (and "theme" for light/dark or for Shiki)
+
+**Preset**:
+A theme that ships with the package, such as Ocean. Its CSS file is the source
+of truth for its name and tokens. Darkmatter is the default preset.
+_Avoid_: theme preset, built-in theme, template
+
+**Colour mode**:
+Light or dark. Every theme defines both; the reader switches between them.
+_Avoid_: theme, dark theme, appearance
+
+**Code theme**:
+The pair of Shiki themes, one per colour mode, that colours code blocks. Part
+of a theme.
+_Avoid_: theme, syntax theme, highlighter theme
 
 **Preset manifest**:
-The ordered list of theme presets, read from their CSS files by
+The ordered list of presets, read from their CSS files by
 `packages/svelte-docsmith/scripts/theme-presets.mjs`. The docs site's theme
 showcase and the scaffolder's theme prompt both come from it.
 _Avoid_: theme list, PRESETS
