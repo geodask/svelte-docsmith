@@ -34,9 +34,9 @@ import { codeBlockRenderer, sourcePanelHtml, type RenderCodeBlock } from '../cod
 import { checkVersions, resolveVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
-import { isPageFile, readSourcePages, titleOf, withCommitDates, type SourcePage } from './pages.js';
-import { contentIndex, llmsIndex, searchIndex } from './collect.js';
-import { agentMarkdownFor, type AgentMarkdownHost } from './agent-markdown.js';
+import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
+import { contentIndex, searchIndex } from './collect.js';
+import { llmsIndex } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
 import { commitDates } from '../git.js';
 import { createPropsExtractor, type ExtractResult, type PropsExtractor } from '../props/extract.js';
@@ -177,29 +177,6 @@ function contentIndexPlugin(
 			);
 		}));
 
-	// What agents read: each page as agent markdown, with its `LiveExample`s
-	// written out as code and its generated props tables as markdown tables.
-	// Resolving a page's imports needs the plugin context, so the load hook
-	// passes it in as `host`; props come from the shared extractor, so pages
-	// without a props import never load TypeScript.
-	const buildLlmsIndex = async (pages: SourcePage[], host: AgentMarkdownHost) => {
-		// Only the pages the index keeps (`llmsIndex` drops untitled ones), so a
-		// dropped page can't warn or load TypeScript. All at once, so the props
-		// extractor batches every page's components into one TypeScript update.
-		const indexed = pages.filter((page) => titleOf(page) !== undefined);
-		const built = await Promise.all(indexed.map((page) => agentMarkdownFor(page, host)));
-		const rewrites = new Map<string, (content: string) => string>();
-		indexed.forEach((page, i) => {
-			const rewrite = built[i];
-			if (rewrite) rewrites.set(page.file, rewrite);
-		});
-		return llmsIndex(
-			pages,
-			indexOptions,
-			(content, page) => rewrites.get(page.file)?.(content) ?? content
-		);
-	};
-
 	return {
 		name: 'docsmith-content',
 		enforce: 'pre',
@@ -265,11 +242,15 @@ function contentIndexPlugin(
 			if (id === VIRTUAL_LLMS_ID) {
 				const { pages } = readSourcePages(contentDir);
 				watch(pages);
-				const docs = await buildLlmsIndex(pages, {
+				// What agents read: each page as agent markdown. Its imports resolve
+				// the way Vite resolves the page's own, and props come from the shared
+				// extractor, so pages without a props import never load TypeScript.
+				const docs = await llmsIndex(pages, indexOptions, {
 					resolve: async (specifier, importer) =>
 						(await this.resolve(specifier, importer, { skipSelf: true }))?.id,
 					watch: (file) => this.addWatchFile(file),
 					warn: (message) => this.warn(message),
+					source: readExampleSource,
 					props: async (file) => (await extractProps(extractor, file, this)).markdown
 				});
 				return `export const docs = ${JSON.stringify(docs)};\n`;
@@ -312,6 +293,19 @@ const SOURCE_PREFIX = '\0docsmith-source:';
 // compile the highlighted-HTML string as a component.
 const SOURCE_EXT = '.docsmith-src';
 const SOURCE_SUFFIX = '?source';
+
+/**
+ * An example file's raw source, as the `?source` transform reads it, or
+ * `undefined` when it can't be read. Agent markdown keeps the tag then, where
+ * the transform fails the import.
+ */
+function readExampleSource(file: string): string | undefined {
+	try {
+		return fs.readFileSync(file, 'utf-8').trimEnd();
+	} catch {
+		return undefined;
+	}
+}
 
 function exampleSourcePlugin(renderCodeBlock: RenderCodeBlock): Plugin {
 	return {

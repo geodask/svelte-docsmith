@@ -219,39 +219,6 @@ describe('docsmith() content plugin', () => {
 		expect(out).toContain('"path":"/docs/intro"');
 	});
 
-	it('writes each llms entry as the page markdown without its setup blocks', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/guide/setup',
-			'title: Setup\nsection: [Guide, Basics]\norder: 2\ndescription: Install it.',
-			'<script>\n\timport X from "./x.svelte";\n</script>\n\n## Install\n\nRun `pnpm add x`.\n\n<X />\n\n<style>\n\tp { color: red; }\n</style>'
-		);
-		writePage('docs/intro', 'title: Intro', 'Hello.');
-
-		expect(await loadVirtual('\0svelte-docsmith:llms')).toBe(
-			'export const docs = [' +
-				'{"path":"/docs/guide/setup","title":"Setup","section":["Guide","Basics"],"order":2,' +
-				'"description":"Install it.","content":"# Setup\\n\\n## Install\\n\\nRun `pnpm add x`.\\n\\n<X />"},' +
-				'{"path":"/docs/intro","title":"Intro","content":"# Intro\\n\\nHello."}' +
-				'];\n'
-		);
-	});
-
-	it('keeps setup blocks inside code samples in each llms entry', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const sample =
-			"```svelte\n<script>\n\timport { Badge } from 'svelte-docsmith';\n</script>\n\n<Badge>New</Badge>\n\n<style>\n\tp { color: red; }\n</style>\n```";
-		writePage(
-			'docs/sample',
-			'title: Sample',
-			`<script>\n\timport X from "./x.svelte";\n</script>\n\nUse it:\n\n${sample}\n\n<style>\n\tp { color: blue; }\n</style>`
-		);
-
-		const { content } = await agentMarkdown();
-
-		expect(content['/docs/sample']).toBe(`# Sample\n\nUse it:\n\n${sample}`);
-	});
-
 	it('never loads TypeScript for a site without props imports', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: Intro', 'No props tables here.');
@@ -474,12 +441,13 @@ describe('docsmith() content plugin', () => {
 	});
 });
 
-// --- agent markdown ------------------------------------------------------
+// --- agent markdown host ---------------------------------------------------
 //
-// What an agent reads for a page: its llms index entry's `content`. Example
-// files are resolved through the plugin context, as Vite resolves the page's
-// own imports, so the fake `resolve` stands in for Vite's resolver (the app's
-// aliases included).
+// What agent markdown says is tested against a literal host in
+// `agent-markdown.test.ts`. These prove the host the plugin hands it: example
+// files resolved through the plugin context, as Vite resolves the page's own
+// imports (the fake `resolve` stands in for Vite's resolver, the app's aliases
+// included), read from disk, watched, and warned about through the context.
 
 const COUNTER =
 	'<script>\n\tlet count = $state(0);\n</script>\n\n<button onclick={() => count++}>{count}</button>\n';
@@ -522,23 +490,7 @@ async function agentMarkdown() {
 	return { content: Object.fromEntries(docs.map((d) => [d.path, d.content])), ctx };
 }
 
-describe('agent markdown', () => {
-	it('writes a LiveExample as a fenced svelte block of the example file', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writeFile('docs/examples/counter.svelte', COUNTER);
-		writePage(
-			'docs/examples',
-			'title: Examples',
-			"<script>\n\timport { LiveExample } from 'svelte-docsmith';\n\timport Counter from './counter.svelte';\n\timport counterSource from './counter.svelte?source';\n</script>\n\nClick it:\n\n<LiveExample source={counterSource}>\n\t<Counter />\n</LiveExample>\n\nAfter."
-		);
-
-		const { content } = await agentMarkdown();
-
-		expect(content['/docs/examples']).toBe(
-			'# Examples\n\nClick it:\n\n```svelte\n<script>\n\tlet count = $state(0);\n</script>\n\n<button onclick={() => count++}>{count}</button>\n```\n\nAfter.'
-		);
-	});
-
+describe('agent markdown through the plugin', () => {
 	it("resolves source imports through the app's aliases, from the page", async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writeFile('lib/examples/hash.svelte', '<p>hash</p>\n');
@@ -576,40 +528,6 @@ describe('agent markdown', () => {
 		);
 	});
 
-	it('leaves LiveExamples in code samples and without a source import as written', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writeFile('docs/samples/counter.svelte', COUNTER);
-		const body =
-			"<script>\n\timport counterSource from './counter.svelte?source';\n\tconst html = '<b>x</b>';\n</script>\n\n" +
-			'```svelte\n<LiveExample source={counterSource}>\n\t<Counter />\n</LiveExample>\n```\n\n' +
-			'<LiveExample source={html}>\n\t<b>x</b>\n</LiveExample>';
-		writePage('docs/samples', 'title: Samples', body);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content['/docs/samples']).toBe(
-			'# Samples\n\n```svelte\n<LiveExample source={counterSource}>\n\t<Counter />\n</LiveExample>\n```\n\n' +
-				'<LiveExample source={html}>\n\t<b>x</b>\n</LiveExample>'
-		);
-		expect(ctx.warn).not.toHaveBeenCalled();
-	});
-
-	it('fences example code that itself contains a fence', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writeFile('docs/nested/md.svelte', '<pre>```js\nx\n```</pre>\n');
-		writePage(
-			'docs/nested',
-			'title: Nested',
-			"<script>\n\timport md from './md.svelte?source';\n</script>\n\n- In a list:\n\n  <LiveExample source={md}>\n    <Md />\n  </LiveExample>"
-		);
-
-		const { content } = await agentMarkdown();
-
-		expect(content['/docs/nested']).toBe(
-			'# Nested\n\n- In a list:\n\n  ````svelte\n  <pre>```js\n  x\n  ```</pre>\n  ````'
-		);
-	});
-
 	it('watches each example file it read, so editing one rebuilds the index', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		const example = writeFile('docs/examples/counter.svelte', COUNTER);
@@ -640,21 +558,6 @@ describe('agent markdown', () => {
 		expect(ctx.addWatchFile).toHaveBeenCalledWith(unreadable);
 	});
 
-	it('builds no agent markdown for a page left out of the index', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/untitled',
-			'description: No title, so not indexed.',
-			"<script>\n\timport gone from '#lib/gone.svelte?source';\n</script>\n\n<LiveExample source={gone} />"
-		);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content).toEqual({});
-		expect(ctx.resolve).not.toHaveBeenCalled();
-		expect(ctx.warn).not.toHaveBeenCalled();
-	});
-
 	it('leaves the search index as it was', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writeFile('docs/examples/counter.svelte', COUNTER);
@@ -671,10 +574,12 @@ describe('agent markdown', () => {
 	});
 });
 
-// --- agent markdown: generated props tables ------------------------------
+// --- agent markdown host: props -------------------------------------------
 //
-// Pages import the props extractor's fixture components by absolute path. The
-// first read builds a TypeScript program: seconds on a cold coverage run.
+// Props come from the shared extractor, which watches what they were read from
+// and passes on its warnings. Pages import the props extractor's fixture
+// components by absolute path. The first read builds a TypeScript program:
+// seconds on a cold coverage run.
 
 /** A page body whose `<script>` binds each `imports` name to a props import of its file. */
 const propsPage = (imports: Record<string, string>, body: string) =>
@@ -685,131 +590,7 @@ const propsPage = (imports: Record<string, string>, body: string) =>
 	'</script>\n\n' +
 	body;
 
-describe('agent markdown props tables', { timeout: 60_000 }, () => {
-	it('writes a generated props table as a heading and a markdown table', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/notice',
-			'title: Notice',
-			propsPage(
-				{ noticeProps: propsFixture('notice') },
-				'## API reference\n\n<PropsTable of={noticeProps} />\n\nAfter.'
-			)
-		);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content['/docs/notice']).toBe(
-			[
-				'# Notice',
-				'',
-				'## API reference',
-				'',
-				'### `Notice`',
-				'',
-				'| Prop | Type | Default | Description |',
-				'| --- | --- | --- | --- |',
-				"| `tone?` | `'neutral' \\| 'info' \\| 'danger'` | `'neutral'` | Visual intent. See [tones](/docs/tones) and `Tone`. |",
-				'| `title` | `string` |  | Heading text. |',
-				'| `items?` | `Item[]` | `[]` | Things to list. |',
-				'| `dismissible?` | `boolean` | `false` | Show a close button. |',
-				'| `size?` | `number` | `2 (medium)` | Size step. |',
-				"| `onclose?` | `(reason: 'button' \\| 'timeout') => void` |  | Called after the notice closes. |",
-				'| ~~`legacy?`~~ *(deprecated)* | `string` |  | Deprecated: Use `title`. |',
-				'| `children` | `Snippet` |  |  |',
-				'',
-				'After.'
-			].join('\n')
-		);
-		expect(ctx.warn).not.toHaveBeenCalled();
-	});
-
-	it('captions a generic by its type parameters, or by the title, under the heading it sits in', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/select',
-			'title: Select',
-			propsPage(
-				{ selectProps: propsFixture('select'), buttonProps: propsFixture('button') },
-				'<PropsTable of={selectProps} />\n\n## Parts\n\n### Button\n\n<PropsTable title="The button" of={buttonProps} />'
-			)
-		);
-
-		const { content } = await agentMarkdown();
-
-		expect(content['/docs/select']).toBe(
-			[
-				'# Select',
-				'',
-				'## `Select<T, U>`',
-				'',
-				'| Prop | Type | Default | Description |',
-				'| --- | --- | --- | --- |',
-				'| `options` | `T[]` |  | Options to pick from. |',
-				'| `value?` *(bindable)* | `T` |  | The picked option. |',
-				'| `option?` | `Snippet<[T, U]>` |  | Renders one option. |',
-				'',
-				'Also accepts every `<a>` attribute.',
-				'',
-				'## Parts',
-				'',
-				'### Button',
-				'',
-				'#### `The button`',
-				'',
-				'| Prop | Type | Default | Description |',
-				'| --- | --- | --- | --- |',
-				'| `loading?` | `boolean` | `false` | Show a spinner. |',
-				'',
-				'Also accepts every `<button>` attribute.'
-			].join('\n')
-		);
-	});
-
-	it('escapes pipes and line breaks so each row stays one table row', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const mode = writeFile(
-			'lib/mode.svelte',
-			"<script lang=\"ts\">\n\tlet {\n\t\tmode = 'a'\n\t}: {\n\t\t/**\n\t\t * Pick `a | b`, or neither.\n\t\t *\n\t\t * Second paragraph,\n\t\t * soft-wrapped.\n\t\t */\n\t\tmode?: 'a' | 'b';\n\t} = $props();\n</script>\n\n<p>{mode}</p>\n"
-		);
-		writePage(
-			'docs/mode',
-			'title: Mode',
-			propsPage({ modeProps: mode }, '<PropsTable of={modeProps} />')
-		);
-
-		const { content } = await agentMarkdown();
-
-		expect(content['/docs/mode']).toBe(
-			[
-				'# Mode',
-				'',
-				'## `Mode`',
-				'',
-				'| Prop | Type | Default | Description |',
-				'| --- | --- | --- | --- |',
-				"| `mode?` | `'a' \\| 'b'` | `'a'` | Pick `a \\| b`, or neither.<br><br>Second paragraph, soft-wrapped. |"
-			].join('\n')
-		);
-	});
-
-	it('leaves hand-written props tables and props tables in code samples as written', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const body =
-			'<PropsTable title="Badge">\n\t<Prop name="variant" type="\'a\' | \'b\'">Intent.</Prop>\n</PropsTable>\n\n' +
-			'```svelte\n<PropsTable of={buttonProps} />\n```';
-		writePage(
-			'docs/manual',
-			'title: Manual',
-			propsPage({ buttonProps: propsFixture('button') }, body)
-		);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content['/docs/manual']).toBe(`# Manual\n\n${body}`);
-		expect(ctx.warn).not.toHaveBeenCalled();
-	});
-
+describe('agent markdown props through the plugin', { timeout: 60_000 }, () => {
 	it('writes out what was extracted when extraction has problems, and warns with the file', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage(
@@ -836,39 +617,6 @@ describe('agent markdown props tables', { timeout: 60_000 }, () => {
 		expect(ctx.warn).toHaveBeenCalledWith(
 			expect.stringMatching(/untyped\.svelte: `\$props\(\)` has no type annotation/)
 		);
-	});
-
-	it('keeps a PropsTable whose props import does not resolve, and warns', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/gone',
-			'title: Gone',
-			"<script>\n\timport goneProps from '#lib/gone.svelte?props';\n</script>\n\n<PropsTable of={goneProps} />"
-		);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content['/docs/gone']).toBe('# Gone\n\n<PropsTable of={goneProps} />');
-		expect(ctx.warn).toHaveBeenCalledTimes(1);
-		expect(ctx.warn).toHaveBeenCalledWith(
-			expect.stringMatching(/docs\/gone\/\+page\.md: .*`#lib\/gone\.svelte\?props`/)
-		);
-	});
-
-	it('watches a component it could not read, so fixing it rebuilds the index', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		// Resolves, but reading a directory fails.
-		const unreadable = path.join(routesDir, 'lib', 'broken.svelte');
-		fs.mkdirSync(unreadable, { recursive: true });
-		writePage(
-			'docs/broken',
-			'title: Broken',
-			propsPage({ brokenProps: unreadable }, '<PropsTable of={brokenProps} />')
-		);
-
-		const { ctx } = await agentMarkdown();
-
-		expect(ctx.addWatchFile).toHaveBeenCalledWith(unreadable);
 	});
 
 	it('watches each component and the files its types come from, so editing one rebuilds the index', async () => {

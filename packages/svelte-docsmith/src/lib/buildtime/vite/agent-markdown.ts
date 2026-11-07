@@ -1,17 +1,20 @@
 /**
  * Agent markdown: a page's markdown as an agent reads it (llms-full.txt, the
- * `.md` twins, the MCP server). The page as written keeps `<LiveExample
- * source={…}>` and `<PropsTable of={…}>` as bare tags and their imports are
- * stripped with the `<script>` block, so an agent would never see the example
- * code or the component's props. Here each `LiveExample` whose source is a
- * `?source` import becomes a fenced `svelte` block of the example file's raw
- * source, and each `PropsTable` whose `of` is a props import becomes a heading
- * and a markdown table of the same rows the page renders.
+ * `.md` twins, the MCP server), and the llms index that carries it. The page as
+ * written keeps `<LiveExample source={…}>` and `<PropsTable of={…}>` as bare
+ * tags and their imports are stripped with the `<script>` block, so an agent
+ * would never see the example code or the component's props. Here each
+ * `LiveExample` whose source is a `?source` import becomes a fenced `svelte`
+ * block of the example file's raw source, and each `PropsTable` whose `of` is a
+ * props import becomes a heading and a markdown table of the same rows the page
+ * renders.
  *
- * Unlike `./collect.js` this reads the filesystem and resolves imports, so it
- * runs in the plugin, which hands it Vite's resolver and the props extractor.
+ * {@link llmsIndex} is the whole of it: pages and a host in, finished index
+ * entries out. Resolving imports and reading files is the host's job, so the
+ * plugin hands it Vite's resolver, the file reads and the props extractor, and
+ * a test hands it literals.
  */
-import fs from 'node:fs';
+import type { LlmsDoc } from '../../core/content.js';
 import {
 	propsCaption,
 	type ExtractedProp,
@@ -19,6 +22,9 @@ import {
 } from '../../core/extracted-props.js';
 import { outsideCodeFenceRuns, scriptBlocks } from '../markdown-source.js';
 import { relativeToCwd } from '../paths.js';
+import { indexedPages, type IndexedPage, type IndexOptions } from './collect.js';
+import { extractLlmsContent } from './extract.js';
+import { readField } from './fields.js';
 import type { SourcePage } from './pages.js';
 
 /** Which build-time transform a page import goes through. */
@@ -40,12 +46,20 @@ export type DocImport = {
  */
 export type ResolveImport = (specifier: string, importer: string) => Promise<string | undefined>;
 
-/** What building agent markdown needs from the plugin. */
+/**
+ * What building agent markdown needs from its caller: Vite's resolver, watcher,
+ * warnings and file reads in the plugin, literals in a test.
+ */
 export type AgentMarkdownHost = {
 	resolve: ResolveImport;
 	/** Record a file the agent markdown was read from, so editing it rebuilds the index. */
 	watch(file: string): void;
 	warn(message: string): void;
+	/**
+	 * An example file's raw source, as the `?source` transform reads it, or
+	 * `undefined` when it can't be read.
+	 */
+	source(file: string): string | undefined;
 	/**
 	 * A component's props as the `?props` transform extracts them, with
 	 * descriptions as markdown. The host watches the files they were read from
@@ -53,6 +67,34 @@ export type AgentMarkdownHost = {
 	 */
 	props(file: string): Promise<ExtractedProps>;
 };
+
+/**
+ * The llms index: every titled page's title, section, order, description and
+ * agent markdown, sorted by path. Served as the `svelte-docsmith/llms` virtual
+ * module and read server-side by the `llms.txt`, `llms-full.txt`, `.md` and MCP
+ * route handlers, so it never ships to the client.
+ *
+ * Only the pages the index keeps are read, so a stub page can't warn or load
+ * TypeScript. Every page is read at once, so the props extractor batches all
+ * their components into one TypeScript update.
+ */
+export async function llmsIndex(
+	pages: SourcePage[],
+	options: IndexOptions,
+	host: AgentMarkdownHost
+): Promise<LlmsDoc[]> {
+	const indexed = indexedPages(pages, options);
+	const reads = await Promise.all(indexed.map((page) => readDocImports(page, host)));
+	return indexed.map((page, i) => ({
+		path: page.url,
+		title: page.title,
+		section: readField(page.frontmatter, 'section'),
+		order: readField(page.frontmatter, 'order'),
+		description: readField(page.frontmatter, 'description'),
+		content: agentMarkdown(page, reads[i], host.warn),
+		version: page.version
+	}));
+}
 
 /** A default import of a `.svelte` file through `?source` or `?props`. */
 const DOC_IMPORT =
@@ -63,7 +105,7 @@ const DOC_IMPORT =
  * with every specifier resolved from the page. Imports inside fenced code
  * samples are not the page's, and are skipped.
  */
-export async function docImports(
+async function docImports(
 	page: Pick<SourcePage, 'file' | 'source'>,
 	resolve: ResolveImport
 ): Promise<Map<string, DocImport>> {
@@ -109,19 +151,29 @@ function fenced(code: string, lang: string, indent: string): string {
 }
 
 /**
- * Build the agent markdown rewrite for one page: a function from the page's
- * markdown, setup blocks stripped, to its agent markdown. `undefined` when the page imports nothing
- * agent markdown expands, so most pages cost one scan of their script.
+ * What one page's doc imports read to: the import each local name binds, and
+ * the example source or props behind it (`undefined` where it could not be
+ * read).
  */
-export async function agentMarkdownFor(
+type DocImportReads = {
+	imports: Map<string, DocImport>;
+	sources: Map<string, string | undefined>;
+	tables: Map<string, ExtractedProps | undefined>;
+};
+
+/**
+ * Resolve and read a page's doc imports, watching each file they resolve to.
+ * `undefined` when the page imports nothing agent markdown expands, so most
+ * pages cost one scan of their script.
+ */
+async function readDocImports(
 	page: SourcePage,
 	host: AgentMarkdownHost
-): Promise<((content: string) => string) | undefined> {
+): Promise<DocImportReads | undefined> {
 	const imports = await docImports(page, host.resolve);
 	if (imports.size === 0) return undefined;
 
-	// Read up front, so the rewrite itself is synchronous. Props extractions all
-	// start together, so the extractor batches them into one TypeScript update.
+	// Props extractions all start together, so the extractor batches them.
 	const sources = new Map<string, string | undefined>();
 	const tables = new Map<string, ExtractedProps | undefined>();
 	await Promise.all(
@@ -129,55 +181,70 @@ export async function agentMarkdownFor(
 			// Watched even when it can't be read, so creating or fixing it rebuilds.
 			if (entry.file !== undefined) host.watch(entry.file);
 			if (entry.kind === 'source') {
-				sources.set(local, entry.file === undefined ? undefined : readExample(entry.file));
+				sources.set(local, entry.file === undefined ? undefined : host.source(entry.file));
 			} else {
 				tables.set(local, entry.file === undefined ? undefined : await host.props(entry.file));
 			}
 		})
 	);
+	return { imports, sources, tables };
+}
+
+/**
+ * A page's agent markdown: the page as written with its frontmatter and setup
+ * blocks dropped and its title as an `h1`, then each tag whose import was read
+ * written out. The imports come from the raw source, as the setup blocks that
+ * hold them are gone from the text being rewritten.
+ */
+function agentMarkdown(
+	page: IndexedPage,
+	reads: DocImportReads | undefined,
+	warn: (message: string) => void
+): string {
+	const content = extractLlmsContent(page.source, page.title);
+	if (reads === undefined) return content;
+	const { imports, sources, tables } = reads;
 
 	const keepTag = (tag: string, local: string, attribute: string) => {
-		host.warn(
+		warn(
 			`${relativeToCwd(page.file)}: could not read \`${imports.get(local)?.specifier}\` ` +
 				`for <${tag} ${attribute}={${local}}>, so agent markdown keeps the tag.`
 		);
 	};
 
-	return (content) => {
-		// The level of the heading a table sits under, carried across code fences.
-		let level = 1;
-		return outsideCodeFenceRuns(content, (prose) => {
-			const levelAt = (offset: number) => lastHeadingLevel(prose.slice(0, offset)) ?? level;
-			const withTables = prose.replace(
-				PROPS_TABLE,
-				(tag, indent: string, attributes: string, offset: number) => {
-					const match = OF_ATTRIBUTE.exec(attributes);
-					const local = match?.[1] ?? match?.[2];
-					if (local === undefined || !tables.has(local)) return tag;
-					const props = tables.get(local);
-					if (props === undefined) {
-						keepTag('PropsTable', local, 'of');
-						return tag;
-					}
-					const title = TITLE_ATTRIBUTE.exec(attributes);
-					const caption = title ? title.slice(1).find((value) => value !== undefined) : undefined;
-					return propsTable(props, caption, Math.min(6, levelAt(offset) + 1), indent);
-				}
-			);
-			level = levelAt(prose.length);
-			return withTables.replace(LIVE_EXAMPLE, (tag, indent: string, attributes: string) => {
-				const match = SOURCE_ATTRIBUTE.exec(attributes);
+	// The level of the heading a table sits under, carried across code fences.
+	let level = 1;
+	return outsideCodeFenceRuns(content, (prose) => {
+		const levelAt = (offset: number) => lastHeadingLevel(prose.slice(0, offset)) ?? level;
+		const withTables = prose.replace(
+			PROPS_TABLE,
+			(tag, indent: string, attributes: string, offset: number) => {
+				const match = OF_ATTRIBUTE.exec(attributes);
 				const local = match?.[1] ?? match?.[2];
-				if (local === undefined || !sources.has(local)) return tag;
-				const code = sources.get(local);
-				if (code === undefined) {
-					keepTag('LiveExample', local, 'source');
+				if (local === undefined || !tables.has(local)) return tag;
+				const props = tables.get(local);
+				if (props === undefined) {
+					keepTag('PropsTable', local, 'of');
 					return tag;
 				}
-				return fenced(code, 'svelte', indent);
-			});
+				const title = TITLE_ATTRIBUTE.exec(attributes);
+				const caption = title ? title.slice(1).find((value) => value !== undefined) : undefined;
+				return propsTable(props, caption, Math.min(6, levelAt(offset) + 1), indent);
+			}
+		);
+		level = levelAt(prose.length);
+		return withTables.replace(LIVE_EXAMPLE, (tag, indent: string, attributes: string) => {
+			const match = SOURCE_ATTRIBUTE.exec(attributes);
+			const local = match?.[1] ?? match?.[2];
+			if (local === undefined || !sources.has(local)) return tag;
+			const code = sources.get(local);
+			if (code === undefined) {
+				keepTag('LiveExample', local, 'source');
+				return tag;
+			}
+			return fenced(code, 'svelte', indent);
 		});
-	};
+	});
 }
 
 /**
@@ -269,13 +336,4 @@ function inline(markdown: string): string {
 		.split(/\n[ \t]*\n\s*/)
 		.map((paragraph) => paragraph.replace(/\s*\n\s*/g, ' '))
 		.join('<br><br>');
-}
-
-/** An example file's raw source, as the `?source` transform reads it. */
-function readExample(file: string): string | undefined {
-	try {
-		return fs.readFileSync(file, 'utf-8').trimEnd();
-	} catch {
-		return undefined;
-	}
 }
