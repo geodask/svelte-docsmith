@@ -8,7 +8,7 @@ Public GitHub Issues (`gh` CLI) for intake and triage; specs, tickets and wayfin
 
 ### Triage labels
 
-The five default triage labels, each string equal to its role: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+The five triage roles map to labels written with spaces: `needs triage`, `needs info`, `ready for agent`, `ready for human`, `wontfix`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
