@@ -1,37 +1,41 @@
 <script lang="ts">
+	import { site } from 'svelte-docsmith/site';
 	import { join } from '#lib/utils/url.js';
-	import type { DocsmithSite } from '#lib/core/index.js';
+	import { useDocsPage } from '../docs-page-context.js';
 
 	const {
-		config,
-		title,
-		description,
-		canonical,
-		noindex = false
+		title: titleOverride,
+		description: descriptionOverride
 	}: {
-		config: DocsmithSite;
-		/** The page's own title (frontmatter or override); omit for the site root. */
+		/** Override the page's title; doc pages default to their frontmatter title. */
 		title?: string;
-		/** The page's own description; falls back to `config.description`. */
+		/** Override the page's description; doc pages default to their frontmatter's. */
 		description?: string;
-		/** The page's absolute canonical URL, from the resolved page view; omitted when absent. */
-		canonical?: string;
-		/** Emit `robots: noindex`, for a doc version explicitly marked hidden. */
-		noindex?: boolean;
 	} = $props();
+
+	// The page itself (its entry, canonical URL and version) comes off the shell's
+	// one resolved view, so the head can't describe a different page than the
+	// body renders, and no caller can forget to pass the canonical.
+	const docsPage = useDocsPage();
+	const title = $derived(titleOverride ?? docsPage.view.entry?.title);
+	const canonical = $derived(docsPage.view.canonicalUrl);
+	// Keep a version explicitly marked hidden out of search results.
+	const noindex = $derived(Boolean(docsPage.view.activeVersion?.noindex));
 
 	// "Page · Site", or just the site title when they would duplicate (the home page).
 	const fullTitle = $derived(
-		title && title !== config.title ? `${title} · ${config.title}` : config.title
+		title && title !== site.title ? `${title} · ${site.title}` : site.title
 	);
-	const ogTitle = $derived(title ?? config.title);
-	const metaDescription = $derived(description ?? config.description);
+	const ogTitle = $derived(title ?? site.title);
+	const metaDescription = $derived(
+		descriptionOverride ?? docsPage.view.entry?.description ?? site.description
+	);
 
 	const image = $derived.by(() => {
-		const src = config.ogImage;
+		const src = site.ogImage;
 		if (!src) return undefined;
 		if (/^https?:\/\//.test(src)) return src;
-		return config.url ? join(config.url, src) : src;
+		return site.url ? join(site.url, src) : src;
 	});
 </script>
 
@@ -53,7 +57,7 @@
 		<meta property="og:description" content={metaDescription} />
 	{/if}
 	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content={config.title} />
+	<meta property="og:site_name" content={site.title} />
 	{#if canonical}
 		<meta property="og:url" content={canonical} />
 	{/if}

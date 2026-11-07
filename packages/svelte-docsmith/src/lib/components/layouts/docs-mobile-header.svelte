@@ -86,7 +86,7 @@
 				<ScrollArea class="my-4 h-[calc(100vh-8rem)] pb-10 pl-2">
 					{#if docsPage.view.headerLinks.length}
 						<nav aria-label="Main" class="flex flex-col gap-0.5 px-5 pb-1">
-							{#each docsPage.view.headerLinks as link (link.href)}
+							{#each docsPage.view.headerLinks as link, i (i)}
 								<a
 									href={link.href}
 									target={link.external ? '_blank' : undefined}

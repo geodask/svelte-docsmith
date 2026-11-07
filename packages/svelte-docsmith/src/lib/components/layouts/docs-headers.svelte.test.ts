@@ -23,7 +23,7 @@ vi.stubGlobal(
 );
 import Harness from './_fixtures/headers-harness.svelte';
 
-const view = resolveDocsPage({
+const input = {
 	content: [
 		{ title: 'Intro', path: '/docs/intro', section: 'Start', order: 1 },
 		{ title: 'Guide', path: '/docs/guide', section: 'Start', order: 2 }
@@ -31,7 +31,8 @@ const view = resolveDocsPage({
 	versions: [],
 	pathname: '/docs/guide',
 	site
-});
+};
+const view = resolveDocsPage(input);
 
 // Both headers render the one resolved view, so what the rules decide (which
 // section is active, which logo) is covered in `core/docs-page.test.ts`; this
@@ -60,6 +61,22 @@ describe('DocsHeader and DocsMobileHeader', () => {
 
 		const menu = await openMobileMenu();
 		expect(menu.querySelector('img')).toHaveAttribute('src', '/logo.svg');
+	});
+
+	it('render two header links that share an href', async () => {
+		const nav = [
+			{ label: 'Docs', href: '/docs/intro' },
+			{ label: 'Guide', href: '/docs/intro' }
+		];
+		render(Harness, {
+			props: { view: resolveDocsPage({ ...input, site: { ...site, nav } }) }
+		});
+		const desktop = within(screen.getByRole('navigation', { name: 'Main' }));
+		expect(desktop.getByRole('link', { name: 'Guide' })).toHaveAttribute('href', '/docs/intro');
+
+		const menu = within(await openMobileMenu());
+		const mobile = within(menu.getByRole('navigation', { name: 'Main' }));
+		expect(mobile.getByRole('link', { name: 'Guide' })).toHaveAttribute('href', '/docs/intro');
 	});
 
 	it('show the page title in the mobile bar and the sidebar in its menu', async () => {

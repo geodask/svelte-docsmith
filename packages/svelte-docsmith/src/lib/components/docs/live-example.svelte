@@ -4,9 +4,9 @@
 	import CopyButton from '../chrome/copy-button.svelte';
 	import PropsControls from './props-controls.svelte';
 	import Code from '@lucide/svelte/icons/code';
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import type { ExtractedProps } from '../../core/extracted-props.js';
-	import { definedValues, startingValues, type PlaygroundValues } from '../../core/playground.js';
+	import { Playground, type PlaygroundValues } from './playground.svelte.js';
 
 	const {
 		source,
@@ -39,9 +39,10 @@
 		children: Snippet<[PlaygroundValues]>;
 	} = $props();
 
-	const starting = () => (controls ? startingValues(controls, args) : {});
-	let values = $state(starting());
-	const current = $derived(definedValues(values));
+	// A new playground only when the props import itself changes: `of` settles
+	// on the same object when other props update. A reset reads `args` again.
+	const of = $derived(controls);
+	const playground = $derived(of && untrack(() => new Playground(of, () => args)));
 
 	let showSource = $state(false);
 	const clipboard = useClipboard();
@@ -49,11 +50,11 @@
 
 <div class="not-prose my-6 overflow-hidden rounded-lg border border-border">
 	<div class="flex justify-center bg-muted/30 p-8">
-		{@render children(current)}
+		{@render children(playground?.values ?? {})}
 	</div>
 
-	{#if controls}
-		<PropsControls of={controls} bind:values onreset={() => (values = starting())} />
+	{#if playground}
+		<PropsControls {playground} />
 	{/if}
 
 	{#if source}
