@@ -50,6 +50,12 @@ export class Builder {
 	cli = $state<CliSession | null>(null);
 	/** A one-line message for the panel, such as a theme link that didn't open. */
 	notice = $state('');
+	/**
+	 * The tokens edited by hand since the theme was loaded, each with the
+	 * override it replaced (null: none), so an edit can be undone back to the
+	 * preset's value rather than to a generated one.
+	 */
+	edits = $state<Record<Mode, Record<string, string | null>>>({ light: {}, dark: {} });
 
 	/** Call during component init: reads the URL in the browser and keeps the exports current. */
 	start() {
@@ -94,8 +100,7 @@ export class Builder {
 		if (payload) {
 			decodeThemeLink(payload)
 				.then((state) => {
-					this.state = state;
-					this.origin = { kind: 'link' };
+					this.load(state, { kind: 'link' });
 					this.notice = 'Opened from a theme link.';
 				})
 				.catch((error: Error) => {
@@ -106,28 +111,50 @@ export class Builder {
 
 	set(patch: Partial<Inputs>) {
 		this.state = setInputs(this.state, patch);
+		// An edit the control replaced is no longer an edit.
+		for (const mode of ['light', 'dark'] as const) {
+			for (const key of Object.keys(this.edits[mode])) {
+				if (!(key in this.state.overrides[mode])) delete this.edits[mode][key];
+			}
+		}
 	}
 
+	/** Edit one token by hand. An empty value lets the controls drive it again. */
 	setToken(mode: Mode, key: string, value: string) {
+		const before = this.state.overrides[mode][key] ?? null;
+		if (!(key in this.edits[mode])) this.edits[mode][key] = before;
 		this.state = value.trim()
 			? setToken(this.state, mode, key, value)
 			: clearToken(this.state, mode, key);
+		const after = this.state.overrides[mode][key] ?? null;
+		if (after === this.edits[mode][key]) delete this.edits[mode][key];
 	}
 
-	clearToken(mode: Mode, key: string) {
-		this.state = clearToken(this.state, mode, key);
+	/** Put a hand-edited token back to what it was before the edit. */
+	undoToken(mode: Mode, key: string) {
+		if (!(key in this.edits[mode])) return;
+		const previous = this.edits[mode][key];
+		this.state =
+			previous === null
+				? clearToken(this.state, mode, key)
+				: setToken(this.state, mode, key, previous);
+		delete this.edits[mode][key];
+	}
+
+	/** Start over from new tokens: no edits to undo. */
+	private load(state: BuilderState, origin: Origin) {
+		this.state = state;
+		this.origin = origin;
+		this.edits = { light: {}, dark: {} };
+		this.notice = '';
 	}
 
 	loadPreset(slug: string) {
-		this.state = presetState(slug);
-		this.origin = { kind: 'preset', slug };
-		this.notice = '';
+		this.load(presetState(slug), { kind: 'preset', slug });
 	}
 
 	loadTokens(tokens: ThemeTokens) {
-		this.state = fromTokens(tokens);
-		this.origin = { kind: 'paste' };
-		this.notice = '';
+		this.load(fromTokens(tokens), { kind: 'paste' });
 	}
 
 	/** Paint this theme across the whole docs site, to browse other pages in it. */

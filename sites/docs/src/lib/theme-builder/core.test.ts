@@ -113,6 +113,22 @@ describe('overrides', () => {
 		expect(rounded.overrides.light).toEqual({ primary: 'red' });
 	});
 
+	it('let a shared control move dark mode too, even when dark repeats it', () => {
+		// A preset's .dark block often restates radius, fonts or shadows.
+		let state = fromTokens({
+			light: {
+				...generate(defaultInputs).light,
+				radius: '0.5rem',
+				'font-sans': 'Inter, sans-serif'
+			},
+			dark: { ...generate(defaultInputs).dark, radius: '0.5rem', 'font-sans': 'Inter, sans-serif' }
+		});
+		state = setInputs(state, { radius: 1.25, fontSans: 'Geist' });
+		const dark = modeTokens(resolve(state), 'dark');
+		expect(dark.radius).toBe('1.25rem');
+		expect(dark['font-sans']).toBe(modeTokens(resolve(state), 'light')['font-sans']);
+	});
+
 	it('make a preset the starting point, with the controls read back from it', () => {
 		const rose = parseThemeFile(readPreset('rose.css')) as ThemeTokens;
 		const state = fromTokens(rose);

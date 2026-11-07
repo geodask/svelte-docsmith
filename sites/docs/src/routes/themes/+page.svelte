@@ -2,7 +2,8 @@
 	import { DocsShell } from 'svelte-docsmith';
 	import { themes } from '#lib/themes-data.ts';
 	import { themeStore } from '#lib/theme-store.svelte.ts';
-	import ThemePicker from '#lib/components/theme-picker.svelte';
+	import { mode } from 'mode-watcher';
+	import * as Select from '#lib/components/ui/select/index.ts';
 	import { Builder } from '#lib/theme-builder/builder.svelte.ts';
 	import GuidedPanel from '#lib/theme-builder/guided-panel.svelte';
 	import TokensPanel from '#lib/theme-builder/tokens-panel.svelte';
@@ -30,6 +31,12 @@
 	let tab = $state<Tab>('guided');
 
 	const startedFrom = $derived(builder.origin.kind === 'preset' ? builder.origin.slug : '');
+	const startedTheme = $derived(themes.find((t) => t.slug === startedFrom));
+	// A preset's dot shows its primary in the colour mode the site is in.
+	const dot = (t: (typeof themes)[number]) =>
+		mode.current === 'dark' ? t.dark.primary : t.light.primary;
+	const dotClass =
+		'size-3 shrink-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/20';
 	const siteThemed = $derived(Boolean(themeStore.custom || themeStore.active));
 	const issueCount = $derived(builder.issues.length);
 </script>
@@ -47,7 +54,7 @@
 	     viewport less the header and the announcement bar, so the pinned
 	     button and the whole preview are in view without scrolling. -->
 	<div
-		class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:px-6 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start lg:px-8"
+		class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:px-8"
 		style="--builder-h: max(34rem, calc(100dvh - 9rem))"
 	>
 		<aside
@@ -59,13 +66,39 @@
 				<p class="text-muted-foreground mt-1 text-xs leading-relaxed">
 					Start from a preset or your own colour, adjust, and take the theme file to your project.
 				</p>
-				<p class="text-muted-foreground mt-3 mb-1.5 text-xs font-medium">Start from</p>
-				<ThemePicker
-					{themes}
-					active={startedFrom}
-					onselect={(slug) => builder.loadPreset(slug)}
-					compact
-				/>
+				<div class="mt-4 flex items-center gap-3">
+					<span id="start-from" class="text-muted-foreground shrink-0 text-xs font-medium"
+						>Start from</span
+					>
+					<Select.Root
+						type="single"
+						value={startedFrom}
+						onValueChange={(slug) => slug && builder.loadPreset(slug)}
+					>
+						<Select.Trigger class="w-full" aria-labelledby="start-from">
+							{#if startedTheme}
+								<span class="flex items-center gap-2">
+									<span class={dotClass} style="background: {dot(startedTheme)}"></span>
+									{startedTheme.name}
+								</span>
+							{:else}
+								<span class="text-muted-foreground"
+									>{builder.origin.kind === 'link' ? 'A theme link' : 'Your imported theme'}</span
+								>
+							{/if}
+						</Select.Trigger>
+						<Select.Content>
+							{#each themes as t (t.slug)}
+								<Select.Item value={t.slug} label={t.name}>
+									<span class="flex items-center gap-2">
+										<span class={dotClass} style="background: {dot(t)}"></span>
+										{t.name}
+									</span>
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
 				{#if builder.notice}
 					<p class="text-muted-foreground mt-3 text-xs" role="status">{builder.notice}</p>
 				{/if}
@@ -75,7 +108,10 @@
 				<div class="border-border border-b px-4 py-2">
 					<Tabs.List class="w-full">
 						{#each tabs as [key, label] (key)}
-							<Tabs.Trigger value={key}>
+							<Tabs.Trigger
+								value={key}
+								class="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+							>
 								{label}
 								{#if key === 'tokens' && issueCount}
 									<span

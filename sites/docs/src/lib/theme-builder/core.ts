@@ -360,7 +360,9 @@ export function setInputs(state: BuilderState, patch: Partial<Inputs>): BuilderS
 		inputs,
 		overrides: {
 			light: keep(state.overrides.light, before.light, after.light),
-			dark: keep(state.overrides.dark, before.dark, after.dark)
+			// Dark inherits what it doesn't set (radius, fonts, shadows) from
+			// light, so compare what dark actually shows.
+			dark: keep(state.overrides.dark, modeTokens(before, 'dark'), modeTokens(after, 'dark'))
 		}
 	};
 }

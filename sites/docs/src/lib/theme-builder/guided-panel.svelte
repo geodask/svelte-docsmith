@@ -48,7 +48,7 @@
 			{#each swatches as s (s)}
 				<button
 					type="button"
-					class="ring-offset-background size-6 rounded-full ring-offset-2 outline-none focus-visible:ring-2 {i.brand ===
+					class="ring-offset-card focus-visible:ring-ring size-6 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)] ring-offset-2 outline-none focus-visible:ring-2 dark:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.2)] {i.brand ===
 					s
 						? 'ring-foreground ring-2'
 						: ''}"

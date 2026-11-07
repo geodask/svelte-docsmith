@@ -10,9 +10,10 @@
 
 	let { builder }: { builder: Builder } = $props();
 	let mode = $state<Mode>('light');
+	let showIssues = $state(false);
 
 	const shown = $derived(modeTokens(builder.tokens, mode));
-	const edited = $derived(builder.state.overrides[mode]);
+	const edited = $derived(builder.edits[mode]);
 	const issues = $derived(builder.issues.filter((issue) => issue.mode === mode));
 	const flagged = $derived(new Set(issues.map((issue) => issue.text)));
 
@@ -30,23 +31,38 @@
 </script>
 
 <div class="flex flex-col gap-4 text-sm">
-	<ToggleGroup.Root
-		type="single"
-		variant="outline"
-		size="sm"
-		value={mode}
-		onValueChange={(v) => v && (mode = v as Mode)}
-		class="w-full"
-		aria-label="Colour mode"
-	>
-		<ToggleGroup.Item value="light" class="flex-1">Light</ToggleGroup.Item>
-		<ToggleGroup.Item value="dark" class="flex-1">Dark</ToggleGroup.Item>
-	</ToggleGroup.Root>
+	<!-- Stays in view while the token list scrolls under it. -->
+	<div class="bg-card sticky -top-4 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2">
+		<ToggleGroup.Root
+			type="single"
+			variant="outline"
+			size="sm"
+			value={mode}
+			onValueChange={(v) => v && (mode = v as Mode)}
+			class="w-full"
+			aria-label="Colour mode"
+		>
+			<ToggleGroup.Item value="light" class="flex-1">Light</ToggleGroup.Item>
+			<ToggleGroup.Item value="dark" class="flex-1">Dark</ToggleGroup.Item>
+		</ToggleGroup.Root>
+	</div>
 
 	{#if issues.length}
 		<div class="border-destructive/40 bg-destructive/5 rounded-md border p-3 text-xs" role="status">
-			<p class="font-medium">{issues.length} below WCAG AA in {mode} mode</p>
-			<ul class="text-muted-foreground mt-1 space-y-0.5">
+			<div class="flex items-center justify-between gap-2">
+				<p class="font-medium">
+					{issues.length}
+					{issues.length === 1 ? 'pair' : 'pairs'} below WCAG AA in {mode} mode
+				</p>
+				<Button variant="ghost" size="xs" onclick={() => (showIssues = !showIssues)}
+					>{showIssues ? 'Hide' : 'Show'}</Button
+				>
+			</div>
+			<p class="text-muted-foreground mt-1">
+				Flagged rows below are marked <span class="text-destructive">●</span>. Presets are shown as
+				shipped; edit a flagged token or move a control to fix it.
+			</p>
+			<ul class="text-muted-foreground mt-2 space-y-0.5" hidden={!showIssues}>
 				{#each issues as issue (issue.text + issue.surface)}
 					<li>
 						<span class="font-mono">{issue.text}</span> on
@@ -59,8 +75,8 @@
 	{/if}
 
 	<p class="text-muted-foreground text-xs">
-		Edited tokens are marked. A guided control replaces an edit only for the tokens it changes.
-		Clear a field to follow the controls again.
+		Your edits show in the brand colour, with ↺ to undo one. Moving a guided control replaces an
+		edit only for the tokens it changes. Empty a field to let the controls drive it.
 	</p>
 
 	{#each groups as [title, test] (title)}
@@ -78,7 +94,7 @@
 								style={isColour(value) ? `background: ${value}` : ''}
 								aria-hidden="true"
 							></span>
-							<span class="flex w-40 shrink-0 items-center gap-1 truncate font-mono">
+							<span class="flex w-34 shrink-0 items-center gap-1 truncate font-mono" title={key}>
 								<span class={key in edited ? 'text-primary font-medium' : ''}>{key}</span>
 								{#if flagged.has(key)}<span class="text-destructive" title="Below WCAG AA">●</span
 									>{/if}
@@ -94,7 +110,7 @@
 									variant="ghost"
 									size="icon-xs"
 									aria-label="Undo the edit to {key}"
-									onclick={() => builder.clearToken(mode, key)}
+									onclick={() => builder.undoToken(mode, key)}
 									><RotateCcw aria-hidden="true" /></Button
 								>
 							{/if}
