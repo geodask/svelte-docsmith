@@ -40,6 +40,25 @@
 	--sidebar-accent-foreground: oklch(0.27 0.01 265);
 	--sidebar-border: oklch(0.922 0.003 265);
 	--sidebar-ring: oklch(0.27 0.01 265);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.3 0 265);
+	--code-token-string: oklch(0.38 0 265);
+	--code-token-function: oklch(0.34 0 265);
+	--code-token-constant: oklch(0.42 0 265);
+	--code-token-parameter: oklch(0.36 0 265);
+	--code-token-comment: oklch(0.51 0.007 265);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
+	/* Shadows, from the tweakcn preset this one is based on. */
+	--shadow-2xs: 0px 2px 0px 0px hsl(0 0% 20% / 0.07);
+	--shadow-xs: 0px 2px 0px 0px hsl(0 0% 20% / 0.07);
+	--shadow-sm: 0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 1px 2px -1px hsl(0 0% 20% / 0.15);
+	--shadow: 0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 1px 2px -1px hsl(0 0% 20% / 0.15);
+	--shadow-md: 0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 2px 4px -1px hsl(0 0% 20% / 0.15);
+	--shadow-lg: 0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 4px 6px -1px hsl(0 0% 20% / 0.15);
+	--shadow-xl: 0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 8px 10px -1px hsl(0 0% 20% / 0.15);
+	--shadow-2xl: 0px 2px 0px 0px hsl(0 0% 20% / 0.38);
 }
 
 .dark {
@@ -76,4 +95,14 @@
 	--sidebar-accent-foreground: oklch(0.96 0.002 265);
 	--sidebar-border: oklch(0.32 0.006 265);
 	--sidebar-ring: oklch(0.6 0.005 265);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.92 0 265);
+	--code-token-string: oklch(0.84 0 265);
+	--code-token-function: oklch(0.88 0 265);
+	--code-token-constant: oklch(0.8 0 265);
+	--code-token-parameter: oklch(0.86 0 265);
+	--code-token-comment: oklch(0.78 0.005 265);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }

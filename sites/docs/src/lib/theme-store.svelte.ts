@@ -22,7 +22,7 @@ const ALL_KEYS = [
 ];
 
 class ThemeStore {
-	/** Active preset slug, or null for the site default (theme.css / Darkmatter). */
+	/** Active preset slug, or null for the site's own theme (docsmith({ theme }), Darkmatter here). */
 	active = $state<string | null>(null);
 
 	/** Read the persisted choice (client only). Call once on mount. */
@@ -67,7 +67,9 @@ export function applyActiveTheme(active: string | null, dark: boolean) {
 	const theme = themes.find((t) => t.slug === active);
 	if (!theme) return;
 
-	const tokens = dark ? theme.dark : theme.light;
+	// `.dark` inherits whatever it doesn't set from `:root` (radius, shadows), as
+	// the preset's own CSS does.
+	const tokens = dark ? { ...theme.light, ...theme.dark } : theme.light;
 	const resolved: Record<string, string> = {};
 	for (const [key, value] of Object.entries(tokens)) {
 		root.style.setProperty(`--${key}`, value);

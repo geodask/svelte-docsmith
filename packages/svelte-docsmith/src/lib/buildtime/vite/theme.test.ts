@@ -92,9 +92,7 @@ describe('resolveTheme', () => {
 describe('themeLayer', () => {
 	it('wraps the rules in the base layer', () => {
 		const { css } = themeLayer(':root { --primary: red; }\n.dark { --primary: blue; }');
-		expect(css).toBe(
-			'@layer base {\n:root { --primary: red; }\n.dark { --primary: blue; }\n}\n'
-		);
+		expect(css).toBe('@layer base {\n:root { --primary: red; }\n.dark { --primary: blue; }\n}\n');
 	});
 
 	it('keeps a verbatim tweakcn export to its rules', () => {
@@ -157,7 +155,9 @@ describe('the theme plugin', () => {
 		);
 		const ocean = fs.readFileSync(path.join(presetsDir, 'ocean.css'), 'utf8');
 		expect(result?.code).toBe(`:root{--docsmith-theme:none}\n${themeLayer(ocean).css}`);
-		expect(result?.code).toMatch(/@layer base \{\n:root \{[^}]*--primary: oklch\(0\.55 0\.11 220\)/);
+		expect(result?.code).toMatch(
+			/@layer base \{\n:root \{[^}]*--primary: oklch\(0\.55 0\.11 220\)/
+		);
 		expect(context.addWatchFile).toHaveBeenCalledWith(path.join(presetsDir, 'ocean.css'));
 	});
 
@@ -172,9 +172,7 @@ describe('the theme plugin', () => {
 		expect(transform(plugin, '--docsmith-theme: none;').result?.code).toContain('--primary: red;');
 
 		fs.writeFileSync(path.join(root, 'theme.css'), ':root { --primary: blue; }');
-		expect(transform(plugin, '--docsmith-theme: none;').result?.code).toContain(
-			'--primary: blue;'
-		);
+		expect(transform(plugin, '--docsmith-theme: none;').result?.code).toContain('--primary: blue;');
 	});
 
 	it('leaves stylesheets without the marker alone', () => {

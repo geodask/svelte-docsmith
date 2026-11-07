@@ -69,6 +69,26 @@ describe('readPresets', () => {
 	});
 });
 
+describe('every preset is a complete theme', () => {
+	const presets = readPresets();
+	const base = presets.find((p) => p.default);
+	// The colours the default preset sets are the colours every theme needs.
+	const colourTokens = Object.keys(base.light).filter((t) => /^oklch/.test(base.light[t]));
+	const codeTokens = ['keyword', 'string', 'function', 'constant', 'parameter', 'comment'].map(
+		(role) => `code-token-${role}`
+	);
+
+	it.each(presets.map((p) => [p.slug, p]))(
+		'%s sets every colour and code token in both modes',
+		(_, preset) => {
+			for (const token of [...colourTokens, ...codeTokens]) {
+				expect(preset.light, `:root --${token}`).toHaveProperty(token);
+				expect(preset.dark, `.dark --${token}`).toHaveProperty(token);
+			}
+		}
+	);
+});
+
 describe('parseTokens', () => {
 	it('reads the declarations of the named block only', () => {
 		const css = ':root { --a: 1px; --b-c: oklch(1 0 0); }\n.dark { --a: 2px; }';

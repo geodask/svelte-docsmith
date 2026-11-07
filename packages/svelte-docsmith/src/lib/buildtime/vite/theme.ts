@@ -44,11 +44,7 @@ export function presetNames(dir: string = presetsDir): string[] {
  * Throws at startup on an unknown preset or a missing file, so a typo never
  * quietly falls back to the default look.
  */
-export function resolveTheme(
-	theme: unknown,
-	cwd: string,
-	dir: string = presetsDir
-): string {
+export function resolveTheme(theme: unknown, cwd: string, dir: string = presetsDir): string {
 	const value = theme ?? DEFAULT_THEME;
 	if (typeof value !== 'string' || value.trim() === '') {
 		throw new Error(
