@@ -114,7 +114,13 @@ export class SearchSession {
 	}
 
 	async #ensure(version: string | undefined): Promise<void> {
-		if (this.#index && this.#index.version === version) return;
+		if (this.#index && this.#index.version === version) {
+			// Back on the version already built (say, after switching away and
+			// back): abandon any other version's load and its loading or error state.
+			this.#pending = null;
+			this.#status = 'idle';
+			return;
+		}
 		if (this.#pending && this.#pending.version === version) return;
 
 		const request = { version };

@@ -252,6 +252,48 @@ describe('SearchSession version scoping', () => {
 		expect(s.session.status).toBe('idle');
 	});
 
+	it('goes back to the cached index when the reader returns before the new load lands', async () => {
+		const v2 = deferred<SearchDoc[]>();
+		const load = vi.fn((versionId?: string) =>
+			versionId === 'v2' ? v2.promise : perVersion()(versionId)
+		);
+		const s = setup(load, 'v1');
+		s.open();
+		await s.settled();
+
+		s.switchTo('v2');
+		expect(s.session.status).toBe('loading');
+		s.switchTo('v1');
+		expect(s.session.status).toBe('idle');
+
+		// The abandoned v2 load lands late and must not replace v1's index.
+		v2.resolve(docs.filter((d) => d.version === 'v2'));
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		flushSync();
+
+		s.session.query = 'routing';
+		expect(paths(s.session.results)).toEqual(['/docs/v1/routing']);
+	});
+
+	it('goes back to the cached index after the other version failed to load', async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const load = vi.fn((versionId?: string) =>
+			versionId === 'v2' ? Promise.reject(new Error('offline')) : perVersion()(versionId)
+		);
+		const s = setup(load, 'v1');
+		s.open();
+		await s.settled();
+
+		s.switchTo('v2');
+		await s.settled();
+		expect(s.session.status).toBe('error');
+
+		s.switchTo('v1');
+		expect(s.session.status).toBe('idle');
+		s.session.query = 'routing';
+		expect(paths(s.session.results)).toEqual(['/docs/v1/routing']);
+	});
+
 	it('does not load the same version twice while that load is in flight', async () => {
 		const pending = deferred<SearchDoc[]>();
 		const load = vi.fn(() => pending.promise);
