@@ -7,20 +7,17 @@
 	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
-	import type { DocsmithSite, DocsmithLink } from '#lib/core/index.js';
-	import BookOpenText from '@lucide/svelte/icons/book-open-text';
+	import { site } from 'svelte-docsmith/site';
 	import type { Snippet } from 'svelte';
 	import { cn } from '#lib/utils/cn.js';
-	import { firstSegmentUnder, join, normalizePath, under } from '#lib/utils/url.js';
 	import { useDocsPage } from '../docs-page-context.js';
+	import SiteMark from './site-mark.svelte';
 
 	const {
-		config,
 		logo,
 		actions
 	}: {
-		config: DocsmithSite;
-		/** Custom logo mark; defaults to a book icon in a primary-tinted chip. */
+		/** Custom logo mark; defaults to `site.logo`, then a book icon, in a primary-tinted chip. */
 		logo?: Snippet;
 		/** Extra header controls, rendered before the theme toggle. */
 		actions?: Snippet;
@@ -29,29 +26,9 @@
 	// Present only when the consumer passed a `search` loader to DocsShell.
 	const search = useSearchSession();
 
-	// Everything about the page being read comes off the shell's one resolved
-	// view, including the normalized path the nav highlights against.
+	// The header links, and which one is current, come off the shell's one
+	// resolved view, so this header and the mobile one can't disagree.
 	const docsPage = useDocsPage();
-	const current = $derived(docsPage.view.pathname);
-
-	/**
-	 * A header link is usually the entry point to a whole section rather than a
-	 * page you sit on: "Docs" points at `/docs/introduction`, and should stay lit
-	 * while the reader moves through `/docs/*`. So match the link's first segment,
-	 * not the exact path. The root is exempt, since every path starts with `/`.
-	 */
-	function isActive(link: DocsmithLink): boolean {
-		if (link.external) return false;
-		// `href` is only required to be a string, so anchor it at the site root:
-		// `docs/intro` has to light the same section as `/docs/intro`.
-		const href = normalizePath(join('/', link.href));
-		if (href === current) return true;
-		// No first segment means the link is the root, or is not a site path at
-		// all (an absolute URL left unflagged), and owns no section either way.
-		const segment = firstSegmentUnder(href, '/');
-		if (!segment) return false;
-		return under(current, '/' + segment);
-	}
 
 	let isScrolled = $state(false);
 </script>
@@ -68,29 +45,23 @@
 			<div
 				class="bg-primary/10 text-primary group-hover:bg-primary/20 flex size-8 items-center justify-center rounded-lg transition-all duration-200"
 			>
-				{#if logo}
-					{@render logo()}
-				{:else if config.logo}
-					<img src={config.logo} alt="" class="size-5 object-contain" />
-				{:else}
-					<BookOpenText class="size-5" />
-				{/if}
+				<SiteMark {logo} />
 			</div>
-			<span class="text-base font-semibold tracking-tight md:text-lg">{config.title}</span>
+			<span class="text-base font-semibold tracking-tight md:text-lg">{site.title}</span>
 		</a>
 
 		<div class="ml-auto flex items-center gap-2">
-			{#if config.nav?.length}
+			{#if docsPage.view.headerLinks.length}
 				<nav aria-label="Main" class="mr-1 flex items-center gap-1">
-					{#each config.nav as link (link.href)}
+					{#each docsPage.view.headerLinks as link (link.href)}
 						<a
 							href={link.href}
 							target={link.external ? '_blank' : undefined}
 							rel={link.external ? 'noopener noreferrer' : undefined}
-							aria-current={isActive(link) ? 'page' : undefined}
+							aria-current={link.active ? 'page' : undefined}
 							class={cn(
 								'hover:text-foreground rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-								isActive(link) ? 'text-foreground bg-muted/60' : 'text-muted-foreground'
+								link.active ? 'text-foreground bg-muted/60' : 'text-muted-foreground'
 							)}
 						>
 							{link.label}
@@ -103,13 +74,13 @@
 				<div class="px-1">
 					<VersionSwitcher links={docsPage.view.versionLinks} />
 				</div>
-			{:else if config.version}
+			{:else if site.version}
 				<div class="px-2">
 					<Badge
 						variant="outline"
 						class="bg-muted/50 border-border/50 font-mono text-xs font-normal"
 					>
-						v{config.version}
+						v{site.version}
 					</Badge>
 				</div>
 			{/if}
@@ -128,13 +99,13 @@
 					{@render actions()}
 				{/if}
 
-				{#if config.github}
+				{#if site.github}
 					<Button
 						size="icon"
 						variant="ghost"
 						target="_blank"
 						rel="noopener noreferrer"
-						href={config.github}
+						href={site.github}
 						class="text-muted-foreground hover:text-foreground size-8"
 					>
 						<GithubIcon class="size-4" />
