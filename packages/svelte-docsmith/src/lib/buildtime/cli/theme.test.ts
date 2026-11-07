@@ -103,14 +103,20 @@ describe('writeTheme', () => {
 
 	it('writes the file but says so when there is no docsmith() call', () => {
 		const cwd = scratch('export default {};\n');
-		expect(() => writeTheme(THEME, { cwd })).toThrow(/no docsmith\(\{ … \}\) call/);
+		expect(writeTheme(THEME, { cwd })).toEqual([
+			'wrote src/theme.css',
+			"found no docsmith({ … }) call in vite.config.ts: add theme: './src/theme.css' to it yourself"
+		]);
 		expect(read('src/theme.css')).toBe(THEME);
 		expect(read('vite.config.ts')).toBe('export default {};\n');
 	});
 
 	it('writes the file but says so when there is no vite config', () => {
 		const cwd = scratch();
-		expect(() => writeTheme(THEME, { cwd })).toThrow(/found no vite.config/);
+		expect(writeTheme(THEME, { cwd })).toEqual([
+			'wrote src/theme.css',
+			"found no vite.config here: add theme: './src/theme.css' to docsmith() yourself"
+		]);
 		expect(read('src/theme.css')).toBe(THEME);
 	});
 
@@ -237,6 +243,36 @@ describe('svelte-docsmith theme', () => {
 		await expect(
 			fetch(`http://127.0.0.1:${opened.searchParams.get('cli')}/theme`, { method: 'POST' })
 		).rejects.toThrow();
+	});
+
+	it('confirms and exits when the config has no docsmith() call', async () => {
+		const cwd = scratch('export default {};\n');
+		const { url, done, lines } = start(cwd);
+		const opened = await url;
+		const res = await fetch(`http://127.0.0.1:${opened.searchParams.get('cli')}/theme`, {
+			method: 'POST',
+			body: form({ state: opened.searchParams.get('state')!, file: THEME })
+		});
+		const html = await res.text();
+		expect(res.status).toBe(200);
+		expect(html).toContain('Theme saved');
+		expect(html).toContain('found no docsmith({ … }) call in vite.config.ts');
+		await done;
+		expect(read('src/theme.css')).toBe(THEME);
+		expect(lines).toContain(
+			"  found no docsmith({ … }) call in vite.config.ts: add theme: './src/theme.css' to it yourself"
+		);
+	});
+
+	it('takes a pasted code when the config has no docsmith() call', async () => {
+		const cwd = scratch('export default {};\n');
+		const { url, done, lines, input } = start(cwd);
+		await url;
+		input.write(`${pasteCode(THEME)}\n`);
+		await done;
+		expect(read('src/theme.css')).toBe(THEME);
+		expect(lines.some((l) => l.endsWith('Try again:'))).toBe(false);
+		expect(lines).toContain('Theme received as a pasted code:');
 	});
 
 	it('takes a pasted code, and asks again after a bad one', async () => {

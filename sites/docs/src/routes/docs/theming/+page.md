@@ -117,7 +117,8 @@ npx svelte-docsmith theme
 It opens the builder in your browser. Press **Send to my project** there and the
 command writes the theme to `src/theme.css` and sets `theme: './src/theme.css'`
 in the `docsmith()` call in `vite.config.ts`. A running `vite dev` picks it up
-straight away. Nothing leaves your machine: the browser sends the theme straight
+straight away. If it can't find that call, it still writes the file and tells you
+the line to add. Nothing leaves your machine: the browser sends the theme straight
 to the command, which listens on `127.0.0.1` only and accepts one send, from the
 tab it opened.
 

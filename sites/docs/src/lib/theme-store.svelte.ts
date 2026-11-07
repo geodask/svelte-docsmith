@@ -11,7 +11,7 @@ import { themes } from './themes-data';
 export type AppliedTokens = { light: Record<string, string>; dark: Record<string, string> };
 
 const STORAGE_KEY = 'docsmith-showcase-theme';
-const STORAGE_CUSTOM = 'docsmith-showcase-custom';
+const STORAGE_CUSTOM = 'docsmith-builder-theme';
 // The already-resolved `--token: value` map for the active theme and mode. The
 // blocking <head> script in app.html replays it before first paint, so a
 // reload doesn't flash the default theme.

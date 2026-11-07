@@ -4,11 +4,19 @@
  * preset, a pasted theme file, a hand edit), and the result serialises to a
  * theme file, a theme link and a CLI paste code.
  *
- * The theme link format is public (ADR-0012): `#theme=` + base64url of
- * deflate-raw of `{ "v": 1, "tokens": { light, dark }, "inputs"?: {…} }`.
- * `svelte-docsmith theme --link` decodes the same format; a fixture test on
- * both sides keeps them in step.
+ * The theme link, paste code and theme file formats are public (ADR-0012) and
+ * live in the package's core/theme-link.ts, which `svelte-docsmith theme`
+ * shares. It is imported by path because `$docsmith` is a Vite alias that
+ * TypeScript can't see. This module only adds the browser's deflate-raw and
+ * base64url.
  */
+import {
+	PASTE_CODE_PREFIX,
+	ThemeLinkError,
+	readThemeLinkJson,
+	toThemeFile,
+	writeThemeLinkJson
+} from '../../../../../packages/svelte-docsmith/src/lib/core/theme-link.ts';
 
 export type Tokens = Record<string, string>;
 export type ThemeTokens = { light: Tokens; dark: Tokens };
@@ -506,20 +514,7 @@ export function parseThemeFile(source: string): ThemeTokens | { error: string } 
 	return { light, dark };
 }
 
-/** The theme file: `:root` in full, `.dark` with only what differs from it. */
-export function toThemeFile(tokens: ThemeTokens): string {
-	const lines = (t: Tokens) =>
-		Object.entries(t)
-			.map(([k, v]) => `\t--${k}: ${v};`)
-			.join('\n');
-	const darkOnly = Object.fromEntries(
-		Object.entries(tokens.dark).filter(([k, v]) => tokens.light[k] !== v)
-	);
-	return (
-		'/* Made with the svelte-docsmith theme builder: https://docsmith.geodask.com/themes */\n' +
-		`:root {\n${lines(tokens.light)}\n}\n\n.dark {\n${lines(darkOnly)}\n}\n`
-	);
-}
+export { toThemeFile };
 
 // ------------------------------------------------------- links and paste codes
 
@@ -553,21 +548,29 @@ async function inflate(code: string) {
 
 /** The `#theme=` payload: the whole theme, plus the control positions. */
 export async function encodeThemeLink(state: BuilderState): Promise<string> {
-	return deflate(JSON.stringify({ v: 1, tokens: resolve(state), inputs: state.inputs }));
+	return deflate(writeThemeLinkJson(resolve(state), { ...state.inputs }));
 }
 
 /** Open a `#theme=` payload. Throws on anything that isn't a v1 theme link. */
 export async function decodeThemeLink(payload: string): Promise<BuilderState> {
-	let data: { v?: number; tokens?: ThemeTokens; inputs?: Partial<Inputs> };
+	let json: string;
 	try {
-		data = JSON.parse(await inflate(payload));
+		json = await inflate(payload);
 	} catch {
 		throw new Error("This theme link is damaged: it doesn't decode.");
 	}
-	if (data.v !== 1) throw new Error(`This theme link is from a newer builder (version ${data.v}).`);
-	if (!data.tokens?.light || !data.tokens?.dark)
-		throw new Error('This theme link carries no tokens.');
-	return fromTokens(data.tokens, data.inputs);
+	try {
+		const { tokens, inputs } = readThemeLinkJson(json);
+		return fromTokens(tokens, inputs as Partial<Inputs> | undefined);
+	} catch (error) {
+		if (!(error instanceof ThemeLinkError)) throw error;
+		const message = {
+			damaged: "This theme link is damaged: it doesn't decode.",
+			version: `This theme link is from a newer builder (version ${error.version}).`,
+			'no-tokens': 'This theme link carries no tokens.'
+		}[error.reason];
+		throw new Error(message, { cause: error });
+	}
 }
 
 /**
@@ -576,5 +579,5 @@ export async function decodeThemeLink(payload: string): Promise<BuilderState> {
  * carries the file, not the state, so the CLI needs no generator.
  */
 export async function encodePasteCode(file: string): Promise<string> {
-	return 'dsm1.' + (await deflate(file));
+	return PASTE_CODE_PREFIX + (await deflate(file));
 }

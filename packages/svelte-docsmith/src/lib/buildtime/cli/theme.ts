@@ -21,6 +21,13 @@ import readline from 'node:readline';
 import { spawn } from 'node:child_process';
 import zlib from 'node:zlib';
 import type { Readable } from 'node:stream';
+import {
+	PASTE_CODE_PREFIX,
+	ThemeLinkError,
+	readThemeLinkJson,
+	themeLinkPayload,
+	toThemeFile
+} from '../../core/theme-link.js';
 import { CliError } from './error.js';
 
 export const DEFAULT_BUILDER = 'https://docsmith.geodask.com/themes';
@@ -77,50 +84,46 @@ export function parseThemeArgs(rest: string[]): ThemeArgs {
 
 /** A paste code from the builder: `dsm1.` and the theme file, deflated. */
 export function decodePasteCode(code: string): string {
-	const match = code.trim().match(/^dsm1\.([\w-]+)$/);
-	if (!match) throw new CliError("that isn't a builder code: it starts with dsm1.");
+	const text = code.trim();
+	if (
+		!text.startsWith(PASTE_CODE_PREFIX) ||
+		!/^[\w-]+$/.test(text.slice(PASTE_CODE_PREFIX.length))
+	) {
+		throw new CliError(`that isn't a builder code: it starts with ${PASTE_CODE_PREFIX}`);
+	}
 	try {
-		return zlib.inflateRawSync(Buffer.from(match[1], 'base64url')).toString('utf8');
+		return zlib
+			.inflateRawSync(Buffer.from(text.slice(PASTE_CODE_PREFIX.length), 'base64url'))
+			.toString('utf8');
 	} catch {
 		throw new CliError('that code is damaged: copy it from the builder again.');
 	}
 }
 
-type Tokens = Record<string, string>;
-
 /**
  * The theme file a theme link carries. Takes the whole link or just its
- * `#theme=` payload. The format is documented on /docs/theming: base64url of
- * deflate-raw of `{ "v": 1, "tokens": { "light", "dark" }, "inputs"? }`.
+ * `#theme=` payload. The format is documented on /docs/theming and lives in
+ * core/theme-link.ts, which the theme builder shares.
  */
 export function themeFileFromLink(link: string): string {
-	const payload = link.includes('theme=')
-		? link.slice(link.indexOf('theme=') + 'theme='.length)
-		: link;
-	let data: { v?: number; tokens?: { light?: Tokens; dark?: Tokens } };
+	let json: string;
 	try {
-		data = JSON.parse(
-			zlib.inflateRawSync(Buffer.from(payload.trim(), 'base64url')).toString('utf8')
-		);
+		json = zlib.inflateRawSync(Buffer.from(themeLinkPayload(link), 'base64url')).toString('utf8');
 	} catch {
 		throw new CliError("that theme link is damaged: it doesn't decode.");
 	}
-	if (data.v !== 1) {
+	try {
+		return toThemeFile(readThemeLinkJson(json).tokens);
+	} catch (error) {
+		if (!(error instanceof ThemeLinkError)) throw error;
 		throw new CliError(
-			`that theme link is version ${data.v}; this svelte-docsmith reads version 1. Update the package.`
+			{
+				damaged: "that theme link is damaged: it doesn't decode.",
+				version: `that theme link is version ${error.version}; this svelte-docsmith reads version 1. Update the package.`,
+				'no-tokens': 'that theme link carries no tokens.'
+			}[error.reason]
 		);
 	}
-	const { light, dark } = data.tokens ?? {};
-	if (!light || !dark) throw new CliError('that theme link carries no tokens.');
-	const lines = (t: Tokens) =>
-		Object.entries(t)
-			.map(([k, v]) => `\t--${k}: ${v};`)
-			.join('\n');
-	const darkOnly = Object.fromEntries(Object.entries(dark).filter(([k, v]) => light[k] !== v));
-	return (
-		'/* Made with the svelte-docsmith theme builder: https://docsmith.geodask.com/themes */\n' +
-		`:root {\n${lines(light)}\n}\n\n.dark {\n${lines(darkOnly)}\n}\n`
-	);
 }
 
 // ------------------------------------------------------------- writing it
@@ -130,8 +133,9 @@ export type WriteOptions = { cwd: string; file?: string; config?: string };
 /**
  * Write the theme file and set `theme` in the `docsmith({ … })` call. A
  * `theme:` entry already there (set, or commented out as the scaffold leaves
- * it) is replaced; otherwise one is added as the call's first option. Returns
- * a line per change, for the terminal and the browser's "saved" page.
+ * it) is replaced; otherwise one is added as the call's first option. With no
+ * vite config or no `docsmith({` call, the last line says what to add by hand.
+ * Returns a line per change, for the terminal and the browser's "saved" page.
  */
 export function writeTheme(
 	source: string,
@@ -148,19 +152,23 @@ export function writeTheme(
 	const configFile = config
 		? path.resolve(cwd, config)
 		: CONFIG_FILES.map((f) => path.join(cwd, f)).find((f) => fs.existsSync(f));
+	// The theme file is written either way, so a config we can't edit is a
+	// note for the user, not a failure: the command still confirms and exits.
 	if (!configFile || !fs.existsSync(configFile)) {
-		throw new CliError(
-			`${changes[0]}, but found no vite.config here: add theme: '${relativeTo(cwd, target)}' to docsmith() yourself.`
+		changes.push(
+			`found no vite.config here: add theme: '${relativeTo(cwd, target)}' to docsmith() yourself`
 		);
+		return changes;
 	}
 
 	const value = `theme: '${relativeTo(path.dirname(configFile), target)}'`;
 	const code = fs.readFileSync(configFile, 'utf8');
 	const call = code.search(/\bdocsmith\(\s*\{/);
 	if (call === -1) {
-		throw new CliError(
-			`${changes[0]}, but found no docsmith({ … }) call in ${path.basename(configFile)}: add ${value} to it yourself.`
+		changes.push(
+			`found no docsmith({ … }) call in ${path.basename(configFile)}: add ${value} to it yourself`
 		);
+		return changes;
 	}
 	const head = code.slice(0, call);
 	const body = code.slice(call);
