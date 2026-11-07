@@ -1,18 +1,20 @@
 /**
- * The three generated indexes, each a projection of the same page list. Nothing
- * here reads the filesystem or spawns a process: a build hands these functions
- * pages read by `./pages.js`, and a test hands them literals. Both go down the
- * same path, so what the sidebar, search and llms.txt show is decided in one
- * place and can be checked without a docs root on disk.
+ * The content and search indexes, each a projection of the same page list, and
+ * the page resolution every index shares (the llms index in
+ * `./agent-markdown.js` included). Nothing here reads the filesystem or spawns a
+ * process: a build hands these functions pages read by `./pages.js`, and a test
+ * hands them literals. Both go down the same path, so what the sidebar, search
+ * and llms.txt show is decided in one place and can be checked without a docs
+ * root on disk.
  */
 import path from 'node:path';
-import type { DocsContentItem, LlmsDoc, SearchDoc } from '#lib/core/content.js';
+import type { DocsContentItem, SearchDoc } from '#lib/core/content.js';
 import type { DocsVersions } from '#lib/core/version.js';
 import { sectionPath } from '#lib/core/reading-order.js';
 import { firstSegmentUnder } from '#lib/utils/url.js';
 import { docsBaseFrom, relativeToCwd, urlFor } from '../paths.js';
 import { titleOf, type SourcePage } from './pages.js';
-import { extractLlmsContent, extractSearchText, extractToc, readingMinutes } from './extract.js';
+import { extractSearchText, extractToc, readingMinutes } from './extract.js';
 import { customFields, readField } from './fields.js';
 
 /** Where the pages sit, which is what turns a page's file into a URL and a version. */
@@ -26,13 +28,14 @@ export type IndexOptions = {
 };
 
 /** A page resolved against the site's layout: its URL, title and owning version. */
-type IndexedPage = SourcePage & { url: string; title: string; version: string | undefined };
+export type IndexedPage = SourcePage & { url: string; title: string; version: string | undefined };
 
 /**
- * Resolve every titled page against the site's layout. Shared by all three
- * indexes so they can never disagree about which pages exist or where they live.
+ * Resolve every titled page against the site's layout, sorted by URL. Shared by
+ * all three indexes (the llms index builds its entries in `./agent-markdown.js`) so they can never disagree about which pages exist or where
+ * they live.
  */
-function indexedPages(pages: SourcePage[], options: IndexOptions): IndexedPage[] {
+export function indexedPages(pages: SourcePage[], options: IndexOptions): IndexedPage[] {
 	const resolved: IndexedPage[] = [];
 	const docsBase = docsBaseFrom(options.routesDir, options.contentDir);
 
@@ -121,30 +124,6 @@ export function searchIndex(pages: SourcePage[], options: IndexOptions): SearchD
 		description: readField(page.frontmatter, 'description'),
 		headings: extractToc(page.source).map((entry) => entry.title),
 		text: extractSearchText(page.source),
-		version: page.version
-	}));
-}
-
-/**
- * The LLM index: title, section, description, and the full markdown content.
- * Served as the `svelte-docsmith/llms` virtual module and consumed server-side
- * by `llms.txt` / `llms-full.txt` routes, so it never ships to the client.
- *
- * `rewrite` turns a page's markdown into agent markdown (see
- * `./agent-markdown.js`); without it, the content is the page as written.
- */
-export function llmsIndex(
-	pages: SourcePage[],
-	options: IndexOptions,
-	rewrite: (content: string, page: SourcePage) => string = (content) => content
-): LlmsDoc[] {
-	return indexedPages(pages, options).map((page) => ({
-		path: page.url,
-		title: page.title,
-		section: readField(page.frontmatter, 'section'),
-		order: readField(page.frontmatter, 'order'),
-		description: readField(page.frontmatter, 'description'),
-		content: rewrite(extractLlmsContent(page.source, page.title), page),
 		version: page.version
 	}));
 }

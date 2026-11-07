@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { contentIndex, llmsIndex, searchIndex } from './collect.js';
+import { contentIndex, searchIndex } from './collect.js';
 import { toPage, type SourcePage } from './pages.js';
 import type { DocsVersions } from '#lib/core/version.js';
 
@@ -61,10 +61,9 @@ describe('contentIndex', () => {
 		expect(JSON.stringify(b)).not.toContain('"data"');
 	});
 
-	it('keeps custom fields out of the search and llms indexes', () => {
+	it('keeps custom fields out of the search index', () => {
 		const pages = [page('a', 'title: A\ndraft: true')];
 		expect(searchIndex(pages, options)[0]).not.toHaveProperty('data');
-		expect(llmsIndex(pages, options)[0]).not.toHaveProperty('data');
 	});
 
 	it('tags archive folders by id, and everything else as the current version', () => {
@@ -273,62 +272,5 @@ describe('searchIndex', () => {
 		];
 
 		expect(searchIndex(pages, options).map((d) => d.path)).toEqual(['/docs/a', '/docs/b']);
-	});
-});
-
-describe('llmsIndex', () => {
-	it('keeps the markdown body with headings and code, dropping frontmatter and script/style', () => {
-		const body = [
-			'<script>',
-			"\timport { Callout } from 'svelte-docsmith';",
-			'</script>',
-			'<style>.x { color: red; }</style>',
-			'',
-			'## Getting started',
-			'',
-			'Install the **package**.',
-			'',
-			'```bash',
-			'npm i thing',
-			'```'
-		].join('\n');
-
-		const [doc] = llmsIndex(
-			[page('guide', 'title: Guide\ndescription: How to use it\nsection: Guides', body)],
-			options
-		);
-
-		expect(doc.path).toBe('/docs/guide');
-		expect(doc.title).toBe('Guide');
-		expect(doc.description).toBe('How to use it');
-		expect(doc.section).toBe('Guides');
-		// Title prepended as an h1; markdown headings and code fences preserved.
-		expect(doc.content.startsWith('# Guide\n\n')).toBe(true);
-		expect(doc.content).toContain('## Getting started');
-		expect(doc.content).toContain('Install the **package**.');
-		expect(doc.content).toContain('```bash\nnpm i thing\n```');
-		// Frontmatter, script, and style blocks are removed.
-		expect(doc.content).not.toContain('---');
-		expect(doc.content).not.toContain('import {');
-		expect(doc.content).not.toContain('color: red');
-	});
-
-	it('keeps a nested section path as written, as the content index does', () => {
-		const [doc] = llmsIndex(
-			[page('deep', 'title: Deep\nsection:\n  - Guides\n  - Advanced')],
-			options
-		);
-
-		expect(doc.section).toEqual(['Guides', 'Advanced']);
-	});
-
-	it('skips pages without a title and sorts by path', () => {
-		const pages = [
-			page('b', 'title: Bravo', 'Second.'),
-			page('a', 'title: Alpha', 'First.'),
-			page('untitled', 'description: no title', 'Ignored.')
-		];
-
-		expect(llmsIndex(pages, options).map((d) => d.path)).toEqual(['/docs/a', '/docs/b']);
 	});
 });
