@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { join, normalizePath } from '#lib/utils/url.js';
+	import { join } from '#lib/utils/url.js';
 	import type { DocsmithSite } from '#lib/core/index.js';
 
 	const {
 		config,
 		title,
 		description,
+		canonical,
 		noindex = false
 	}: {
 		config: DocsmithSite;
@@ -14,6 +14,8 @@
 		title?: string;
 		/** The page's own description; falls back to `config.description`. */
 		description?: string;
+		/** The page's absolute canonical URL, from the resolved page view; omitted when absent. */
+		canonical?: string;
 		/** Emit `robots: noindex`, for a doc version explicitly marked hidden. */
 		noindex?: boolean;
 	} = $props();
@@ -25,11 +27,6 @@
 	const ogTitle = $derived(title ?? config.title);
 	const metaDescription = $derived(description ?? config.description);
 
-	// Absolute URLs need a configured origin; otherwise canonical/og:url are
-	// omitted rather than emitted relative, which `join` alone would do.
-	const canonical = $derived(
-		config.url ? join(config.url, normalizePath(page.url.pathname)) : undefined
-	);
 	const image = $derived.by(() => {
 		const src = config.ogImage;
 		if (!src) return undefined;

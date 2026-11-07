@@ -36,4 +36,10 @@ export {
 	type NavGroup,
 	type NavNode
 } from './nav.js';
-export { resolveDocsPage, type DocsPageView, type VersionLink } from './docs-page.js';
+export {
+	resolveDocsPage,
+	type ArchivedBanner,
+	type DocsPageView,
+	type HeaderLink,
+	type VersionLink
+} from './docs-page.js';

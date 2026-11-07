@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { propsCaption, type ExtractedProps } from '../../core/extracted-props.js';
+	import type { ExtractedProps } from '../../core/extracted-props.js';
+	import { propsReference } from '../../core/props-reference.js';
 	import Prop from './prop.svelte';
 
 	const {
@@ -19,7 +20,8 @@
 		children?: Snippet;
 	} = $props();
 
-	const caption = $derived(title ?? (of && propsCaption(of)));
+	const reference = $derived(of && propsReference(of, title));
+	const caption = $derived(reference ? reference.caption : title);
 </script>
 
 <!--
@@ -46,38 +48,32 @@
 		</div>
 	{/if}
 	<div class="props-list">
-		{#if of}
-			{#each of.props as prop (prop.name)}
+		{#if reference}
+			{#each reference.rows as row (row.name)}
 				{#snippet description()}
-					<!-- Build-time HTML rendered from the component's own JSDoc. -->
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{#if prop.deprecated}<div>Deprecated: {@html prop.deprecated}</div>{/if}
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{#if prop.description}<div>{@html prop.description}</div>{/if}
+					{#each row.description as paragraph, i (i)}
+						<!-- Build-time HTML rendered from the component's own JSDoc. -->
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+						<div>{@html paragraph}</div>
+					{/each}
 				{/snippet}
 				<Prop
-					name={prop.name}
-					type={prop.type}
-					default={prop.default}
-					required={prop.required}
-					bindable={prop.bindable}
-					deprecated={prop.deprecated !== undefined}
-					children={prop.description || prop.deprecated ? description : undefined}
+					name={row.name}
+					type={row.type}
+					default={row.default}
+					required={row.required}
+					bindable={row.bindable}
+					deprecated={row.deprecated}
+					children={row.description.length ? description : undefined}
 				/>
 			{/each}
-			{#each of.inherited as group (group.label)}
+			{#each reference.notes as note, i (i)}
 				<div class="props-note">
-					Also accepts every
-					{#if group.kind === 'element'}
-						<code>&lt;{group.label}&gt;</code> attribute.
-					{:else}
-						prop of <code>{group.label}</code>.
-					{/if}
+					{#each note as part, j (j)}{#if typeof part === 'string'}{part}{:else}<code
+								>{part.code}</code
+							>{/if}{/each}
 				</div>
 			{/each}
-			{#if of.props.length === 0 && of.inherited.length === 0}
-				<div class="props-note">No props.</div>
-			{/if}
 		{:else}
 			{@render children?.()}
 		{/if}

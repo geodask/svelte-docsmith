@@ -110,17 +110,18 @@
 
 	// Every rule about the page being read is resolved in one pure module
 	// (`core/docs-page.ts`): the active version and the content scoped to it, the
-	// sidebar, the entry, prev/next, breadcrumbs, the server-rendered TOC. Reading
-	// them off one view keeps the parts from disagreeing about which page or
-	// version is active. What stays here is presentation: locale formatting, the
+	// sidebar, the entry, prev/next, breadcrumbs, the server-rendered TOC, and the
+	// chrome rules that need the site config (header links and which is active,
+	// the archived banner, the issue link, the canonical URL). Reading them off
+	// one view keeps the parts from disagreeing about which page or version is
+	// active. What stays here is presentation: locale formatting, the
 	// "min read" copy, and the live TOC.
 	const view = $derived(
 		resolveDocsPage({
 			content: Array.isArray(content) ? content : content.docs,
 			versions: Array.isArray(content) ? versions : content.versions,
 			pathname: page.url.pathname,
-			editUrl: site.editUrl,
-			siteTitle: site.title
+			site
 		})
 	);
 
@@ -156,18 +157,6 @@
 		readingTime && view.readingMinutes ? `${view.readingMinutes} min read` : undefined
 	);
 
-	const breadcrumbs = $derived(view.breadcrumbs);
-
-	// The archived-version banner, or nothing. Its "view this page in <current>"
-	// link is the current version's entry in the same list the switcher renders,
-	// so the two can't disagree about where the reader lands.
-	const archivedBanner = $derived.by(() => {
-		const { isArchived, activeVersion, currentVersion, versionLinks } = view;
-		if (!isArchived || !activeVersion || !currentVersion) return undefined;
-		const href = versionLinks.find((link) => link.id === currentVersion.id)?.href;
-		return href ? { active: activeVersion, current: currentVersion, href } : undefined;
-	});
-
 	// In-page TOC, scanned from the rendered content and re-scanned after every
 	// navigation (client-side included) so it never goes stale.
 	let contentEl = $state<HTMLElement | null>(null);
@@ -186,6 +175,7 @@
 	config={site}
 	title={seo?.title ?? view.entry?.title}
 	description={seo?.description ?? view.entry?.description}
+	canonical={view.canonicalUrl}
 	noindex={view.activeVersion?.noindex}
 />
 
@@ -217,24 +207,16 @@
 
 	<!-- One header system everywhere: DocsHeader on desktop, DocsMobileHeader
 	     below lg. The `page` layout just omits the sidebar nav and in-page TOC. -->
-	<DocsHeader config={site} {logo} {actions} />
+	<DocsHeader {logo} {actions} />
 
 	{#if layout === 'page'}
-		<DocsMobileHeader config={site} {logo} {actions} />
+		<DocsMobileHeader {logo} {actions} />
 
 		<main id="main-content" tabindex="-1" class="flex-1">
 			{@render children()}
 		</main>
 	{:else}
-		<DocsMobileHeader
-			config={site}
-			nav={view.nav}
-			title={view.title}
-			{tocItems}
-			tocActiveId={toc.activeId}
-			{logo}
-			{actions}
-		/>
+		<DocsMobileHeader sidebar {tocItems} tocActiveId={toc.activeId} {logo} {actions} />
 
 		<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
 			<DocsSidebar nav={view.nav} />
@@ -245,12 +227,12 @@
 				tabindex="-1"
 				class="min-w-0 flex-1 py-6 lg:py-0"
 			>
-				{#if archivedBanner}
-					<VersionBanner {...archivedBanner} />
+				{#if view.archivedBanner}
+					<VersionBanner {...view.archivedBanner} />
 				{/if}
 
 				<div class="flex items-start justify-between gap-4">
-					<Breadcrumbs items={breadcrumbs} />
+					<Breadcrumbs items={view.breadcrumbs} />
 					<div class="flex shrink-0 items-center gap-3">
 						{#if readingTimeLabel}
 							<span class="text-muted-foreground text-sm whitespace-nowrap">
@@ -297,9 +279,7 @@
 								path={view.pathname}
 								onfeedback={typeof feedback === 'function' ? feedback : undefined}
 								editHref={view.editHref}
-								issueHref={site.github
-									? `${site.github}/issues/new?title=${encodeURIComponent(`Feedback: ${view.title}`)}&body=${encodeURIComponent(`Page: ${view.pathname}\n\n<!-- What was unclear or missing? -->\n`)}`
-									: undefined}
+								issueHref={view.issueHref}
 							/>
 						</div>
 					{/key}

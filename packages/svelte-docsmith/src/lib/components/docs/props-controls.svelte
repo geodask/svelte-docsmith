@@ -1,6 +1,7 @@
 <script lang="ts">
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import type { Playground } from './playground.svelte.js';
+	import { plainDescription } from '../../core/props-reference.js';
 	import { useClipboard } from '#lib/utils/clipboard.svelte.js';
 	import { Button } from '../shadcn/button/index.js';
 	import CopyButton from '../chrome/copy-button.svelte';
@@ -16,18 +17,6 @@
 
 	/** Up to this many options show as buttons; more become a select. */
 	const MAX_SEGMENTS = 4;
-
-	const ENTITIES: Record<string, string> = {
-		'&amp;': '&',
-		'&lt;': '<',
-		'&gt;': '>',
-		'&quot;': '"',
-		'&#39;': "'"
-	};
-
-	/** The JSDoc description, rendered to HTML at build time, as plain text for a tooltip. */
-	const descriptionText = (html: string | undefined) =>
-		html?.replace(/<[^>]+>/g, '').replace(/&(?:amp|lt|gt|quot|#39);/g, (e) => ENTITIES[e]);
 </script>
 
 <div class="props-controls border-t border-border px-4 py-3 text-sm">
@@ -42,7 +31,7 @@
 	<div class="controls-grid">
 		{#each playground.controls as control (control.name)}
 			{@const value = playground.values[control.name]}
-			<code class="control-name" title={descriptionText(control.description)}>{control.name}</code>
+			<code class="control-name" title={plainDescription(control.description)}>{control.name}</code>
 			<div class="control-input">
 				{#if control.kind === 'boolean'}
 					<button
