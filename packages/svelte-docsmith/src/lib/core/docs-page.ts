@@ -1,13 +1,14 @@
 /**
- * Docs page resolution: everything `DocsShell` needs to know about the page
- * being read, derived in one place from the content index, the version manifest
- * and the URL.
+ * Docs page resolution: everything `DocsShell` and its chrome need to know about
+ * the page being read, derived in one place from the content index, the version
+ * manifest, the site config and the URL.
  *
  * Pure and framework-agnostic, so each rule is a field with a test rather than
  * a derivation whose only test surface is a rendered tree. The view returns
  * data, never formatted strings: locale formatting and copy stay in the
  * component that renders them.
  */
+import type { DocsmithLink, DocsmithSite } from './config.js';
 import type { DocsContentItem } from './content.js';
 import {
 	navFromContent,
@@ -24,7 +25,7 @@ import {
 	scopeContent,
 	type ResolvedVersion
 } from './version.js';
-import { join, normalizePath } from '../utils/url.js';
+import { firstSegmentUnder, join, normalizePath, under } from '../utils/url.js';
 
 /** The page's build-time headings, as extracted into the content index. */
 type PageToc = NonNullable<DocsContentItem['toc']>;
@@ -39,7 +40,23 @@ export type VersionLink = {
 	active: boolean;
 };
 
-/** Everything `DocsShell` renders about the current page. */
+/** A `site.nav` link, with whether the page being read sits in its section. */
+export type HeaderLink = DocsmithLink & {
+	/** Whether to mark this link as the current section (`aria-current`). */
+	active: boolean;
+};
+
+/** The archived-version banner: what the reader is on, and the way out. */
+export type ArchivedBanner = {
+	/** The archived version being read. */
+	active: ResolvedVersion;
+	/** The current version the banner points to. */
+	current: ResolvedVersion;
+	/** This page under the current version: the switcher's link for it. */
+	href: string;
+};
+
+/** Everything `DocsShell` and its chrome render about the current page. */
 export type DocsPageView = {
 	/** The current path, trailing slash stripped. Match content against this. */
 	pathname: string;
@@ -86,6 +103,27 @@ export type DocsPageView = {
 	 * archived-version banner both render off this one list.
 	 */
 	versionLinks: VersionLink[];
+	/**
+	 * The archived-version banner, or `undefined` off an archive. Its link is
+	 * the current version's entry in {@link versionLinks}, so the banner and the
+	 * switcher can't disagree about where the reader lands.
+	 */
+	archivedBanner: ArchivedBanner | undefined;
+	/**
+	 * `site.nav` in order, each marked active or not. Both headers render this
+	 * one list, so they can't disagree about which section is current.
+	 */
+	headerLinks: HeaderLink[];
+	/**
+	 * "Open an issue" target for the feedback widget, prefilled with the page
+	 * title and path. Absent without `site.github`, or off a doc page.
+	 */
+	issueHref: string | undefined;
+	/**
+	 * Absolute canonical URL of this page. Absent without `site.url`: a relative
+	 * canonical would claim every page under whatever host served it.
+	 */
+	canonicalUrl: string | undefined;
 };
 
 /**
@@ -98,10 +136,9 @@ export function resolveDocsPage(input: {
 	content: DocsContentItem[];
 	versions: ResolvedVersion[];
 	pathname: string;
-	editUrl?: string;
-	siteTitle: string;
+	site: DocsmithSite;
 }): DocsPageView {
-	const { content, versions, editUrl, siteTitle } = input;
+	const { content, versions, site } = input;
 	const pathname = normalizePath(input.pathname);
 
 	// Off the docs tree there is no owning version, so fall back to the current
@@ -118,10 +155,36 @@ export function resolveDocsPage(input: {
 
 	const flatNav = flattenNav(nav);
 	const pageIndex = flatNav.findIndex((item) => item.url === pathname);
-	const title = pageIndex >= 0 ? flatNav[pageIndex].title : siteTitle;
+	const title = pageIndex >= 0 ? flatNav[pageIndex].title : site.title;
 
 	const breadcrumbs: Breadcrumb[] = navTrail(nav, pathname) ?? [];
 	if (pageIndex >= 0) breadcrumbs.push({ title });
+
+	const versionLinks: VersionLink[] = active
+		? versions.map((version) => ({
+				id: version.id,
+				label: version.label,
+				// Switching to the version already being read is a no-op, so its
+				// link is this page. Mapping it like the others would send a reader
+				// who is off the docs tree to the docs landing instead.
+				href:
+					version.id === active.id
+						? pathname
+						: mapPathToVersion(
+								pathname,
+								active,
+								version,
+								scopeContent(content, version.id).map((item) => item.path)
+							),
+				active: version.id === active.id
+			}))
+		: [];
+
+	const currentHref = current && versionLinks.find((link) => link.id === current.id)?.href;
+	const archivedBanner =
+		isArchived && active && current && currentHref
+			? { active, current, href: currentHref }
+			: undefined;
 
 	return {
 		pathname,
@@ -133,7 +196,9 @@ export function resolveDocsPage(input: {
 		nav,
 		entry,
 		editHref:
-			editUrl && entry?.sourcePath && !isArchived ? join(editUrl, entry.sourcePath) : undefined,
+			site.editUrl && entry?.sourcePath && !isArchived
+				? join(site.editUrl, entry.sourcePath)
+				: undefined,
 		lastUpdated: parseDate(entry?.lastUpdated),
 		readingMinutes: entry?.readingTime,
 		prev: pageIndex > 0 ? flatNav[pageIndex - 1] : undefined,
@@ -141,26 +206,42 @@ export function resolveDocsPage(input: {
 		title,
 		breadcrumbs,
 		toc: entry?.toc ?? [],
-		versionLinks: active
-			? versions.map((version) => ({
-					id: version.id,
-					label: version.label,
-					// Switching to the version already being read is a no-op, so its
-					// link is this page. Mapping it like the others would send a reader
-					// who is off the docs tree to the docs landing instead.
-					href:
-						version.id === active.id
-							? pathname
-							: mapPathToVersion(
-									pathname,
-									active,
-									version,
-									scopeContent(content, version.id).map((item) => item.path)
-								),
-					active: version.id === active.id
-				}))
-			: []
+		versionLinks,
+		archivedBanner,
+		headerLinks: (site.nav ?? []).map((link) => ({
+			...link,
+			active: isActiveLink(link, pathname)
+		})),
+		issueHref: site.github && entry ? feedbackIssueHref(site.github, title, pathname) : undefined,
+		canonicalUrl: site.url ? join(site.url, pathname) : undefined
 	};
+}
+
+/**
+ * Whether a header link owns the section `pathname` is in. A header link is
+ * usually the entry point to a whole section rather than a page you sit on:
+ * "Docs" points at `/docs/introduction`, and should stay lit while the reader
+ * moves through `/docs/*`. So match the link's first segment, not the exact
+ * path. The root is exempt, since every path starts with `/`.
+ */
+function isActiveLink(link: DocsmithLink, pathname: string): boolean {
+	if (link.external) return false;
+	// `href` is only required to be a string, so anchor it at the site root:
+	// `docs/intro` has to light the same section as `/docs/intro`.
+	const href = normalizePath(join('/', link.href));
+	if (href === pathname) return true;
+	// No first segment means the link is the root, or is not a site path at all
+	// (an absolute URL left unflagged), and owns no section either way.
+	const segment = firstSegmentUnder(href, '/');
+	if (!segment) return false;
+	return under(pathname, '/' + segment);
+}
+
+/** A new GitHub issue on `repo`, prefilled to say which page the feedback is about. */
+function feedbackIssueHref(repo: string, title: string, pathname: string): string {
+	const issueTitle = encodeURIComponent(`Feedback: ${title}`);
+	const body = encodeURIComponent(`Page: ${pathname}\n\n<!-- What was unclear or missing? -->\n`);
+	return `${join(repo, 'issues/new')}?title=${issueTitle}&body=${body}`;
 }
 
 /**

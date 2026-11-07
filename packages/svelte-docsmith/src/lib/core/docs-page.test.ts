@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { DocsmithSite } from './config.js';
 import type { DocsContentItem } from './content.js';
 import { resolveVersions } from './version.js';
 import { resolveDocsPage } from './docs-page.js';
@@ -42,15 +43,17 @@ const versions = resolveVersions(
 	content
 );
 
-const resolve = (pathname: string, over: Partial<Parameters<typeof resolveDocsPage>[0]> = {}) =>
-	resolveDocsPage({
-		content,
-		versions,
-		pathname,
-		editUrl: 'https://github.com/o/r/edit/main',
-		siteTitle: 'My Docs',
-		...over
-	});
+const site: DocsmithSite = {
+	title: 'My Docs',
+	editUrl: 'https://github.com/o/r/edit/main'
+};
+
+type Over = Partial<Omit<Parameters<typeof resolveDocsPage>[0], 'site'>> & {
+	site?: Partial<DocsmithSite>;
+};
+
+const resolve = (pathname: string, { site: siteOver, ...over }: Over = {}) =>
+	resolveDocsPage({ content, versions, pathname, site: { ...site, ...siteOver }, ...over });
 
 describe('resolveDocsPage: pathname', () => {
 	it('normalizes a trailing slash before matching content', () => {
@@ -147,9 +150,9 @@ describe('resolveDocsPage: editHref', () => {
 		expect(resolve('/docs/intro').editHref).toBe(
 			'https://github.com/o/r/edit/main/src/routes/docs/intro/+page.md'
 		);
-		expect(resolve('/docs/intro', { editUrl: 'https://github.com/o/r/edit/main/' }).editHref).toBe(
-			'https://github.com/o/r/edit/main/src/routes/docs/intro/+page.md'
-		);
+		expect(
+			resolve('/docs/intro', { site: { editUrl: 'https://github.com/o/r/edit/main/' } }).editHref
+		).toBe('https://github.com/o/r/edit/main/src/routes/docs/intro/+page.md');
 	});
 
 	it('is suppressed on an archived page, which is frozen', () => {
@@ -158,7 +161,7 @@ describe('resolveDocsPage: editHref', () => {
 	});
 
 	it('is undefined without an edit base or a known source file', () => {
-		expect(resolve('/docs/intro', { editUrl: undefined }).editHref).toBeUndefined();
+		expect(resolve('/docs/intro', { site: { editUrl: undefined } }).editHref).toBeUndefined();
 		expect(resolve('/docs/guide').editHref).toBeUndefined();
 	});
 });
@@ -281,5 +284,119 @@ describe('resolveDocsPage: nav', () => {
 		expect(resolve('/docs/v1/intro').nav).toEqual([
 			{ title: 'Start', items: [{ title: 'Intro', url: '/docs/v1/intro' }] }
 		]);
+	});
+});
+
+describe('resolveDocsPage: archivedBanner', () => {
+	it("points an archived page at the switcher's link for the current version", () => {
+		const view = resolve('/docs/v1/intro');
+		expect(view.archivedBanner).toEqual({
+			active: view.activeVersion,
+			current: view.currentVersion,
+			href: '/docs/intro'
+		});
+		expect(view.archivedBanner?.href).toBe(
+			view.versionLinks.find((link) => link.id === 'v2')?.href
+		);
+	});
+
+	it('is absent on the current version and on an unversioned site', () => {
+		expect(resolve('/docs/intro').archivedBanner).toBeUndefined();
+		expect(resolve('/').archivedBanner).toBeUndefined();
+		expect(resolve('/docs/intro', { versions: [] }).archivedBanner).toBeUndefined();
+	});
+});
+
+describe('resolveDocsPage: headerLinks', () => {
+	const nav = [
+		{ label: 'Home', href: '/' },
+		{ label: 'Docs', href: '/docs/intro' },
+		{ label: 'Blog', href: 'blog' },
+		{ label: 'GitHub', href: 'https://github.com/o/r', external: true }
+	];
+	const active = (pathname: string) =>
+		resolve(pathname, { site: { nav } })
+			.headerLinks.filter((link) => link.active)
+			.map((link) => link.label);
+
+	it('keeps site.nav in order, with every field', () => {
+		expect(resolve('/docs/guide', { site: { nav } }).headerLinks).toEqual([
+			{ label: 'Home', href: '/', active: false },
+			{ label: 'Docs', href: '/docs/intro', active: true },
+			{ label: 'Blog', href: 'blog', active: false },
+			{ label: 'GitHub', href: 'https://github.com/o/r', external: true, active: false }
+		]);
+	});
+
+	it("lights a link anywhere in its first segment's section, archives included", () => {
+		expect(active('/docs/intro')).toEqual(['Docs']);
+		expect(active('/docs/guide/')).toEqual(['Docs']);
+		expect(active('/docs/v1/intro')).toEqual(['Docs']);
+	});
+
+	it('anchors a relative href at the site root', () => {
+		expect(active('/blog/post')).toEqual(['Blog']);
+	});
+
+	it('lights the root link only on the root, and never an external link', () => {
+		expect(active('/')).toEqual(['Home']);
+		expect(active('/pricing')).toEqual([]);
+	});
+
+	it('does not match a section that only shares a prefix', () => {
+		expect(active('/docsearch')).toEqual([]);
+	});
+
+	it('is empty without site.nav', () => {
+		expect(resolve('/docs/intro').headerLinks).toEqual([]);
+	});
+});
+
+describe('resolveDocsPage: issueHref', () => {
+	const github = 'https://github.com/o/r';
+
+	it('opens a new issue prefilled with the page title and path', () => {
+		const href = resolve('/docs/middleware/', { site: { github } }).issueHref;
+		const url = new URL(href!);
+		expect(url.origin + url.pathname).toBe('https://github.com/o/r/issues/new');
+		expect(url.searchParams.get('title')).toBe('Feedback: Middleware');
+		expect(url.searchParams.get('body')).toBe(
+			'Page: /docs/middleware\n\n<!-- What was unclear or missing? -->\n'
+		);
+	});
+
+	it('does not double the slash when the repo URL has a trailing one', () => {
+		expect(resolve('/docs/intro', { site: { github: github + '/' } }).issueHref).toMatch(
+			/^https:\/\/github\.com\/o\/r\/issues\/new\?/
+		);
+	});
+
+	it('is absent without site.github, or off a doc page', () => {
+		expect(resolve('/docs/intro').issueHref).toBeUndefined();
+		expect(resolve('/', { site: { github } }).issueHref).toBeUndefined();
+	});
+});
+
+describe('resolveDocsPage: canonicalUrl', () => {
+	it('is the normalized path, absolute against site.url', () => {
+		expect(resolve('/docs/v1/intro/', { site: { url: 'https://x.dev' } }).canonicalUrl).toBe(
+			'https://x.dev/docs/v1/intro'
+		);
+	});
+
+	it('does not double the slash when site.url has a trailing one', () => {
+		expect(resolve('/docs/intro', { site: { url: 'https://x.dev/' } }).canonicalUrl).toBe(
+			'https://x.dev/docs/intro'
+		);
+	});
+
+	it('is the bare origin on the root', () => {
+		expect(resolve('/', { site: { url: 'https://x.dev' } }).canonicalUrl).toBe('https://x.dev/');
+	});
+
+	// A relative canonical would be worse than none: it would tell crawlers every
+	// page is canonical to itself under whatever host served it.
+	it('is absent without site.url', () => {
+		expect(resolve('/docs/intro').canonicalUrl).toBeUndefined();
 	});
 });

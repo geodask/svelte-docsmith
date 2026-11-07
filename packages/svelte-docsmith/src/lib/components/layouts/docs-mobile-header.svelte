@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { DocsmithSite, NavGroup } from '#lib/core/index.js';
+	import { site } from 'svelte-docsmith/site';
 	import type { TocItem } from '#lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
@@ -14,26 +14,22 @@
 	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import { useDocsPage } from '../docs-page-context.js';
 	import GithubIcon from '#lib/components/icons/github.svelte';
-	import BookOpenText from '@lucide/svelte/icons/book-open-text';
+	import SiteMark from './site-mark.svelte';
 	import List from '@lucide/svelte/icons/list';
 	import Menu from '@lucide/svelte/icons/menu';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import type { Snippet } from 'svelte';
+	import { cn } from '#lib/utils/cn.js';
 
 	const {
-		config,
-		nav = [],
-		title = config.title,
+		sidebar = false,
 		tocItems = [],
 		tocActiveId = null,
 		logo,
 		actions
 	}: {
-		config: DocsmithSite;
-		/** Sidebar groups; omit on non-doc pages (the landing/`page` layout). */
-		nav?: NavGroup[];
-		/** Title shown between the menu and controls. Defaults to the site title. */
-		title?: string;
+		/** Show the docs sidebar in the menu; off on non-doc pages (the `page` layout). */
+		sidebar?: boolean;
 		/** In-page TOC entries; the TOC popover is hidden when empty. */
 		tocItems?: TocItem[];
 		/** Id of the heading currently in view. */
@@ -43,7 +39,10 @@
 	} = $props();
 
 	const search = useSearchSession();
+	// The header links, the sidebar and the title come off the shell's one
+	// resolved view, the same one the desktop header reads.
 	const docsPage = useDocsPage();
+	const nav = $derived(sidebar ? docsPage.view.nav : []);
 
 	let isMenuOpen = $state(false);
 	let isTocOpen = $state(false);
@@ -73,12 +72,8 @@
 			<Sheet.Content side="left" class="pr-0">
 				<div class="px-7 pt-4 pb-4">
 					<a href="/" class="flex items-center gap-2 font-bold">
-						{#if logo}
-							{@render logo()}
-						{:else}
-							<BookOpenText class="text-primary size-5" />
-						{/if}
-						<span class="inline-block">{config.title}</span>
+						<SiteMark {logo} class="text-primary" />
+						<span class="inline-block">{site.title}</span>
 					</a>
 				</div>
 				{#if docsPage.view.versionLinks.length > 1}
@@ -87,14 +82,18 @@
 					</div>
 				{/if}
 				<ScrollArea class="my-4 h-[calc(100vh-8rem)] pb-10 pl-2">
-					{#if config.nav?.length}
+					{#if docsPage.view.headerLinks.length}
 						<nav aria-label="Main" class="flex flex-col gap-0.5 px-5 pb-1">
-							{#each config.nav as link (link.href)}
+							{#each docsPage.view.headerLinks as link (link.href)}
 								<a
 									href={link.href}
 									target={link.external ? '_blank' : undefined}
 									rel={link.external ? 'noopener noreferrer' : undefined}
-									class="text-muted-foreground hover:text-foreground rounded-md py-1.5 text-sm font-medium transition-colors"
+									aria-current={link.active ? 'page' : undefined}
+									class={cn(
+										'hover:text-foreground rounded-md py-1.5 text-sm font-medium transition-colors',
+										link.active ? 'text-foreground' : 'text-muted-foreground'
+									)}
 								>
 									{link.label}
 								</a>
@@ -111,7 +110,7 @@
 			</Sheet.Content>
 		</Sheet.Root>
 
-		<div class="flex-1 truncate font-bold">{title}</div>
+		<div class="flex-1 truncate font-bold">{docsPage.view.title}</div>
 
 		<div class="flex items-center gap-1">
 			{#if actions}
@@ -125,13 +124,13 @@
 				</Button>
 			{/if}
 
-			{#if config.github}
+			{#if site.github}
 				<Button
 					size="icon"
 					variant="ghost"
 					target="_blank"
 					rel="noopener noreferrer"
-					href={config.github}
+					href={site.github}
 					class="text-muted-foreground hover:text-foreground size-8"
 				>
 					<GithubIcon class="size-4" />

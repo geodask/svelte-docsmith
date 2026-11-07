@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { render } from '@testing-library/svelte';
-
-vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/docs/v1/intro') } }));
 import SeoHead from './seo-head.svelte';
 
 const config = { title: 'My Docs' };
@@ -36,19 +34,20 @@ describe('SeoHead canonical', () => {
 
 	const canonical = () => document.head.querySelector('link[rel="canonical"]');
 
-	it('makes the canonical absolute against the configured url', () => {
-		render(SeoHead, { props: { config: { ...config, url: 'https://x.dev' }, title: 'Intro' } });
+	// The URL itself is resolved with the page view (`core/docs-page.ts`), which
+	// covers the origin join and the missing-origin case; this pins the tags.
+	it('emits the canonical link and og:url from the resolved URL', () => {
+		render(SeoHead, {
+			props: { config, title: 'Intro', canonical: 'https://x.dev/docs/v1/intro' }
+		});
 		expect(canonical()).toHaveAttribute('href', 'https://x.dev/docs/v1/intro');
+		expect(document.head.querySelector('meta[property="og:url"]')).toHaveAttribute(
+			'content',
+			'https://x.dev/docs/v1/intro'
+		);
 	});
 
-	it('does not double the slash when the configured url has a trailing one', () => {
-		render(SeoHead, { props: { config: { ...config, url: 'https://x.dev/' }, title: 'Intro' } });
-		expect(canonical()).toHaveAttribute('href', 'https://x.dev/docs/v1/intro');
-	});
-
-	// A relative canonical would be worse than none: it would tell crawlers every
-	// page is canonical to itself under whatever host served it.
-	it('omits the canonical entirely when no url is configured', () => {
+	it('omits both without a canonical URL', () => {
 		render(SeoHead, { props: { config, title: 'Intro' } });
 		expect(canonical()).toBeNull();
 		expect(document.head.querySelector('meta[property="og:url"]')).toBeNull();
