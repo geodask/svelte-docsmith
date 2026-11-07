@@ -2,8 +2,8 @@
  * svelte-docsmith theme — Claude. Warm clay on a paper-cream background; low
  * chroma, softly rounded. Editorial and warm without shouting.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/claude.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'claude' })
  */
 
 :root {

@@ -2,8 +2,8 @@
  * svelte-docsmith theme — Mono. True black-on-white, zero chroma, square corners.
  * Brutalist minimalism; the palette gets out of the way entirely.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/mono.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'mono' })
  */
 
 :root {

@@ -1,8 +1,8 @@
 /*
  * svelte-docsmith theme — Ocean. A cool teal-blue palette.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/ocean.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'ocean' })
  */
 
 :root {

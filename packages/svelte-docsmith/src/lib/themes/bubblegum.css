@@ -2,8 +2,8 @@
  * svelte-docsmith theme — Bubblegum. Vivid pink with a cyan accent, high chroma,
  * generously rounded. Playful and high-energy.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/bubblegum.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'bubblegum' })
  */
 
 :root {

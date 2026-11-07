@@ -1,8 +1,8 @@
 /*
  * svelte-docsmith theme — Rosé. A warm rose palette with softer, rounder corners.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/rose.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'rose' })
  */
 
 :root {

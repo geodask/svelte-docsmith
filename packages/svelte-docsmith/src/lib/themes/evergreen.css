@@ -1,8 +1,8 @@
 /*
  * svelte-docsmith theme — Evergreen. A calm, deep-green palette.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/evergreen.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'evergreen' })
  */
 
 :root {

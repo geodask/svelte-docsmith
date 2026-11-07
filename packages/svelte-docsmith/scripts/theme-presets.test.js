@@ -80,31 +80,26 @@ describe('parseTokens', () => {
 });
 
 describe('theme.css', () => {
-	// theme.css bakes in the default preset, so it must agree with the preset
-	// file a site imports to return to that default.
+	// The theme comes from docsmith({ theme }), appended by the plugin after
+	// theme.css, so theme.css itself must carry no colour: one would be a second
+	// default that a partial theme file silently inherits.
 	const base = read(path.join(pkgRoot, 'src/lib/theme.css')).split('@layer base')[1];
 	const builtIn = { light: parseTokens(base, ':root'), dark: parseTokens(base, '\\.dark') };
 	const preset = readPresets().find((p) => p.default);
+	const isColour = (value) => /^(oklch|hsl|rgb|#)/.test(value);
 
-	it('ships the default preset tokens in light mode', () => {
-		for (const [token, value] of Object.entries(preset.light)) {
-			expect(builtIn.light[token], `--${token}`).toBe(value);
-		}
+	it('sets none of the colour tokens a preset sets', () => {
+		const colours = Object.keys(preset.light).filter((token) => isColour(preset.light[token]));
+		expect(colours.length).toBeGreaterThan(20);
+		for (const token of colours) expect(builtIn.light, `--${token}`).not.toHaveProperty(token);
 	});
 
-	it('ships the default preset tokens in dark mode', () => {
-		// .dark inherits anything it does not set (such as --radius) from :root.
-		for (const [token, value] of Object.entries(preset.dark)) {
-			expect(builtIn.dark[token] ?? builtIn.light[token], `--${token}`).toBe(value);
-		}
+	it('has no dark block', () => {
+		expect(builtIn.dark).toEqual({});
 	});
 
-	it('sets no dark token the default preset leaves out', () => {
-		// Otherwise importing the default preset after another one would not
-		// reset that token.
-		for (const token of Object.keys(builtIn.dark)) {
-			expect(preset.dark, `--${token}`).toHaveProperty(token);
-		}
+	it('declares the marker the plugin appends the theme after', () => {
+		expect(builtIn.light['docsmith-theme']).toBe('none');
 	});
 });
 

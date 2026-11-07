@@ -2,8 +2,8 @@
  * svelte-docsmith theme — Graphite. Restrained, near-monochrome, with a tighter
  * corner radius for a technical, no-nonsense feel.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/graphite.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'graphite' })
  */
 
 :root {

@@ -11,6 +11,7 @@ import type { OutsidePaths } from '../../core/outside-path.js';
 import type { DocsVersions } from '../../core/version.js';
 import type { DocsmithMarkdownOptions } from '../markdown.js';
 import type { StandardSchemaV1 } from './frontmatter-schema.js';
+import { resolveTheme } from './theme.js';
 
 /** Where the changelog comes from and where it is served. */
 export interface DocsmithChangelogOptions {
@@ -99,6 +100,14 @@ export interface DocsmithOptions {
 	 */
 	changelog?: DocsmithChangelogOptions | false;
 	/**
+	 * The site's theme: a preset name (`'ocean'`) or a path to a theme file
+	 * (`'./src/theme.css'`), relative to the Vite root. A theme file is CSS of
+	 * `:root` and `.dark` token blocks, the shape shadcn and tweakcn export.
+	 * Every page that imports `svelte-docsmith/theme.css` gets it, and a token
+	 * you redefine in `app.css` wins over it. Default: `'darkmatter'`.
+	 */
+	theme?: string;
+	/**
 	 * Shiki themes for every code block: markdown fences and `LiveExample`
 	 * source panels alike. Default: github-light/github-dark.
 	 */
@@ -138,6 +147,8 @@ export interface ResolvedDocsmithOptions {
 	changelogFile?: string;
 	/** The route the changelog is served at, even when it is off. */
 	changelogPath: string;
+	/** Absolute path of the theme file the plugin serves. */
+	themeFile: string;
 	themes?: { light: string; dark: string };
 	markdown: DocsmithMarkdownOptions;
 	tsconfig?: string;
@@ -183,6 +194,7 @@ export function resolveOptions(
 		versions: options.versions,
 		changelogFile: changelog && path.resolve(cwd, changelog.file ?? 'CHANGELOG.md'),
 		changelogPath: (options.changelog || undefined)?.path ?? '/changelog',
+		themeFile: resolveTheme(options.theme, cwd),
 		themes: options.themes,
 		markdown: options.markdown ?? {},
 		tsconfig: options.tsconfig,

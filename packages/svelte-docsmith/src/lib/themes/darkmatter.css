@@ -1,13 +1,12 @@
 /*
- * svelte-docsmith theme — Darkmatter. The built-in default (based on the tweakcn
- * preset): theme.css already ships these tokens, so you only import this file to
- * return to Darkmatter after choosing another preset.
+ * svelte-docsmith theme — Darkmatter. The default preset (based on the tweakcn
+ * preset): a site that names no theme gets this one.
  *
  * A near-monochrome shell with a warm orange primary and a muted teal secondary;
  * light mode is crisp white, dark mode is deep near-black.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/darkmatter.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'darkmatter' })
  */
 
 :root {

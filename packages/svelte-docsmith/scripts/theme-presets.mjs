@@ -36,7 +36,7 @@ export const scaffolderManifestPath = path.resolve(
 	'../../create-svelte-docsmith/presets.json'
 );
 
-/** The preset theme.css already ships, so choosing it needs no extra import. */
+/** The preset a site gets when `docsmith()` names no theme. */
 export const DEFAULT_PRESET = 'darkmatter';
 
 /**

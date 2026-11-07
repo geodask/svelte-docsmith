@@ -3,8 +3,8 @@
  * faintly-cool neutrals. Import it after theme.css to swap the default Darkmatter
  * tokens for this palette:
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/tangerine.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'tangerine' })
  */
 
 :root {

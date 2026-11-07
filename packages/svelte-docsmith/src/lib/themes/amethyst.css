@@ -1,8 +1,8 @@
 /*
  * svelte-docsmith theme — Amethyst. A violet-forward palette on cool neutrals.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/amethyst.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'amethyst' })
  */
 
 :root {
