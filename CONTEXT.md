@@ -176,9 +176,25 @@ Light or dark. Every theme defines both; the reader switches between them.
 _Avoid_: theme, dark theme, appearance
 
 **Code theme**:
-The pair of Shiki themes, one per colour mode, that colours code blocks. Part
-of a theme.
+How code blocks are coloured. Part of a theme: its code colour tokens, or an
+exact Shiki pair, one per colour mode, named by `codeTheme`.
 _Avoid_: theme, syntax theme, highlighter theme
+
+**Theme file**:
+A CSS file of `:root` and `.dark` tokens in the shape shadcn and tweakcn
+export. The one form a theme takes outside the package: what `docsmith({ theme })`
+points at, the builder exports and the CLI writes.
+_Avoid_: theme config, theme JSON, custom CSS
+
+**Theme builder**:
+The `/themes` page of the docs site, where an author starts from a preset or a
+pasted theme file, adjusts it, previews it on a sample docs page and exports it.
+_Avoid_: theme editor, theme generator, showcase
+
+**Theme link**:
+A theme builder URL that carries a whole theme, so opening it restores that
+theme exactly. How the CLI handoff and agents pass a theme around.
+_Avoid_: share link, permalink, theme URL
 
 **Preset manifest**:
 The ordered list of presets, read from their CSS files by
