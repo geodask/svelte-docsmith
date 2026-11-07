@@ -25,8 +25,9 @@
  * The options themselves are resolved in `./options.js`. Reading the docs root
  * lives in `./pages.js` and building each index from what it read lives in
  * `./collect.js`; props are read through `../props/reader.js`, which owns the
- * shared extractor, file watching and warn-once. This file owns the Vite
- * plugins and is the only layer that reports to the console.
+ * shared extractor, file watching and warn-once. Broken-link reporting lives
+ * in `./broken-links.js`. This file owns the Vite plugins and, with that
+ * reporter, is the only layer that reports to the console.
  */
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
@@ -34,14 +35,7 @@ import { codeBlockRenderer } from '../code-block.js';
 import { checkVersions, resolveVersions } from '../../core/version.js';
 import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { docsBaseFrom } from '../paths.js';
-import {
-	isPageFile,
-	isRouteFile,
-	listRouteFiles,
-	readSourcePages,
-	withCommitDates,
-	type SourcePage
-} from './pages.js';
+import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
 import { contentIndex, searchIndex } from './collect.js';
 import { llmsIndex } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
@@ -52,7 +46,7 @@ import { checkFrontmatter } from './frontmatter-schema.js';
 import { markdownPlugin } from './markdown.js';
 import { markdownExtensions } from '../markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
-import { brokenLinks, brokenLinksCount, brokenLinksReport, type BrokenLink } from '../links.js';
+import { brokenLinksReporter } from './broken-links.js';
 import { checkOutsidePaths } from '../outside-paths.js';
 
 export type {
@@ -131,33 +125,6 @@ function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number)
 	}
 }
 
-/**
- * Report broken links found during `vite build`, at the level the author chose.
- * Under `error` the report is printed before throwing, so the build log shows
- * every broken link at once rather than one per failed build.
- */
-function reportBrokenLinks(broken: BrokenLink[], level: 'error' | 'warn') {
-	if (!broken.length) return;
-	const report = brokenLinksReport(broken);
-	if (level === 'warn') {
-		console.warn(report);
-		return;
-	}
-	console.error(report);
-	throw new Error(
-		`[svelte-docsmith] ${brokenLinksCount(broken)} in doc pages, listed above. Fix them, or set ` +
-			"`links: { broken: 'warn' }` in docsmith() to build anyway."
-	);
-}
-
-/**
- * Which broken links a dev warning is about, ignoring their lines: editing the
- * text above a broken link moves it, and warning again for that would repeat
- * what the author already saw.
- */
-const brokenLinksKey = (broken: BrokenLink[]) =>
-	broken.map(({ file, link, problem }) => JSON.stringify([file, link, problem])).join('\n');
-
 function contentIndexPlugin(
 	options: ResolvedDocsmithOptions,
 	docImports: DocImportDeps,
@@ -168,38 +135,11 @@ function contentIndexPlugin(
 	const changelogRoute = options.changelogPath;
 	const changelogOverrides = path.join(routesDir, changelogRoute);
 	const indexOptions = { contentDir, routesDir, versions };
-	// A link to a `+page.svelte` beside the doc pages is a link to a page too.
-	// Listed afresh on every check, as the pages are read afresh.
-	const extensions = markdownExtensions(options.markdown);
-	const linkCheckOptions = () => ({
-		...indexOptions,
-		pageRoutes: listRouteFiles(contentDir, extensions)
+	const brokenLinks = brokenLinksReporter({
+		indexOptions,
+		links,
+		markdownExtensions: markdownExtensions(options.markdown)
 	});
-
-	// `vite build` checks links where the content index reads the pages, and
-	// reports at the author's level. `vite dev` checks from the page watcher
-	// instead, so it warns at startup and on every page change whether or not a
-	// page that imports the index has been opened, and never throws: a link
-	// half-typed while writing must not break the page being written.
-	let building = true;
-	let lastDevWarning = '';
-	const warnAboutBrokenLinks = () => {
-		if (links.broken === 'ignore') return;
-		let broken: BrokenLink[];
-		try {
-			broken = brokenLinks(readSourcePages(contentDir).pages, linkCheckOptions(), links.outside);
-		} catch {
-			// Frontmatter that doesn't parse, mid-edit. The content index reports
-			// it with the page's name; checking links can wait for the next save.
-			return;
-		}
-		const key = brokenLinksKey(broken);
-		if (key === lastDevWarning) return;
-		const hadWarned = lastDevWarning !== '';
-		lastDevWarning = key;
-		if (broken.length) console.warn(brokenLinksReport(broken));
-		else if (hadWarned) console.info('[svelte-docsmith] no broken links left in doc pages');
-	};
 
 	// One history walk, reused for the life of the plugin. A build loads this
 	// module once, so it is always fresh there; `dev` reloads it on every page
@@ -228,7 +168,7 @@ function contentIndexPlugin(
 		api: { docsmith: authored },
 
 		configResolved(config) {
-			building = config.command === 'build';
+			brokenLinks.configResolved(config.command);
 		},
 
 		resolveId(id) {
@@ -274,9 +214,7 @@ function contentIndexPlugin(
 				const typos = await checkFrontmatter(pages, options.schema);
 				if (typos) console.warn(typos);
 				// Here for the same reason: once per build, with the pages already read.
-				if (building && links.broken !== 'ignore') {
-					reportBrokenLinks(brokenLinks(pages, linkCheckOptions(), links.outside), links.broken);
-				}
+				brokenLinks.pagesRead(pages);
 				// Only this index has a date field, so only this one pays for git.
 				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
 				warnAboutDocsRoot(contentDir, exists, docs.length);
@@ -320,14 +258,10 @@ function contentIndexPlugin(
 
 		configureServer(server: ViteDevServer) {
 			server.watcher.add(contentDir);
-			warnAboutBrokenLinks();
+			brokenLinks.devStarted();
 			const onChange = (file: string) => {
-				if (!isPageFile(file)) {
-					// No index reads a `+page.svelte`, but links to it count.
-					if (isRouteFile(file, extensions)) warnAboutBrokenLinks();
-					return;
-				}
-				warnAboutBrokenLinks();
+				brokenLinks.fileChanged(file);
+				if (!isPageFile(file)) return;
 				let invalidated = false;
 				for (const virtualId of [VIRTUAL_CONTENT_ID, VIRTUAL_SEARCH_ID, VIRTUAL_LLMS_ID]) {
 					const mod = server.moduleGraph.getModuleById(virtualId);
