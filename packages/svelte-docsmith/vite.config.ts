@@ -38,7 +38,7 @@ export default defineConfig({
 				'src/lib/core/nav.ts',
 				'src/lib/core/version.ts',
 				'src/lib/core/docs-page.ts',
-				'src/lib/core/playground.ts',
+				'src/lib/components/docs/playground.svelte.ts',
 				'src/lib/buildtime/vite/**/*.ts',
 				'src/lib/buildtime/props/**/*.ts',
 				'src/lib/utils/type-text.ts',
@@ -88,7 +88,9 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}'],
+					// scripts/ holds repo tooling (the theme preset manifest) that is
+					// tested here but not packaged.
+					include: ['src/**/*.{test,spec}.{js,ts}', 'scripts/**/*.test.js'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
 			}

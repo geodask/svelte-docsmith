@@ -85,7 +85,7 @@ _Avoid_: initial args, defaults (those are the component's own)
 
 **Usage line**:
 The markup a props playground shows for its current values, listing only the
-props that differ from the component's defaults.
+props that differ from the component's defaults, in declaration order.
 _Avoid_: code preview, generated source
 
 ### Doc page frontmatter
@@ -141,3 +141,17 @@ An endpoint the author adds to their docs site that lets a reader's coding agent
 list, search and read the docs' pages as agent markdown. Optional, and only
 possible where the site has a server runtime.
 _Avoid_: MCP endpoint, MCP route, docs API
+
+### Theming
+
+**Theme preset**:
+A ready palette a site switches to with one CSS import after `theme.css`, such
+as `themes/ocean.css`. Its file is the source of truth for its name and tokens.
+Darkmatter is the default preset, which `theme.css` already ships.
+_Avoid_: theme (that is the whole token contract in `theme.css`), skin, palette
+
+**Preset manifest**:
+The ordered list of theme presets, read from their CSS files by
+`packages/svelte-docsmith/scripts/theme-presets.mjs`. The docs site's theme
+showcase and the scaffolder's theme prompt both come from it.
+_Avoid_: theme list, PRESETS

@@ -96,7 +96,8 @@ these values:
 ```
 
 Under the controls, a usage line such as `<Badge variant="success" external>…</Badge>`
-shows the props that differ from their defaults, ready to copy.
+shows the props that differ from their defaults, in the order the component
+declares them, ready to copy.
 
 <Callout variant="note" title="Experimental">
 

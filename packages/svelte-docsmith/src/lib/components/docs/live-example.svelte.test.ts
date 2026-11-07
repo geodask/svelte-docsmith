@@ -126,4 +126,16 @@ describe('LiveExample', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
 		expect(rendered()).toEqual({ variant: 'default', external: false });
 	});
+
+	it('starts a fresh playground when the props import changes, not when args do', async () => {
+		const { rerender } = render(Fixture, { props: { controls: props } });
+		await fireEvent.click(screen.getByRole('switch', { name: 'external' }));
+		await rerender({ controls: props, args: { href: '/x' } });
+		expect(rendered()).toMatchObject({ external: true });
+		expect(rendered()).not.toHaveProperty('href');
+
+		await rerender({ controls: { ...props, name: 'Pill' }, args: { href: '/x' } });
+		expect(rendered()).toEqual({ variant: 'default', external: false, href: '/x' });
+		expect(screen.getByText(/^<Pill/).textContent).toBe('<Pill href="/x">…</Pill>');
+	});
 });
