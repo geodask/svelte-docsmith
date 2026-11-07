@@ -851,3 +851,65 @@ describe('docsmith() broken links', () => {
 		).toThrow(/docsmith\(\{ links \}\) takes an object/);
 	});
 });
+
+// --- outside paths ------------------------------------------------------------
+//
+// Matching is tested in `core/outside-path.test.ts`, the check in
+// `../links.test.ts` and `rel="external"` in `../markdown.test.ts`. These prove
+// the plugin wires `links.outside` through to each, and checks it at startup.
+
+describe('docsmith() outside paths', () => {
+	it('builds with links to an outside path, even under the docs base', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro', '[a](/docs/api/users) [b](/docs/api) [c](/relative)');
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		// A trailing slash on a prefix is dropped, so `/docs/api` itself is covered.
+		await contentPlugin('build', { links: { outside: ['/docs/api/', '/relative'] } }).load();
+
+		expect(error).not.toHaveBeenCalled();
+		error.mockRestore();
+	});
+
+	it('fails at startup on a doc page under an outside path, naming the page and the prefix', async () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro');
+		writePage('docs/api/users', 'title: Users');
+
+		// Even with the check off: the config contradicts itself either way.
+		const plugin = contentPlugin('build', { links: { broken: 'ignore', outside: ['/docs/api'] } });
+
+		await expect(plugin.load()).rejects.toThrow(
+			/docs\/api\/users\/\+page\.md.*\/docs\/api\/users.*outside path '\/docs\/api'/s
+		);
+	});
+
+	it('fails at startup on outside paths that are not an array of site-absolute paths', () => {
+		const withOutside = (outside: unknown) => () =>
+			docsmith({ site: SITE, links: { outside: outside as string[] } });
+
+		expect(withOutside('/relative')).toThrow(/links\.outside must be an array/);
+		expect(withOutside([42])).toThrow(/links\.outside.*42/);
+		expect(withOutside(['relative'])).toThrow(/links\.outside.*must start with '\/'.*"relative"/);
+		expect(withOutside(['//cdn.x.dev'])).toThrow(/links\.outside.*"\/\/cdn\.x\.dev"/);
+		expect(withOutside(['/relative', '/api/'])).not.toThrow();
+	});
+
+	it('marks links to outside paths rel="external" in compiled pages', async () => {
+		type Transform = { handler: (code: string, id: string) => Promise<{ code: string }> };
+		const plugin = pluginNamed('docsmith-markdown', {
+			routes: '/app/src/routes',
+			links: { outside: ['/relative/'] }
+		});
+		const { handler } = plugin.transform as unknown as Transform;
+
+		const out = await handler(
+			'[a](/relative/x) <a href="/relative">b</a> [c](/docs)',
+			'/app/src/routes/docs/+page.md'
+		);
+
+		expect(out.code).toContain('<a href="/relative/x" rel="external">');
+		expect(out.code).toContain('<a href="/relative" rel="external">');
+		expect(out.code).toContain('<a href="/docs">');
+	});
+});

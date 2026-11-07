@@ -44,6 +44,7 @@ import { checkFrontmatter } from './frontmatter-schema.js';
 import { markdownPlugin } from './markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
 import { brokenLinks, brokenLinksReport, type BrokenLink } from '../links.js';
+import { checkOutsidePaths } from '../outside-paths.js';
 
 export type {
 	DocsmithOptions,
@@ -84,7 +85,10 @@ export function docsmith(options: DocsmithOptions): Plugin[] {
 	};
 	return [
 		contentIndexPlugin(resolved, docImports, options),
-		markdownPlugin(resolved.markdown, renderCodeBlock),
+		markdownPlugin(resolved.markdown, renderCodeBlock, {
+			outside: resolved.links.outside,
+			routesDir: resolved.routesDir
+		}),
 		docImportsPlugin(docImports)
 	];
 }
@@ -171,7 +175,7 @@ function contentIndexPlugin(
 		if (links.broken === 'ignore') return;
 		let broken: BrokenLink[];
 		try {
-			broken = brokenLinks(readSourcePages(contentDir).pages, indexOptions);
+			broken = brokenLinks(readSourcePages(contentDir).pages, indexOptions, links);
 		} catch {
 			// Frontmatter that doesn't parse, mid-edit. The content index reports
 			// it with the page's name; checking links can wait for the next save.
@@ -245,6 +249,9 @@ function contentIndexPlugin(
 				checkVersions(versions, discoverArchives(contentDir), ARCHIVE_MARKER);
 				const { pages, exists } = readSourcePages(contentDir);
 				watch(pages);
+				// A page under an outside path contradicts the config whether or not
+				// links are checked, so this runs under `broken: 'ignore'` too.
+				checkOutsidePaths(pages, indexOptions, links.outside);
 				// Checked here only: the docs layout always imports this index, so a
 				// bad page fails the build (or raises the dev overlay) once, not once
 				// per index.
@@ -252,7 +259,7 @@ function contentIndexPlugin(
 				if (typos) console.warn(typos);
 				// Here for the same reason: once per build, with the pages already read.
 				if (building && links.broken !== 'ignore') {
-					reportBrokenLinks(brokenLinks(pages, indexOptions), links.broken);
+					reportBrokenLinks(brokenLinks(pages, indexOptions, links), links.broken);
 				}
 				// Only this index has a date field, so only this one pays for git.
 				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
