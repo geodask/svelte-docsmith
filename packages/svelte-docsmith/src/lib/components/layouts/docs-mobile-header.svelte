@@ -43,6 +43,8 @@
 	// resolved view, the same one the desktop header reads.
 	const docsPage = useDocsPage();
 	const nav = $derived(sidebar ? docsPage.view.nav : []);
+	// Off the docs layout the bar names the site, as the menu does.
+	const title = $derived(sidebar ? docsPage.view.title : site.title);
 
 	let isMenuOpen = $state(false);
 	let isTocOpen = $state(false);
@@ -110,7 +112,7 @@
 			</Sheet.Content>
 		</Sheet.Root>
 
-		<div class="flex-1 truncate font-bold">{docsPage.view.title}</div>
+		<div class="flex-1 truncate font-bold">{title}</div>
 
 		<div class="flex items-center gap-1">
 			{#if actions}
