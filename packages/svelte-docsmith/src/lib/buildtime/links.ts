@@ -16,10 +16,12 @@
  */
 import path from 'node:path';
 import { Marked, type Token, type Tokens } from 'marked';
+import { isOutsidePath } from '../core/outside-path.js';
 import { under } from '../utils/url.js';
 import { splitFrontmatter } from './markdown-source.js';
 import { docsBaseFrom, relativeToCwd, urlFor } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
+import type { ResolvedLinksOptions } from './vite/options.js';
 import type { SourcePage } from './vite/pages.js';
 
 /** Why a link is broken. */
@@ -72,15 +74,22 @@ type Target = {
  * to `/docs/v1/intro` holds as long as v1 has that page. Archiving rewrites an
  * archive's own links to stay inside it, so no rule here needs to know which
  * version a page belongs to.
+ *
+ * A link to an outside path is never broken, so `links.outside` is passed
+ * along; without it, no path is outside.
  */
-export function brokenLinks(pages: SourcePage[], options: IndexOptions): BrokenLink[] {
+export function brokenLinks(
+	pages: SourcePage[],
+	options: IndexOptions,
+	links: Pick<ResolvedLinksOptions, 'outside'> = { outside: [] }
+): BrokenLink[] {
 	const site = siteOf(pages, options);
 	const broken: BrokenLink[] = [];
 
 	for (const page of pages) {
 		for (const { href, line } of writtenLinks(page)) {
 			const target = targetOf(href);
-			const problem = target && problemWith(target, site);
+			const problem = target && problemWith(target, site, links);
 			if (problem) broken.push({ file: page.file, line, link: href, problem });
 		}
 	}
@@ -135,9 +144,16 @@ function targetOf(href: string): Target | undefined {
 /**
  * What is wrong with a link to `target`, if anything. A path outside the docs
  * base (`/`, `/llms.txt`, `/changelog`) belongs to the rest of the app, which
- * DocSmith doesn't know the routes of, so it is never a broken link.
+ * DocSmith doesn't know the routes of, so it is never a broken link. Nor is an
+ * outside path, even under the docs base: the author has said something other
+ * than this app serves it.
  */
-function problemWith(target: Target, site: Site): LinkProblem | undefined {
+function problemWith(
+	target: Target,
+	site: Site,
+	links: Pick<ResolvedLinksOptions, 'outside'>
+): LinkProblem | undefined {
+	if (isOutsidePath(target.path, links.outside)) return undefined;
 	if (!under(target.path, site.docsBase)) return undefined;
 	if (!site.pages.has(target.path)) return { type: 'no-page', path: target.path };
 	return undefined;

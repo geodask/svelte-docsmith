@@ -36,6 +36,7 @@ export {
 	type NavGroup,
 	type NavNode
 } from './nav.js';
+export { isOutsidePath } from './outside-path.js';
 export {
 	resolveDocsPage,
 	type ArchivedBanner,
