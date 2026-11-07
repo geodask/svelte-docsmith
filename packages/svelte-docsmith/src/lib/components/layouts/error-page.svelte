@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type {
-		DocsContent,
-		DocsContentItem,
-		ResolvedVersion,
-		SearchDoc
-	} from '#lib/core/index.js';
+	import type { DocsContent, DocsContentItem, ResolvedVersion } from '#lib/core/index.js';
+	import type { SearchLoader } from '#lib/search/session.svelte.js';
 	import DocsShell from './docs-shell.svelte';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import type { Snippet } from 'svelte';
@@ -31,7 +27,7 @@
 		/** @deprecated Pass the `content` export instead, as for `DocsShell`. */
 		versions?: ResolvedVersion[];
 		/** Enable the ⌘K search palette on the error page (same loader as DocsShell). */
-		search?: (versionId?: string) => Promise<SearchDoc[]>;
+		search?: SearchLoader;
 		/** HTTP status; defaults to the current `page.status`. */
 		status?: number;
 		/** Heading; defaults to a message keyed off the status. */

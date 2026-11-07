@@ -3,10 +3,12 @@
  * generated `svelte-docsmith/search` records (title, headings, description, and
  * plain-text body) and returns a `search()` that maps hits back to page links
  * with a context snippet. Framework-agnostic on purpose so it can be unit-tested
- * without a DOM; the `<Search>` component lazy-loads both this and the index.
+ * without a DOM; the search session (`session.svelte.ts`) lazy-loads both this
+ * and the index.
  */
 import { Document } from 'flexsearch';
 import type { SearchDoc } from '#lib/core/content.js';
+import { inVersion } from '#lib/core/version.js';
 import { buildSnippet } from './snippet.js';
 
 /** One result row: enough to render a link and a preview. */
@@ -77,7 +79,7 @@ export function createSearchEngine(docs: SearchDoc[]): SearchEngine {
 			for (const { id } of hits) {
 				const doc = docs[id];
 				if (!doc) continue;
-				if (version && doc.version !== version) continue;
+				if (!inVersion(doc, version)) continue;
 				results.push({
 					path: doc.path,
 					title: doc.title,

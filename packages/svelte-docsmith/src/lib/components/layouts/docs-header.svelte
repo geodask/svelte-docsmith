@@ -4,7 +4,7 @@
 	import { Separator } from '#lib/components/shadcn/separator/index.js';
 	import GithubIcon from '#lib/components/icons/github.svelte';
 	import SearchTrigger from '../chrome/search-trigger.svelte';
-	import { useSearch } from '#lib/search/context.svelte.js';
+	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
 	import type { DocsmithSite, DocsmithLink } from '#lib/core/index.js';
@@ -27,7 +27,7 @@
 	} = $props();
 
 	// Present only when the consumer passed a `search` loader to DocsShell.
-	const search = useSearch();
+	const search = useSearchSession();
 
 	// Everything about the page being read comes off the shell's one resolved
 	// view, including the normalized path the nav highlights against.

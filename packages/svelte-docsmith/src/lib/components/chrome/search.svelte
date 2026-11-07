@@ -1,94 +1,18 @@
 <script lang="ts">
+	// Renders the shell's search session and owns the keys: ⌘K / Ctrl+K toggles
+	// it, picking a result navigates. What to show (status, results, starter
+	// pages, version scope) is the session's job, in `search/session.svelte.ts`.
 	import { goto } from '$app/navigation';
 	import * as Command from '#lib/components/shadcn/command/index.js';
-	import { useSearch } from '#lib/search/context.svelte.js';
-	import { useDocsPage } from '../docs-page-context.js';
-	import type { SearchDoc } from '#lib/core/index.js';
-	import type { SearchEngine } from '#lib/search/create-search.js';
+	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import CornerDownLeft from '@lucide/svelte/icons/corner-down-left';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import SearchIcon from '@lucide/svelte/icons/search';
 
-	const {
-		load,
-		placeholder = 'Search documentation...'
-	}: {
-		/**
-		 * Lazily provide the generated search records. Wired by the consumer so the
-		 * index is code-split and only fetched when the palette first opens, e.g.
-		 * `() => import('svelte-docsmith/search').then((m) => m.docs)`.
-		 *
-		 * Receives the active version id on a versioned site, so a loader may
-		 * return just that version's records; results are scoped either way.
-		 */
-		load: (versionId?: string) => Promise<SearchDoc[]>;
-		placeholder?: string;
-	} = $props();
+	const { placeholder = 'Search documentation...' }: { placeholder?: string } = $props();
 
-	const search = useSearch();
-	// The version being read, straight off the shell's resolved page view, so
-	// results and the cached engine follow the reader across a version switch.
-	const docsPage = useDocsPage();
-	const activeVersion = $derived(docsPage.view.activeVersionId);
-
-	let query = $state('');
-	let engine = $state<SearchEngine | null>(null);
-	let indexDocs = $state<SearchDoc[]>([]);
-	let status = $state<'idle' | 'loading' | 'error'>('idle');
-	// The version the cached engine was built for, so a loader that returns only
-	// one version's records is rebuilt when the reader switches versions. Stays
-	// constant (and the engine cached) on unversioned and single-version sites.
-	let engineVersion: string | undefined;
-
-	const trimmed = $derived(query.trim());
-	// Scope to the active version on a versioned site; `undefined` otherwise.
-	const results = $derived(engine && trimmed ? engine.search(query, undefined, activeVersion) : []);
-
-	// Empty-state starters: prefer common first pages when present, then fill
-	// from the rest of the index so a custom site still has something useful.
-	const suggestions = $derived.by(() => {
-		const scoped = activeVersion ? indexDocs.filter((d) => d.version === activeVersion) : indexDocs;
-		if (!scoped.length) return [];
-		const preferred = [/introduction/i, /quick[- ]?start/i, /install/i, /getting started/i];
-		const picked: SearchDoc[] = [];
-		for (const re of preferred) {
-			const hit = scoped.find(
-				(d) =>
-					!picked.includes(d) && (re.test(d.title) || re.test(d.path) || re.test(d.section ?? ''))
-			);
-			if (hit) picked.push(hit);
-		}
-		for (const d of scoped) {
-			if (picked.length >= 4) break;
-			if (!picked.includes(d)) picked.push(d);
-		}
-		return picked.slice(0, 4);
-	});
-
-	// Build the index the first time the palette opens; keep it for later opens.
-	async function ensureEngine() {
-		const version = activeVersion;
-		if ((engine && engineVersion === version) || status === 'loading') return;
-		status = 'loading';
-		try {
-			const [{ createSearchEngine }, docs] = await Promise.all([
-				import('#lib/search/create-search.js'),
-				load(version)
-			]);
-			indexDocs = docs;
-			engine = createSearchEngine(docs);
-			engineVersion = version;
-			status = 'idle';
-		} catch (error) {
-			console.error('[svelte-docsmith] failed to load the search index', error);
-			status = 'error';
-		}
-	}
-
-	$effect(() => {
-		if (search?.open) ensureEngine();
-	});
+	const search = useSearchSession();
 
 	function onWindowKeydown(event: KeyboardEvent) {
 		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -98,8 +22,7 @@
 	}
 
 	function select(path: string) {
-		if (search) search.open = false;
-		query = '';
+		search?.select();
 		goto(path);
 	}
 </script>
@@ -114,26 +37,26 @@
 		description="Search the documentation"
 		class="ring-border/70 shadow-2xl ring-1 sm:max-w-xl"
 	>
-		<Command.Input bind:value={query} {placeholder} />
+		<Command.Input bind:value={search.query} {placeholder} />
 
 		<div class="bg-border/50 -mx-1 mt-1 h-px"></div>
 
 		<Command.List class="scrollbar-slim max-h-[min(24rem,60vh)] px-2 py-2">
-			{#if status === 'loading'}
+			{#if search.status === 'loading'}
 				<div class="text-muted-foreground flex items-center justify-center gap-2 py-10 text-sm">
 					<LoaderCircle class="size-4 animate-spin" />
 					Loading search…
 				</div>
-			{:else if status === 'error'}
+			{:else if search.status === 'error'}
 				<div class="text-muted-foreground px-4 py-10 text-center text-sm">
 					Search is unavailable right now.
 				</div>
-			{:else if !trimmed}
-				{#if suggestions.length}
+			{:else if !search.trimmedQuery}
+				{#if search.suggestions.length}
 					<p class="text-muted-foreground px-2.5 pb-1.5 text-xs font-medium tracking-wide">
 						Suggested
 					</p>
-					{#each suggestions as doc (doc.path)}
+					{#each search.suggestions as doc (doc.path)}
 						<Command.LinkItem
 							href={doc.path}
 							onSelect={() => select(doc.path)}
@@ -171,12 +94,12 @@
 						<span>Search across every page of the documentation.</span>
 					</div>
 				{/if}
-			{:else if results.length === 0}
+			{:else if search.results.length === 0}
 				<div class="text-muted-foreground px-4 py-10 text-center text-sm">
-					No results for <span class="text-foreground font-medium">“{trimmed}”</span>.
+					No results for <span class="text-foreground font-medium">“{search.trimmedQuery}”</span>.
 				</div>
 			{:else}
-				{#each results as result (result.path)}
+				{#each search.results as result (result.path)}
 					<Command.LinkItem
 						href={result.path}
 						onSelect={() => select(result.path)}

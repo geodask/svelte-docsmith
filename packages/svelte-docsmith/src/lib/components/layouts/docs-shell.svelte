@@ -5,12 +5,11 @@
 		resolveDocsPage,
 		type DocsContent,
 		type DocsContentItem,
-		type SearchDoc,
 		type ResolvedVersion
 	} from '#lib/core/index.js';
 	import { site } from 'svelte-docsmith/site';
 	import { createToc } from '#lib/toc/index.js';
-	import { createSearchState } from '#lib/search/context.svelte.js';
+	import { createSearchSession, type SearchLoader } from '#lib/search/session.svelte.js';
 	import { setDocsPage } from '../docs-page-context.js';
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
@@ -73,7 +72,7 @@
 		 * Omit to hide search. The index is fetched only when search first opens.
 		 * Receives the active version id on a versioned site.
 		 */
-		search?: (versionId?: string) => Promise<SearchDoc[]>;
+		search?: SearchLoader;
 		/** Custom logo mark for the header and mobile menu. */
 		logo?: Snippet;
 		/** Extra header controls (desktop and mobile), before the theme toggle. */
@@ -109,13 +108,6 @@
 		layout?: 'docs' | 'page';
 	} = $props();
 
-	// Publish search state on context so the header triggers and the single
-	// dialog share one open-state; only when the consumer wired an index. The
-	// `search` loader is static for the shell's lifetime, so reading it once at
-	// init is intentional.
-	// svelte-ignore state_referenced_locally
-	if (search) createSearchState();
-
 	// Every rule about the page being read is resolved in one pure module
 	// (`core/docs-page.ts`): the active version and the content scoped to it, the
 	// sidebar, the entry, prev/next, breadcrumbs, the server-rendered TOC. Reading
@@ -136,6 +128,13 @@
 	// read what they need off this instead of taking it as props through two
 	// intermediate layers.
 	setDocsPage(() => view);
+
+	// Publish one search session on context so the header triggers and the single
+	// dialog share it; only when the consumer wired an index. It follows the
+	// version being read off the same view. The `search` loader is static for the
+	// shell's lifetime, so reading it once at init is intentional.
+	// svelte-ignore state_referenced_locally
+	if (search) createSearchSession({ load: search, version: () => view.activeVersionId });
 
 	// `timeZone: 'UTC'` is not cosmetic. `lastUpdated` is a calendar day, which
 	// parses to UTC midnight, so formatting in the ambient zone shifts it a day
@@ -203,7 +202,7 @@
 	<ThemeProvider />
 
 	{#if search}
-		<Search load={search} />
+		<Search />
 	{/if}
 
 	{#if pattern}
