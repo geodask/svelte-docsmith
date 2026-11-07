@@ -17,10 +17,10 @@ async function render(content: string, options: DocsmithMarkdownOptions = {}): P
 }
 
 describe('markdown compiler', () => {
-	it('highlights code fences with dual light/dark Shiki themes', async () => {
+	it('highlights code fences with the theme’s code tokens', async () => {
 		const code = await render('```js\nconst a = 1;\n```');
-		expect(code).toContain('--shiki-dark');
-		expect(code).toContain('shiki');
+		expect(code).toContain('var(--code-token-keyword)');
+		expect(code).not.toContain('--shiki-dark');
 	});
 
 	it('renders fences through the packaged <Components.pre> by default', async () => {

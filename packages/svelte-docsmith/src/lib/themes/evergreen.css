@@ -1,8 +1,8 @@
 /*
  * svelte-docsmith theme — Evergreen. A calm, deep-green palette.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/evergreen.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'evergreen' })
  */
 
 :root {
@@ -38,6 +38,16 @@
 	--sidebar-accent-foreground: oklch(0.38 0.08 156);
 	--sidebar-border: oklch(0.9 0.012 150);
 	--sidebar-ring: oklch(0.52 0.11 156);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.55 0.11 156);
+	--code-token-string: oklch(0.55 0.09 200);
+	--code-token-function: oklch(0.55 0.11 0);
+	--code-token-constant: oklch(0.55 0.11 280);
+	--code-token-parameter: oklch(0.55 0.11 80);
+	--code-token-comment: oklch(0.5 0.02 155);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }
 
 .dark {
@@ -73,4 +83,14 @@
 	--sidebar-accent-foreground: oklch(0.85 0.08 153);
 	--sidebar-border: oklch(0.33 0.02 158);
 	--sidebar-ring: oklch(0.7 0.14 156);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.8 0.14 156);
+	--code-token-string: oklch(0.8 0.09 200);
+	--code-token-function: oklch(0.8 0.14 0);
+	--code-token-constant: oklch(0.8 0.14 280);
+	--code-token-parameter: oklch(0.8 0.14 80);
+	--code-token-comment: oklch(0.77 0.012 150);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }

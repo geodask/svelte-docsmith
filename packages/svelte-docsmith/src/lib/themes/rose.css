@@ -1,8 +1,8 @@
 /*
  * svelte-docsmith theme — Rosé. A warm rose palette with softer, rounder corners.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/rose.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'rose' })
  */
 
 :root {
@@ -39,6 +39,16 @@
 	--sidebar-accent-foreground: oklch(0.42 0.13 13);
 	--sidebar-border: oklch(0.91 0.012 12);
 	--sidebar-ring: oklch(0.58 0.17 13);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.55 0.16 13);
+	--code-token-string: oklch(0.55 0.1 60);
+	--code-token-function: oklch(0.55 0.16 215);
+	--code-token-constant: oklch(0.55 0.16 295);
+	--code-token-parameter: oklch(0.55 0.16 135);
+	--code-token-comment: oklch(0.52 0.02 12);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }
 
 .dark {
@@ -75,4 +85,14 @@
 	--sidebar-accent-foreground: oklch(0.86 0.07 12);
 	--sidebar-border: oklch(0.33 0.02 14);
 	--sidebar-ring: oklch(0.72 0.15 13);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.8 0.15 13);
+	--code-token-string: oklch(0.8 0.1 60);
+	--code-token-function: oklch(0.8 0.15 215);
+	--code-token-constant: oklch(0.8 0.15 295);
+	--code-token-parameter: oklch(0.8 0.15 135);
+	--code-token-comment: oklch(0.78 0.012 12);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }

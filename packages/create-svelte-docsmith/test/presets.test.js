@@ -1,7 +1,7 @@
 /**
  * The theme prompt reads presets.json, a copy of the library's preset manifest
  * (the published CLI can't read the library's CSS when it runs). These tests
- * keep that copy, and the list in the template's app.css, in step with the CSS.
+ * keep that copy, and the list in the template's vite.config.ts, in step with the CSS.
  */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -22,10 +22,10 @@ test('presets.json matches the preset CSS', () => {
 	);
 });
 
-test("the template's app.css lists every preset to import, in order", () => {
-	const css = fs.readFileSync(new URL('../template/src/app.css', import.meta.url), 'utf8');
-	const list = css.match(/Available:([^.]*)\./)?.[1] ?? '';
-	const listed = list.split(/[\s,*]+/).filter(Boolean);
+test("the template's vite.config.ts lists every preset to choose, in order", () => {
+	const config = fs.readFileSync(new URL('../template/vite.config.ts', import.meta.url), 'utf8');
+	const list = config.match(/Available:([^.]*)\./)?.[1] ?? '';
+	const listed = list.split(/[\s,/]+/).filter(Boolean);
 	const importable = presets.filter((preset) => !preset.default).map((preset) => preset.slug);
 
 	assert.deepEqual(listed, importable);

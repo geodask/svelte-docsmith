@@ -54,8 +54,8 @@ Two small pieces, once.
 
 **1. Vite.** DocSmith is one Vite plugin, `docsmith()` from
 `svelte-docsmith/vite`, and it is the only place your docs are configured. It
-compiles your `.md` pages (mdsvex, Shiki highlighting with dual light/dark
-themes and a generous language set, heading anchors, and the packaged page
+compiles your `.md` pages (mdsvex, Shiki highlighting coloured by your theme
+and a generous language set, heading anchors, and the packaged page
 layout), scans their frontmatter into the `svelte-docsmith/content` module (so
 the sidebar is derived from content, never hand-written), builds the search
 index, powers `LiveExample`, and serves your site config to the shell and the
@@ -89,8 +89,8 @@ On SvelteKit 2, `extensions` and `preprocess` go in `svelte.config.js` instead,
 and `sveltekit()` takes no options.
 
 By default it scans `src/routes/docs`; pass `content: 'src/routes/guide'` to
-point elsewhere. Code block themes, markdown options, versions, the changelog
-and link checking all go in the same call.
+point elsewhere. The theme, markdown options, versions, the changelog and link
+checking all go in the same call.
 
 **2. The stylesheet.** In your root `app.css`, once Tailwind v4 is set up the
 standard way (`tailwindcss` + the `@tailwindcss/vite` plugin, stylesheet imported
@@ -101,10 +101,11 @@ in the root layout), the whole style contract is one import:
 @import 'svelte-docsmith/theme.css';
 ```
 
-`theme.css` makes Tailwind scan the package, defines the shadcn theme tokens
-(`--background`, `--primary`, `--radius`, …) for `:root` and `.dark`, and pulls
-in the typography and animation plugins. Override any token by redefining it
-after the import, or import a preset (see [Themes](#themes)).
+`theme.css` makes Tailwind scan the package, registers the shadcn design tokens
+(`--background`, `--primary`, `--radius`, …) and pulls in the typography and
+animation plugins. The tokens' values come from your theme, chosen in
+`docsmith()` (see [Themes](#themes)); redefine any token in `app.css` and it
+wins.
 
 ## The shell
 
@@ -233,17 +234,18 @@ outside the 1.0 promise for now.
 
 ## Themes
 
-Eleven presets ship in the box. **Darkmatter** is the default, applied by
-`theme.css`; import any other preset after it to switch:
+A theme is the whole look in one CSS file: colours, radius, fonts, shadows and
+code colours, for light and dark. Eleven presets ship in the box, and
+**Darkmatter** is the default. Choose another by name, or point at a theme file
+of your own (a theme exported from [tweakcn](https://tweakcn.com/) works as is):
 
-```css
-@import 'svelte-docsmith/theme.css';
-@import 'svelte-docsmith/themes/amethyst.css';
+```ts
+docsmith({ site: { title: 'My Docs' }, theme: 'amethyst' }); // or theme: './src/theme.css'
 ```
 
 Available: `darkmatter`, `tangerine`, `amethyst`, `graphite`, `evergreen`,
-`rose`, `ocean`, `nord`, `claude`, `bubblegum`, `mono`. Or skip the preset and
-override the tokens yourself.
+`rose`, `ocean`, `nord`, `claude`, `bubblegum`, `mono`. Code blocks follow the
+theme; set `codeTheme: { light, dark }` to use an exact Shiki pair instead.
 
 ## What's exported
 
@@ -260,7 +262,7 @@ override the tokens yourself.
 | `svelte-docsmith/mermaid`      | the Mermaid diagram component (lazy-loaded by the preprocessor when a mermaid fence is present)                                           |
 | `svelte-docsmith/client`       | ambient types for `?source` and `?props` imports (reference it from `src/app.d.ts`)                                                       |
 | `svelte-docsmith/theme.css`    | the base style contract                                                                                                                   |
-| `svelte-docsmith/themes/*.css` | the eleven theme presets                                                                                                                  |
+| `svelte-docsmith/themes/*.css` | the eleven presets, as theme files (choose one with `docsmith({ theme })`)                                                                |
 
 The package also ships a CLI binary: `npx svelte-docsmith archive-version <id>`
 freezes the current docs into a versioned archive.

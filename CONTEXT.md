@@ -160,14 +160,44 @@ _Avoid_: MCP endpoint, MCP route, docs API
 
 ### Theming
 
-**Theme preset**:
-A ready palette a site switches to with one CSS import after `theme.css`, such
-as `themes/ocean.css`. Its file is the source of truth for its name and tokens.
-Darkmatter is the default preset, which `theme.css` already ships.
-_Avoid_: theme (that is the whole token contract in `theme.css`), skin, palette
+**Theme**:
+The whole look of a site as one set of tokens: colours, radius, fonts,
+shadows, spacing, letter spacing and code colours, each for both colour modes.
+A preset or the author's own; a site has exactly one.
+_Avoid_: skin, palette, style (and "theme" for light/dark or for Shiki)
+
+**Preset**:
+A theme that ships with the package, such as Ocean. Its CSS file is the source
+of truth for its name and tokens. Darkmatter is the default preset.
+_Avoid_: theme preset, built-in theme, template
+
+**Colour mode**:
+Light or dark. Every theme defines both; the reader switches between them.
+_Avoid_: theme, dark theme, appearance
+
+**Code theme**:
+How code blocks are coloured. Part of a theme: its code colour tokens, or an
+exact Shiki pair, one per colour mode, named by `codeTheme`.
+_Avoid_: theme, syntax theme, highlighter theme
+
+**Theme file**:
+A CSS file of `:root` and `.dark` tokens in the shape shadcn and tweakcn
+export. The one form a theme takes outside the package: what `docsmith({ theme })`
+points at, the builder exports and the CLI writes.
+_Avoid_: theme config, theme JSON, custom CSS
+
+**Theme builder**:
+The `/themes` page of the docs site, where an author starts from a preset or a
+pasted theme file, adjusts it, previews it on a sample docs page and exports it.
+_Avoid_: theme editor, theme generator, showcase
+
+**Theme link**:
+A theme builder URL that carries a whole theme, so opening it restores that
+theme exactly. How the CLI handoff and agents pass a theme around.
+_Avoid_: share link, permalink, theme URL
 
 **Preset manifest**:
-The ordered list of theme presets, read from their CSS files by
+The ordered list of presets, read from their CSS files by
 `packages/svelte-docsmith/scripts/theme-presets.mjs`. The docs site's theme
 showcase and the scaffolder's theme prompt both come from it.
 _Avoid_: theme list, PRESETS

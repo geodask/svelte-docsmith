@@ -5,8 +5,6 @@
  * typography and animation plugins. */
 @import 'svelte-docsmith/theme.css';
 
-/* Darkmatter is the default, already applied by theme.css. Prefer a different
- * look? Import a preset after theme.css and it wins:
- *   @import 'svelte-docsmith/themes/amethyst.css';
- * Available: tangerine, amethyst, graphite, evergreen, rose, ocean, nord,
- * claude, bubblegum, mono. Or override individual tokens yourself. */
+/* The theme itself is chosen in vite.config.ts with docsmith({ theme }).
+ * Redefine any token here and it wins over the theme, e.g.
+ *   :root { --primary: oklch(0.55 0.2 265); } */

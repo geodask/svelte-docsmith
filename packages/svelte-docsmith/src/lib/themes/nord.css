@@ -2,8 +2,8 @@
  * svelte-docsmith theme — Nord. A cool, desaturated arctic palette; its dark
  * mode is the signature mid-slate "polar night", not near-black.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/nord.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'nord' })
  */
 
 :root {
@@ -40,6 +40,16 @@
 	--sidebar-accent-foreground: oklch(0.4 0.05 235);
 	--sidebar-border: oklch(0.88 0.008 250);
 	--sidebar-ring: oklch(0.55 0.07 245);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.55 0.09 245);
+	--code-token-string: oklch(0.55 0.1 90);
+	--code-token-function: oklch(0.55 0.09 150);
+	--code-token-constant: oklch(0.55 0.12 30);
+	--code-token-parameter: oklch(0.55 0.09 200);
+	--code-token-comment: oklch(0.5 0.015 250);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }
 
 .dark {
@@ -76,4 +86,14 @@
 	--sidebar-accent-foreground: oklch(0.85 0.05 220);
 	--sidebar-border: oklch(0.4 0.02 255);
 	--sidebar-ring: oklch(0.72 0.08 235);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.8 0.09 235);
+	--code-token-string: oklch(0.8 0.12 30);
+	--code-token-function: oklch(0.8 0.09 150);
+	--code-token-constant: oklch(0.8 0.1 90);
+	--code-token-parameter: oklch(0.8 0.09 310);
+	--code-token-comment: oklch(0.78 0.015 240);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }

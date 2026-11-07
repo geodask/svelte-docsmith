@@ -15,12 +15,12 @@
 	const activeName = $derived(themes.find((t) => t.slug === activeSlug)?.name ?? '');
 	const isDefault = $derived(activeSlug === defaultThemeSlug);
 
-	// The exact import a consumer writes for the current selection. Darkmatter is
-	// the baked-in default, so it needs no preset line.
-	const importSnippet = $derived(
+	// The line that selects the current preset in a real site's vite.config.ts.
+	// Darkmatter is the default, so it needs none.
+	const configSnippet = $derived(
 		isDefault
-			? "@import 'svelte-docsmith/theme.css';"
-			: `@import 'svelte-docsmith/theme.css';\n@import 'svelte-docsmith/themes/${activeSlug}.css';`
+			? 'docsmith({ site }) // Darkmatter is the default'
+			: `docsmith({ site, theme: '${activeSlug}' })`
 	);
 </script>
 
@@ -87,18 +87,18 @@
 		<div class="border-border mt-16 max-w-2xl border-t pt-10">
 			<h2 class="text-2xl font-semibold tracking-tight">Use this theme in your project</h2>
 			<p class="text-muted-foreground mt-3 leading-relaxed">
-				The picker applies themes at runtime for this demo. In your own site you choose one at build
-				time with a single stylesheet import:
+				The picker applies themes at runtime for this demo. In your own site you choose one in
+				<code class="font-mono text-sm">vite.config.ts</code>:
 			</p>
 			<pre
 				class="bg-card text-foreground border-border mt-4 overflow-x-auto rounded-lg border p-4 font-mono text-sm leading-relaxed"><code
-					>{importSnippet}</code
+					>{configSnippet}</code
 				></pre>
 			<p class="text-muted-foreground mt-4 text-sm">
 				See <a
 					href="/docs/theming"
 					class="text-primary font-medium underline-offset-4 hover:underline">Theming</a
-				> for overriding individual tokens and how dark mode is wired.
+				> for theme files of your own, overriding individual tokens and how dark mode is wired.
 			</p>
 		</div>
 	</section>

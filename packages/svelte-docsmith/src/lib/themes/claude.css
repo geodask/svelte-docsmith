@@ -2,8 +2,8 @@
  * svelte-docsmith theme — Claude. Warm clay on a paper-cream background; low
  * chroma, softly rounded. Editorial and warm without shouting.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/claude.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'claude' })
  */
 
 :root {
@@ -40,6 +40,16 @@
 	--sidebar-accent-foreground: oklch(0.4 0.06 45);
 	--sidebar-border: oklch(0.89 0.012 80);
 	--sidebar-ring: oklch(0.52 0.11 42);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.55 0.11 42);
+	--code-token-string: oklch(0.55 0.09 95);
+	--code-token-function: oklch(0.55 0.11 250);
+	--code-token-constant: oklch(0.55 0.11 170);
+	--code-token-parameter: oklch(0.55 0.11 325);
+	--code-token-comment: oklch(0.5 0.02 55);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }
 
 .dark {
@@ -76,4 +86,14 @@
 	--sidebar-accent-foreground: oklch(0.85 0.04 80);
 	--sidebar-border: oklch(0.35 0.012 60);
 	--sidebar-ring: oklch(0.68 0.11 48);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.8 0.11 48);
+	--code-token-string: oklch(0.8 0.09 95);
+	--code-token-function: oklch(0.8 0.11 250);
+	--code-token-constant: oklch(0.8 0.11 330);
+	--code-token-parameter: oklch(0.8 0.11 170);
+	--code-token-comment: oklch(0.78 0.012 80);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
 }

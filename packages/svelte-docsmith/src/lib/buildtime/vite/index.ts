@@ -16,7 +16,9 @@
  *     — the same pages reduced to plain-text bodies, in a separate chunk so it
  *     can be lazy-loaded only when search opens. (An `svelte-docsmith/llms`
  *     index of full markdown bodies is wired the same way.)
- *  5. The **doc imports** a page makes for its examples and props tables:
+ *  5. The **theme**, appended to the stylesheet `svelte-docsmith/theme.css`
+ *     compiles into (see `./theme.js`).
+ *  6. The **doc imports** a page makes for its examples and props tables:
  *     `Component.svelte?source` yields that file's highlighted source for
  *     `LiveExample`, and `Component.svelte?props` its extracted props for
  *     `<PropsTable of={…}>`. Each kind lives in `./doc-imports/`, with the page
@@ -48,6 +50,7 @@ import { markdownExtensions } from '../markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
 import { brokenLinksReporter } from './broken-links.js';
 import { checkOutsidePaths } from '../outside-paths.js';
+import { themePlugin } from './theme.js';
 
 export type {
 	DocsmithOptions,
@@ -71,10 +74,11 @@ export type { DocsmithSite } from '../../core/config.js';
  */
 export function docsmith(options: DocsmithOptions): Plugin[] {
 	const resolved = resolveOptions(options);
-	// One renderer for markdown fences and `?source` panels: one set of themes,
+	for (const notice of resolved.deprecations) console.warn(notice);
+	// One renderer for markdown fences and `?source` panels: one code theme,
 	// one Shiki highlighter.
 	const renderCodeBlock = codeBlockRenderer({
-		themes: resolved.themes,
+		codeTheme: resolved.codeTheme,
 		langs: resolved.markdown.langs,
 		lineNumbers: resolved.markdown.lineNumbers,
 		twoslash: resolved.markdown.twoslash
@@ -89,7 +93,8 @@ export function docsmith(options: DocsmithOptions): Plugin[] {
 	return [
 		contentIndexPlugin(resolved, docImports, options),
 		markdownPlugin(resolved.markdown, renderCodeBlock, resolved.links.outside, resolved.routesDir),
-		docImportsPlugin(docImports)
+		docImportsPlugin(docImports),
+		themePlugin(resolved.themeFile)
 	];
 }
 

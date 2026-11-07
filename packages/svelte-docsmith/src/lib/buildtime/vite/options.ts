@@ -11,6 +11,7 @@ import type { OutsidePaths } from '../../core/outside-path.js';
 import type { DocsVersions } from '../../core/version.js';
 import type { DocsmithMarkdownOptions } from '../markdown.js';
 import type { StandardSchemaV1 } from './frontmatter-schema.js';
+import { resolveTheme } from './theme.js';
 
 /** Where the changelog comes from and where it is served. */
 export interface DocsmithChangelogOptions {
@@ -99,8 +100,23 @@ export interface DocsmithOptions {
 	 */
 	changelog?: DocsmithChangelogOptions | false;
 	/**
-	 * Shiki themes for every code block: markdown fences and `LiveExample`
-	 * source panels alike. Default: github-light/github-dark.
+	 * The site's theme: a preset name (`'ocean'`) or a path to a theme file
+	 * (`'./src/theme.css'`), relative to the Vite root. A theme file is CSS of
+	 * `:root` and `.dark` token blocks, the shape shadcn and tweakcn export.
+	 * Every page that imports `svelte-docsmith/theme.css` gets it, and a token
+	 * you redefine in `app.css` wins over it. Default: `'darkmatter'`.
+	 */
+	theme?: string;
+	/**
+	 * An exact pair of Shiki themes, one per colour mode, for every code block:
+	 * markdown fences and `LiveExample` source panels alike. Default: none, so
+	 * code blocks follow the theme, reading its `--code-*` tokens. Set
+	 * `{ light: 'github-light', dark: 'github-dark' }` for the look code blocks
+	 * had before themes coloured them.
+	 */
+	codeTheme?: { light: string; dark: string };
+	/**
+	 * @deprecated Renamed to `codeTheme`. Still read until the next minor.
 	 */
 	themes?: { light: string; dark: string };
 	/** How markdown doc pages are compiled. */
@@ -138,7 +154,12 @@ export interface ResolvedDocsmithOptions {
 	changelogFile?: string;
 	/** The route the changelog is served at, even when it is off. */
 	changelogPath: string;
-	themes?: { light: string; dark: string };
+	/** Absolute path of the theme file the plugin serves. */
+	themeFile: string;
+	/** The exact Shiki pair, when one is named; otherwise code reads the theme's tokens. */
+	codeTheme?: { light: string; dark: string };
+	/** One-line notices about deprecated options in use, for the plugin to print. */
+	deprecations: string[];
 	markdown: DocsmithMarkdownOptions;
 	tsconfig?: string;
 	schema?: StandardSchemaV1;
@@ -174,6 +195,17 @@ export function resolveOptions(
 				`Write changelog: { file: ${JSON.stringify(options.changelog)} }.`
 		);
 	}
+	if (options.themes !== undefined && options.codeTheme !== undefined) {
+		throw new Error(
+			'[svelte-docsmith] docsmith() sets both `themes` and `codeTheme`. `themes` was renamed to `codeTheme`: keep only that one.'
+		);
+	}
+	const deprecations: string[] = [];
+	if (options.themes !== undefined) {
+		deprecations.push(
+			'[svelte-docsmith] docsmith({ themes }) is renamed to `codeTheme`, and `themes` stops working in the next minor.'
+		);
+	}
 	const site = checkSite(options.site);
 	const changelog = options.changelog === false ? undefined : (options.changelog ?? {});
 	return {
@@ -183,7 +215,9 @@ export function resolveOptions(
 		versions: options.versions,
 		changelogFile: changelog && path.resolve(cwd, changelog.file ?? 'CHANGELOG.md'),
 		changelogPath: (options.changelog || undefined)?.path ?? '/changelog',
-		themes: options.themes,
+		themeFile: resolveTheme(options.theme, cwd),
+		codeTheme: options.codeTheme ?? options.themes,
+		deprecations,
 		markdown: options.markdown ?? {},
 		tsconfig: options.tsconfig,
 		schema: options.schema,

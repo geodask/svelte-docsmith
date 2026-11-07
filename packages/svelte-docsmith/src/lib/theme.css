@@ -9,7 +9,8 @@
  * This file makes Tailwind scan the package itself (so the utility classes
  * its components use are generated), registers the shadcn design tokens the
  * components read, and applies the small base layer the docs chrome expects.
- * Override any token by redefining it after the import.
+ * The theme's values come from docsmith({ theme }) in vite.config.ts; override
+ * any token by redefining it in your own stylesheet.
  */
 
 @plugin '@tailwindcss/typography';
@@ -108,39 +109,13 @@
 }
 
 @layer base {
+	/* No colours here: the theme — a preset or your own theme file, chosen with
+	 * docsmith({ theme }) — is appended to this stylesheet by the plugin, in this
+	 * same layer, so it overrides the fallbacks below and any token you write
+	 * unlayered in app.css overrides it. The marker is how the plugin finds the
+	 * compiled stylesheet; it does nothing else. */
 	:root {
-		--background: oklch(1 0 0);
-		--foreground: oklch(0.2101 0.0318 264.6645);
-		--card: oklch(1 0 0);
-		--card-foreground: oklch(0.2101 0.0318 264.6645);
-		--popover: oklch(1 0 0);
-		--popover-foreground: oklch(0.2101 0.0318 264.6645);
-		--primary: oklch(0.6716 0.1368 48.513);
-		--primary-foreground: oklch(1 0 0);
-		--secondary: oklch(0.536 0.0398 196.028);
-		--secondary-foreground: oklch(1 0 0);
-		--muted: oklch(0.967 0.0029 264.5419);
-		--muted-foreground: oklch(0.551 0.0234 264.3637);
-		--accent: oklch(0.9491 0 0);
-		--accent-foreground: oklch(0.2101 0.0318 264.6645);
-		--destructive: oklch(0.6368 0.2078 25.3313);
-		--destructive-foreground: oklch(0.9851 0 0);
-		--border: oklch(0.9276 0.0058 264.5313);
-		--input: oklch(0.9276 0.0058 264.5313);
-		--ring: oklch(0.6716 0.1368 48.513);
-		--chart-1: oklch(0.594 0.0443 196.0233);
-		--chart-2: oklch(0.7214 0.1337 49.9802);
-		--chart-3: oklch(0.8721 0.0864 68.5474);
-		--chart-4: oklch(0.6268 0 0);
-		--chart-5: oklch(0.683 0 0);
-		--sidebar: oklch(0.967 0.0029 264.5419);
-		--sidebar-foreground: oklch(0.2101 0.0318 264.6645);
-		--sidebar-primary: oklch(0.6716 0.1368 48.513);
-		--sidebar-primary-foreground: oklch(1 0 0);
-		--sidebar-accent: oklch(1 0 0);
-		--sidebar-accent-foreground: oklch(0.2101 0.0318 264.6645);
-		--sidebar-border: oklch(0.9276 0.0058 264.5313);
-		--sidebar-ring: oklch(0.6716 0.1368 48.513);
+		--docsmith-theme: none;
 		/* Fontsource variable packages register as "… Variable"; keep the
 		 * static family names as fallbacks for consumers who load Google Fonts
 		 * or system stacks instead. */
@@ -167,41 +142,21 @@
 		--shadow-offset-y: 1px;
 		--tracking-normal: 0em;
 		--spacing: 0.25rem;
-	}
-
-	.dark {
-		--background: oklch(0.1797 0.0043 308.1928);
-		--foreground: oklch(0.8109 0 0);
-		--card: oklch(0.1822 0 0);
-		--card-foreground: oklch(0.8109 0 0);
-		--popover: oklch(0.1797 0.0043 308.1928);
-		--popover-foreground: oklch(0.8109 0 0);
-		--primary: oklch(0.7214 0.1337 49.9802);
-		--primary-foreground: oklch(0.1797 0.0043 308.1928);
-		--secondary: oklch(0.594 0.0443 196.0233);
-		--secondary-foreground: oklch(0.1797 0.0043 308.1928);
-		--muted: oklch(0.252 0 0);
-		--muted-foreground: oklch(0.6268 0 0);
-		--accent: oklch(0.3211 0 0);
-		--accent-foreground: oklch(0.8109 0 0);
-		--destructive: oklch(0.7106 0.1661 22.2162);
-		--destructive-foreground: oklch(0.1797 0.0043 308.1928);
-		--border: oklch(0.252 0 0);
-		--input: oklch(0.252 0 0);
-		--ring: oklch(0.7214 0.1337 49.9802);
-		--chart-1: oklch(0.594 0.0443 196.0233);
-		--chart-2: oklch(0.7214 0.1337 49.9802);
-		--chart-3: oklch(0.8721 0.0864 68.5474);
-		--chart-4: oklch(0.6268 0 0);
-		--chart-5: oklch(0.683 0 0);
-		--sidebar: oklch(0.1822 0 0);
-		--sidebar-foreground: oklch(0.8109 0 0);
-		--sidebar-primary: oklch(0.7214 0.1337 49.9802);
-		--sidebar-primary-foreground: oklch(0.1797 0.0043 308.1928);
-		--sidebar-accent: oklch(0.3211 0 0);
-		--sidebar-accent-foreground: oklch(0.8109 0 0);
-		--sidebar-border: oklch(0.252 0 0);
-		--sidebar-ring: oklch(0.7214 0.1337 49.9802);
+		/* Code colours, read by every code block unless docsmith({ codeTheme })
+		 * names a Shiki pair. A theme sets its own; these fallbacks derive them
+		 * from its palette, pulled toward the foreground so syntax colours stay
+		 * readable on the page in both colour modes. */
+		--code-foreground: var(--foreground);
+		--code-background: var(--muted);
+		--code-token-keyword: color-mix(in oklch, var(--primary) 80%, var(--foreground));
+		--code-token-string: color-mix(in oklch, var(--chart-2) 65%, var(--foreground));
+		--code-token-string-expression: var(--code-token-string);
+		--code-token-function: color-mix(in oklch, var(--chart-1) 65%, var(--foreground));
+		--code-token-constant: color-mix(in oklch, var(--chart-3) 55%, var(--foreground));
+		--code-token-parameter: color-mix(in oklch, var(--chart-4) 50%, var(--foreground));
+		--code-token-punctuation: color-mix(in oklch, var(--muted-foreground) 70%, var(--foreground));
+		--code-token-comment: var(--muted-foreground);
+		--code-token-link: var(--primary);
 	}
 
 	* {
@@ -237,13 +192,16 @@
 }
 
 /*
- * Shiki dual-theme output: light colors are inline, dark colors ship as
- * --shiki-dark/--shiki-dark-bg variables. Flip to them under `.dark`.
+ * Shiki dual-theme output, only when docsmith({ codeTheme }) names a pair:
+ * light colors are inline, dark colors ship as --shiki-dark/--shiki-dark-bg
+ * variables. Flip to them under `.dark`. Only elements that carry their own
+ * --shiki-dark are repainted, so the default output, which colours tokens with
+ * the theme's --code-* tokens and needs no flip, is never touched.
  * Code fences strip Shiki's <pre> (their bg-muted wrapper shows through);
  * LiveExample keeps Shiki's <pre>, so the background flip darkens it.
  */
-html.dark .shiki,
-html.dark .shiki span {
+html.dark .shiki[style*='--shiki-dark'],
+html.dark .shiki span[style*='--shiki-dark'] {
 	color: var(--shiki-dark) !important;
 }
 

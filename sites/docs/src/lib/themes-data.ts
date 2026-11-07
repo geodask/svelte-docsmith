@@ -2,7 +2,8 @@
 // packages/svelte-docsmith/src/lib/themes/*.css. Do not edit by hand — change the
 // CSS and re-run `npm run gen:themes` (which also runs before dev and build).
 //
-// Each entry carries a preset's full token set (colors, charts, sidebar, radius)
+// Each entry carries a preset's full token set (colors, charts, sidebar, radius,
+// code colours and any shadows)
 // for both modes, so the showcase applies exactly what the shipped CSS would.
 
 export type ThemeTokens = Record<string, string>;
@@ -45,7 +46,23 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(1 0 0)',
 			'sidebar-accent-foreground': 'oklch(0.2101 0.0318 264.6645)',
 			'sidebar-border': 'oklch(0.9276 0.0058 264.5313)',
-			'sidebar-ring': 'oklch(0.6716 0.1368 48.513)'
+			'sidebar-ring': 'oklch(0.6716 0.1368 48.513)',
+			'code-token-keyword': 'oklch(0.55 0.137 48.5)',
+			'code-token-string': 'oklch(0.55 0.09 196)',
+			'code-token-function': 'oklch(0.55 0.09 264.7)',
+			'code-token-constant': 'oklch(0.55 0.137 120)',
+			'code-token-parameter': 'oklch(0.55 0.137 335)',
+			'code-token-comment': 'oklch(0.551 0.023 264.4)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)',
+			'shadow-2xs': '0px 1px 4px 0px hsl(0 0% 0% / 0.03)',
+			'shadow-xs': '0px 1px 4px 0px hsl(0 0% 0% / 0.03)',
+			'shadow-sm': '0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05)',
+			shadow: '0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05)',
+			'shadow-md': '0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 2px 4px -1px hsl(0 0% 0% / 0.05)',
+			'shadow-lg': '0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 4px 6px -1px hsl(0 0% 0% / 0.05)',
+			'shadow-xl': '0px 1px 4px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05)',
+			'shadow-2xl': '0px 1px 4px 0px hsl(0 0% 0% / 0.12)'
 		},
 		dark: {
 			radius: '0.75rem',
@@ -80,7 +97,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.3211 0 0)',
 			'sidebar-accent-foreground': 'oklch(0.8109 0 0)',
 			'sidebar-border': 'oklch(0.252 0 0)',
-			'sidebar-ring': 'oklch(0.7214 0.1337 49.9802)'
+			'sidebar-ring': 'oklch(0.7214 0.1337 49.9802)',
+			'code-token-keyword': 'oklch(0.8 0.134 50)',
+			'code-token-string': 'oklch(0.8 0.09 196)',
+			'code-token-function': 'oklch(0.8 0.134 305)',
+			'code-token-constant': 'oklch(0.8 0.134 125)',
+			'code-token-parameter': 'oklch(0.8 0.134 250)',
+			'code-token-comment': 'oklch(0.777 0 0)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -118,7 +143,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.9119 0.0222 243.8174)',
 			'sidebar-accent-foreground': 'oklch(0.3791 0.1378 265.5222)',
 			'sidebar-border': 'oklch(0.9276 0.0058 264.5313)',
-			'sidebar-ring': 'oklch(0.6397 0.172 36.4421)'
+			'sidebar-ring': 'oklch(0.6397 0.172 36.4421)',
+			'code-token-keyword': 'oklch(0.55 0.16 36.4)',
+			'code-token-string': 'oklch(0.55 0.09 248.7)',
+			'code-token-function': 'oklch(0.55 0.16 145)',
+			'code-token-constant': 'oklch(0.55 0.16 325)',
+			'code-token-parameter': 'oklch(0.55 0.16 90)',
+			'code-token-comment': 'oklch(0.551 0.023 264.4)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		},
 		dark: {
 			primary: 'oklch(0.6397 0.172 36.4421)',
@@ -152,7 +185,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.338 0.0589 267.5867)',
 			'sidebar-accent-foreground': 'oklch(0.8823 0.0571 254.1284)',
 			'sidebar-border': 'oklch(0.3843 0.0301 269.7337)',
-			'sidebar-ring': 'oklch(0.6397 0.172 36.4421)'
+			'sidebar-ring': 'oklch(0.6397 0.172 36.4421)',
+			'code-token-keyword': 'oklch(0.8 0.16 36.4)',
+			'code-token-string': 'oklch(0.8 0.09 248.7)',
+			'code-token-function': 'oklch(0.8 0.16 145)',
+			'code-token-constant': 'oklch(0.8 0.16 325)',
+			'code-token-parameter': 'oklch(0.8 0.16 90)',
+			'code-token-comment': 'oklch(0.776 0 0)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -190,7 +231,23 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.94 0.03 300)',
 			'sidebar-accent-foreground': 'oklch(0.4 0.15 295)',
 			'sidebar-border': 'oklch(0.92 0.008 300)',
-			'sidebar-ring': 'oklch(0.55 0.22 295)'
+			'sidebar-ring': 'oklch(0.55 0.22 295)',
+			'code-token-keyword': 'oklch(0.55 0.16 295)',
+			'code-token-string': 'oklch(0.55 0.09 345)',
+			'code-token-function': 'oklch(0.55 0.16 140)',
+			'code-token-constant': 'oklch(0.55 0.16 60)',
+			'code-token-parameter': 'oklch(0.55 0.16 215)',
+			'code-token-comment': 'oklch(0.52 0.02 300)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)',
+			'shadow-2xs': '1px 2px 5px 1px hsl(0 0% 0% / 0.03)',
+			'shadow-xs': '1px 2px 5px 1px hsl(0 0% 0% / 0.03)',
+			'shadow-sm': '1px 2px 5px 1px hsl(0 0% 0% / 0.06), 1px 1px 2px 0px hsl(0 0% 0% / 0.06)',
+			shadow: '1px 2px 5px 1px hsl(0 0% 0% / 0.06), 1px 1px 2px 0px hsl(0 0% 0% / 0.06)',
+			'shadow-md': '1px 2px 5px 1px hsl(0 0% 0% / 0.06), 1px 2px 4px 0px hsl(0 0% 0% / 0.06)',
+			'shadow-lg': '1px 2px 5px 1px hsl(0 0% 0% / 0.06), 1px 4px 6px 0px hsl(0 0% 0% / 0.06)',
+			'shadow-xl': '1px 2px 5px 1px hsl(0 0% 0% / 0.06), 1px 8px 10px 0px hsl(0 0% 0% / 0.06)',
+			'shadow-2xl': '1px 2px 5px 1px hsl(0 0% 0% / 0.15)'
 		},
 		dark: {
 			primary: 'oklch(0.7 0.17 295)',
@@ -224,7 +281,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.32 0.05 300)',
 			'sidebar-accent-foreground': 'oklch(0.86 0.06 296)',
 			'sidebar-border': 'oklch(0.33 0.02 300)',
-			'sidebar-ring': 'oklch(0.7 0.17 295)'
+			'sidebar-ring': 'oklch(0.7 0.17 295)',
+			'code-token-keyword': 'oklch(0.8 0.16 295)',
+			'code-token-string': 'oklch(0.8 0.09 345)',
+			'code-token-function': 'oklch(0.8 0.16 140)',
+			'code-token-constant': 'oklch(0.8 0.16 60)',
+			'code-token-parameter': 'oklch(0.8 0.16 215)',
+			'code-token-comment': 'oklch(0.78 0.01 300)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -263,7 +328,23 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.96 0.003 265)',
 			'sidebar-accent-foreground': 'oklch(0.27 0.01 265)',
 			'sidebar-border': 'oklch(0.922 0.003 265)',
-			'sidebar-ring': 'oklch(0.27 0.01 265)'
+			'sidebar-ring': 'oklch(0.27 0.01 265)',
+			'code-token-keyword': 'oklch(0.3 0 265)',
+			'code-token-string': 'oklch(0.38 0 265)',
+			'code-token-function': 'oklch(0.34 0 265)',
+			'code-token-constant': 'oklch(0.42 0 265)',
+			'code-token-parameter': 'oklch(0.36 0 265)',
+			'code-token-comment': 'oklch(0.51 0.007 265)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)',
+			'shadow-2xs': '0px 2px 0px 0px hsl(0 0% 20% / 0.07)',
+			'shadow-xs': '0px 2px 0px 0px hsl(0 0% 20% / 0.07)',
+			'shadow-sm': '0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 1px 2px -1px hsl(0 0% 20% / 0.15)',
+			shadow: '0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 1px 2px -1px hsl(0 0% 20% / 0.15)',
+			'shadow-md': '0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 2px 4px -1px hsl(0 0% 20% / 0.15)',
+			'shadow-lg': '0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 4px 6px -1px hsl(0 0% 20% / 0.15)',
+			'shadow-xl': '0px 2px 0px 0px hsl(0 0% 20% / 0.15), 0px 8px 10px -1px hsl(0 0% 20% / 0.15)',
+			'shadow-2xl': '0px 2px 0px 0px hsl(0 0% 20% / 0.38)'
 		},
 		dark: {
 			radius: '0.375rem',
@@ -298,7 +379,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.3 0.006 265)',
 			'sidebar-accent-foreground': 'oklch(0.96 0.002 265)',
 			'sidebar-border': 'oklch(0.32 0.006 265)',
-			'sidebar-ring': 'oklch(0.6 0.005 265)'
+			'sidebar-ring': 'oklch(0.6 0.005 265)',
+			'code-token-keyword': 'oklch(0.92 0 265)',
+			'code-token-string': 'oklch(0.84 0 265)',
+			'code-token-function': 'oklch(0.88 0 265)',
+			'code-token-constant': 'oklch(0.8 0 265)',
+			'code-token-parameter': 'oklch(0.86 0 265)',
+			'code-token-comment': 'oklch(0.78 0.005 265)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -336,7 +425,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.93 0.035 150)',
 			'sidebar-accent-foreground': 'oklch(0.38 0.08 156)',
 			'sidebar-border': 'oklch(0.9 0.012 150)',
-			'sidebar-ring': 'oklch(0.52 0.11 156)'
+			'sidebar-ring': 'oklch(0.52 0.11 156)',
+			'code-token-keyword': 'oklch(0.55 0.11 156)',
+			'code-token-string': 'oklch(0.55 0.09 200)',
+			'code-token-function': 'oklch(0.55 0.11 0)',
+			'code-token-constant': 'oklch(0.55 0.11 280)',
+			'code-token-parameter': 'oklch(0.55 0.11 80)',
+			'code-token-comment': 'oklch(0.5 0.02 155)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		},
 		dark: {
 			primary: 'oklch(0.7 0.14 156)',
@@ -370,7 +467,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.32 0.05 156)',
 			'sidebar-accent-foreground': 'oklch(0.85 0.08 153)',
 			'sidebar-border': 'oklch(0.33 0.02 158)',
-			'sidebar-ring': 'oklch(0.7 0.14 156)'
+			'sidebar-ring': 'oklch(0.7 0.14 156)',
+			'code-token-keyword': 'oklch(0.8 0.14 156)',
+			'code-token-string': 'oklch(0.8 0.09 200)',
+			'code-token-function': 'oklch(0.8 0.14 0)',
+			'code-token-constant': 'oklch(0.8 0.14 280)',
+			'code-token-parameter': 'oklch(0.8 0.14 80)',
+			'code-token-comment': 'oklch(0.77 0.012 150)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -409,7 +514,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.94 0.03 12)',
 			'sidebar-accent-foreground': 'oklch(0.42 0.13 13)',
 			'sidebar-border': 'oklch(0.91 0.012 12)',
-			'sidebar-ring': 'oklch(0.58 0.17 13)'
+			'sidebar-ring': 'oklch(0.58 0.17 13)',
+			'code-token-keyword': 'oklch(0.55 0.16 13)',
+			'code-token-string': 'oklch(0.55 0.1 60)',
+			'code-token-function': 'oklch(0.55 0.16 215)',
+			'code-token-constant': 'oklch(0.55 0.16 295)',
+			'code-token-parameter': 'oklch(0.55 0.16 135)',
+			'code-token-comment': 'oklch(0.52 0.02 12)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		},
 		dark: {
 			radius: '1rem',
@@ -444,7 +557,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.32 0.05 13)',
 			'sidebar-accent-foreground': 'oklch(0.86 0.07 12)',
 			'sidebar-border': 'oklch(0.33 0.02 14)',
-			'sidebar-ring': 'oklch(0.72 0.15 13)'
+			'sidebar-ring': 'oklch(0.72 0.15 13)',
+			'code-token-keyword': 'oklch(0.8 0.15 13)',
+			'code-token-string': 'oklch(0.8 0.1 60)',
+			'code-token-function': 'oklch(0.8 0.15 215)',
+			'code-token-constant': 'oklch(0.8 0.15 295)',
+			'code-token-parameter': 'oklch(0.8 0.15 135)',
+			'code-token-comment': 'oklch(0.78 0.012 12)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -482,7 +603,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.93 0.03 210)',
 			'sidebar-accent-foreground': 'oklch(0.38 0.09 222)',
 			'sidebar-border': 'oklch(0.9 0.01 215)',
-			'sidebar-ring': 'oklch(0.55 0.11 220)'
+			'sidebar-ring': 'oklch(0.55 0.11 220)',
+			'code-token-keyword': 'oklch(0.55 0.11 220)',
+			'code-token-string': 'oklch(0.55 0.09 175)',
+			'code-token-function': 'oklch(0.55 0.11 15)',
+			'code-token-constant': 'oklch(0.55 0.11 95)',
+			'code-token-parameter': 'oklch(0.55 0.11 295)',
+			'code-token-comment': 'oklch(0.5 0.02 225)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		},
 		dark: {
 			primary: 'oklch(0.72 0.12 210)',
@@ -516,7 +645,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.32 0.055 216)',
 			'sidebar-accent-foreground': 'oklch(0.85 0.08 214)',
 			'sidebar-border': 'oklch(0.33 0.02 228)',
-			'sidebar-ring': 'oklch(0.72 0.12 210)'
+			'sidebar-ring': 'oklch(0.72 0.12 210)',
+			'code-token-keyword': 'oklch(0.8 0.12 210)',
+			'code-token-string': 'oklch(0.8 0.12 250)',
+			'code-token-function': 'oklch(0.8 0.12 50)',
+			'code-token-constant': 'oklch(0.8 0.12 130)',
+			'code-token-parameter': 'oklch(0.8 0.12 330)',
+			'code-token-comment': 'oklch(0.77 0.012 215)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -555,7 +692,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.88 0.03 220)',
 			'sidebar-accent-foreground': 'oklch(0.4 0.05 235)',
 			'sidebar-border': 'oklch(0.88 0.008 250)',
-			'sidebar-ring': 'oklch(0.55 0.07 245)'
+			'sidebar-ring': 'oklch(0.55 0.07 245)',
+			'code-token-keyword': 'oklch(0.55 0.09 245)',
+			'code-token-string': 'oklch(0.55 0.1 90)',
+			'code-token-function': 'oklch(0.55 0.09 150)',
+			'code-token-constant': 'oklch(0.55 0.12 30)',
+			'code-token-parameter': 'oklch(0.55 0.09 200)',
+			'code-token-comment': 'oklch(0.5 0.015 250)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		},
 		dark: {
 			radius: '0.5rem',
@@ -590,7 +735,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.42 0.04 220)',
 			'sidebar-accent-foreground': 'oklch(0.85 0.05 220)',
 			'sidebar-border': 'oklch(0.4 0.02 255)',
-			'sidebar-ring': 'oklch(0.72 0.08 235)'
+			'sidebar-ring': 'oklch(0.72 0.08 235)',
+			'code-token-keyword': 'oklch(0.8 0.09 235)',
+			'code-token-string': 'oklch(0.8 0.12 30)',
+			'code-token-function': 'oklch(0.8 0.09 150)',
+			'code-token-constant': 'oklch(0.8 0.1 90)',
+			'code-token-parameter': 'oklch(0.8 0.09 310)',
+			'code-token-comment': 'oklch(0.78 0.015 240)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -629,7 +782,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.9 0.025 70)',
 			'sidebar-accent-foreground': 'oklch(0.4 0.06 45)',
 			'sidebar-border': 'oklch(0.89 0.012 80)',
-			'sidebar-ring': 'oklch(0.52 0.11 42)'
+			'sidebar-ring': 'oklch(0.52 0.11 42)',
+			'code-token-keyword': 'oklch(0.55 0.11 42)',
+			'code-token-string': 'oklch(0.55 0.09 95)',
+			'code-token-function': 'oklch(0.55 0.11 250)',
+			'code-token-constant': 'oklch(0.55 0.11 170)',
+			'code-token-parameter': 'oklch(0.55 0.11 325)',
+			'code-token-comment': 'oklch(0.5 0.02 55)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		},
 		dark: {
 			radius: '0.5rem',
@@ -664,7 +825,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.34 0.03 55)',
 			'sidebar-accent-foreground': 'oklch(0.85 0.04 80)',
 			'sidebar-border': 'oklch(0.35 0.012 60)',
-			'sidebar-ring': 'oklch(0.68 0.11 48)'
+			'sidebar-ring': 'oklch(0.68 0.11 48)',
+			'code-token-keyword': 'oklch(0.8 0.11 48)',
+			'code-token-string': 'oklch(0.8 0.09 95)',
+			'code-token-function': 'oklch(0.8 0.11 250)',
+			'code-token-constant': 'oklch(0.8 0.11 330)',
+			'code-token-parameter': 'oklch(0.8 0.11 170)',
+			'code-token-comment': 'oklch(0.78 0.012 80)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	},
 	{
@@ -703,7 +872,28 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.9 0.08 200)',
 			'sidebar-accent-foreground': 'oklch(0.38 0.1 222)',
 			'sidebar-border': 'oklch(0.9 0.02 340)',
-			'sidebar-ring': 'oklch(0.62 0.21 352)'
+			'sidebar-ring': 'oklch(0.62 0.21 352)',
+			'code-token-keyword': 'oklch(0.55 0.16 352)',
+			'code-token-string': 'oklch(0.55 0.09 200)',
+			'code-token-function': 'oklch(0.55 0.16 95)',
+			'code-token-constant': 'oklch(0.55 0.16 290)',
+			'code-token-parameter': 'oklch(0.55 0.16 40)',
+			'code-token-comment': 'oklch(0.5 0.04 340)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)',
+			'shadow-2xs': '3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.25)',
+			'shadow-xs': '3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.25)',
+			'shadow-sm':
+				'3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),\n\t\t3px 1px 2px -1px hsl(325.78 58.18% 56.86% / 0.5)',
+			shadow:
+				'3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),\n\t\t3px 1px 2px -1px hsl(325.78 58.18% 56.86% / 0.5)',
+			'shadow-md':
+				'3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),\n\t\t3px 2px 4px -1px hsl(325.78 58.18% 56.86% / 0.5)',
+			'shadow-lg':
+				'3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),\n\t\t3px 4px 6px -1px hsl(325.78 58.18% 56.86% / 0.5)',
+			'shadow-xl':
+				'3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),\n\t\t3px 8px 10px -1px hsl(325.78 58.18% 56.86% / 0.5)',
+			'shadow-2xl': '3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 1)'
 		},
 		dark: {
 			radius: '1.25rem',
@@ -738,7 +928,27 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.42 0.1 200)',
 			'sidebar-accent-foreground': 'oklch(0.92 0.08 200)',
 			'sidebar-border': 'oklch(0.35 0.035 320)',
-			'sidebar-ring': 'oklch(0.72 0.19 352)'
+			'sidebar-ring': 'oklch(0.72 0.19 352)',
+			'code-token-keyword': 'oklch(0.8 0.16 352)',
+			'code-token-string': 'oklch(0.8 0.14 200)',
+			'code-token-function': 'oklch(0.8 0.16 95)',
+			'code-token-constant': 'oklch(0.8 0.16 290)',
+			'code-token-parameter': 'oklch(0.8 0.16 40)',
+			'code-token-comment': 'oklch(0.78 0.03 340)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)',
+			'shadow-2xs': '3px 3px 0px 0px hsl(206 28% 27% / 0.25)',
+			'shadow-xs': '3px 3px 0px 0px hsl(206 28% 27% / 0.25)',
+			'shadow-sm':
+				'3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 1px 2px -1px hsl(206 28% 27% / 0.5)',
+			shadow: '3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 1px 2px -1px hsl(206 28% 27% / 0.5)',
+			'shadow-md':
+				'3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 2px 4px -1px hsl(206 28% 27% / 0.5)',
+			'shadow-lg':
+				'3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 4px 6px -1px hsl(206 28% 27% / 0.5)',
+			'shadow-xl':
+				'3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 8px 10px -1px hsl(206 28% 27% / 0.5)',
+			'shadow-2xl': '3px 3px 0px 0px hsl(206 28% 27% / 1)'
 		}
 	},
 	{
@@ -777,7 +987,23 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.94 0 0)',
 			'sidebar-accent-foreground': 'oklch(0.15 0 0)',
 			'sidebar-border': 'oklch(0.9 0 0)',
-			'sidebar-ring': 'oklch(0.15 0 0)'
+			'sidebar-ring': 'oklch(0.15 0 0)',
+			'code-token-keyword': 'oklch(0.3 0 0)',
+			'code-token-string': 'oklch(0.38 0 0)',
+			'code-token-function': 'oklch(0.34 0 0)',
+			'code-token-constant': 'oklch(0.42 0 0)',
+			'code-token-parameter': 'oklch(0.36 0 0)',
+			'code-token-comment': 'oklch(0.44 0 0)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)',
+			'shadow-2xs': '0px 1px 0px 0px hsl(0 0% 0% / 0)',
+			'shadow-xs': '0px 1px 0px 0px hsl(0 0% 0% / 0)',
+			'shadow-sm': '0px 1px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0)',
+			shadow: '0px 1px 0px 0px hsl(0 0% 0% / 0), 0px 1px 2px -1px hsl(0 0% 0% / 0)',
+			'shadow-md': '0px 1px 0px 0px hsl(0 0% 0% / 0), 0px 2px 4px -1px hsl(0 0% 0% / 0)',
+			'shadow-lg': '0px 1px 0px 0px hsl(0 0% 0% / 0), 0px 4px 6px -1px hsl(0 0% 0% / 0)',
+			'shadow-xl': '0px 1px 0px 0px hsl(0 0% 0% / 0), 0px 8px 10px -1px hsl(0 0% 0% / 0)',
+			'shadow-2xl': '0px 1px 0px 0px hsl(0 0% 0% / 0)'
 		},
 		dark: {
 			radius: '0rem',
@@ -812,7 +1038,15 @@ export const themes: Theme[] = [
 			'sidebar-accent': 'oklch(0.28 0 0)',
 			'sidebar-accent-foreground': 'oklch(0.97 0 0)',
 			'sidebar-border': 'oklch(0.3 0 0)',
-			'sidebar-ring': 'oklch(0.7 0 0)'
+			'sidebar-ring': 'oklch(0.7 0 0)',
+			'code-token-keyword': 'oklch(0.92 0 0)',
+			'code-token-string': 'oklch(0.84 0 0)',
+			'code-token-function': 'oklch(0.88 0 0)',
+			'code-token-constant': 'oklch(0.8 0 0)',
+			'code-token-parameter': 'oklch(0.86 0 0)',
+			'code-token-comment': 'oklch(0.78 0 0)',
+			'code-token-string-expression': 'var(--code-token-string)',
+			'code-token-punctuation': 'var(--code-token-comment)'
 		}
 	}
 ];

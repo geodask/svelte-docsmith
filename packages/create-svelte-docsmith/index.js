@@ -14,7 +14,7 @@ const presets = JSON.parse(
 	fs.readFileSync(fileURLToPath(new URL('./presets.json', import.meta.url)), 'utf-8')
 );
 
-/** The theme prompt's options. The default preset needs no import, so it is `default`. */
+/** The theme prompt's options. The default preset needs no `theme` line, so it is `default`. */
 const PRESETS = presets.map((preset) =>
 	preset.default
 		? { value: 'default', label: `Default (${preset.name})` }

@@ -2,8 +2,8 @@
  * svelte-docsmith theme — Bubblegum. Vivid pink with a cyan accent, high chroma,
  * generously rounded. Playful and high-energy.
  *
- *   @import 'svelte-docsmith/theme.css';
- *   @import 'svelte-docsmith/themes/bubblegum.css';
+ *   // vite.config.ts
+ *   docsmith({ site, theme: 'bubblegum' })
  */
 
 :root {
@@ -40,6 +40,35 @@
 	--sidebar-accent-foreground: oklch(0.38 0.1 222);
 	--sidebar-border: oklch(0.9 0.02 340);
 	--sidebar-ring: oklch(0.62 0.21 352);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.55 0.16 352);
+	--code-token-string: oklch(0.55 0.09 200);
+	--code-token-function: oklch(0.55 0.16 95);
+	--code-token-constant: oklch(0.55 0.16 290);
+	--code-token-parameter: oklch(0.55 0.16 40);
+	--code-token-comment: oklch(0.5 0.04 340);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
+	/* Shadows, from the tweakcn preset this one is based on. */
+	--shadow-2xs: 3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.25);
+	--shadow-xs: 3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.25);
+	--shadow-sm:
+		3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),
+		3px 1px 2px -1px hsl(325.78 58.18% 56.86% / 0.5);
+	--shadow:
+		3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),
+		3px 1px 2px -1px hsl(325.78 58.18% 56.86% / 0.5);
+	--shadow-md:
+		3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),
+		3px 2px 4px -1px hsl(325.78 58.18% 56.86% / 0.5);
+	--shadow-lg:
+		3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),
+		3px 4px 6px -1px hsl(325.78 58.18% 56.86% / 0.5);
+	--shadow-xl:
+		3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 0.5),
+		3px 8px 10px -1px hsl(325.78 58.18% 56.86% / 0.5);
+	--shadow-2xl: 3px 3px 0px 0px hsl(325.78 58.18% 56.86% / 1);
 }
 
 .dark {
@@ -76,4 +105,23 @@
 	--sidebar-accent-foreground: oklch(0.92 0.08 200);
 	--sidebar-border: oklch(0.35 0.035 320);
 	--sidebar-ring: oklch(0.72 0.19 352);
+
+	/* Code colours: syntax hues from this palette, each at least 4.5:1 on the background. */
+	--code-token-keyword: oklch(0.8 0.16 352);
+	--code-token-string: oklch(0.8 0.14 200);
+	--code-token-function: oklch(0.8 0.16 95);
+	--code-token-constant: oklch(0.8 0.16 290);
+	--code-token-parameter: oklch(0.8 0.16 40);
+	--code-token-comment: oklch(0.78 0.03 340);
+	--code-token-string-expression: var(--code-token-string);
+	--code-token-punctuation: var(--code-token-comment);
+	/* Shadows, from the tweakcn preset this one is based on. */
+	--shadow-2xs: 3px 3px 0px 0px hsl(206 28% 27% / 0.25);
+	--shadow-xs: 3px 3px 0px 0px hsl(206 28% 27% / 0.25);
+	--shadow-sm: 3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 1px 2px -1px hsl(206 28% 27% / 0.5);
+	--shadow: 3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 1px 2px -1px hsl(206 28% 27% / 0.5);
+	--shadow-md: 3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 2px 4px -1px hsl(206 28% 27% / 0.5);
+	--shadow-lg: 3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 4px 6px -1px hsl(206 28% 27% / 0.5);
+	--shadow-xl: 3px 3px 0px 0px hsl(206 28% 27% / 0.5), 3px 8px 10px -1px hsl(206 28% 27% / 0.5);
+	--shadow-2xl: 3px 3px 0px 0px hsl(206 28% 27% / 1);
 }

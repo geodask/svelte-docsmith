@@ -113,13 +113,14 @@ is one import in your app's stylesheet:
 ```
 
 `theme.css` makes Tailwind scan the package (so the utility classes its
-components use are generated), defines the shadcn theme tokens (`--background`,
-`--primary`, `--radius`, and the rest) for `:root` and `.dark`, and pulls in the
+components use are generated), registers the shadcn design tokens
+(`--background`, `--primary`, `--radius`, and the rest), and pulls in the
 typography and animation plugins.
 
-That single import is also the whole customization surface: redefine any token
-after it to rebrand the entire system. See [Theming](/docs/theming) for the full
-token list and how dark mode is wired.
+The tokens' values come from your theme: Darkmatter unless `docsmith()` names
+another with `theme`. Redefine any token in `app.css` and it wins over the
+theme. See [Theming](/docs/theming) for the presets, theme files and the full
+token list.
 
 ## Next
 
