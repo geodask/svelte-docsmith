@@ -868,6 +868,7 @@ describe('docsmith() broken links', () => {
 	it('keeps the dev server up while a page has half-typed frontmatter', () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage('docs/intro', 'title: "unterminated');
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const dev = contentPlugin('serve');
 		const server = fakeServer();
 
@@ -875,6 +876,51 @@ describe('docsmith() broken links', () => {
 		expect(() =>
 			server.handlers.change(path.join(routesDir, 'docs', 'intro', '+page.md'))
 		).not.toThrow();
+		// The content index reports it with the page's name; the check waits quietly.
+		expect(error).not.toHaveBeenCalled();
+		error.mockRestore();
+	});
+
+	it('prints any other failure of the dev check, rather than hiding it', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro');
+		const intro = path.join(routesDir, 'docs', 'intro', '+page.md');
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const readFileSync = fs.readFileSync;
+		const read = vi.spyOn(fs, 'readFileSync').mockImplementation(((file: string, ...rest) => {
+			if (file === intro) throw new Error('EIO: i/o error, read');
+			return (readFileSync as (...args: unknown[]) => unknown)(file, ...rest);
+		}) as typeof fs.readFileSync);
+		const server = fakeServer();
+
+		expect(() => contentPlugin('serve').configureServer(server)).not.toThrow();
+		expect(() => server.handlers.change(intro)).not.toThrow();
+
+		expect(error).toHaveBeenCalledTimes(2);
+		expect(error).toHaveBeenLastCalledWith(
+			expect.stringMatching(/^\[svelte-docsmith\] .*\n.*EIO: i\/o error, read/s)
+		);
+		read.mockRestore();
+		error.mockRestore();
+	});
+
+	it('reports a doc page under an outside path at dev startup, without throwing', () => {
+		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
+		writePage('docs/intro', 'title: Intro');
+		writePage('docs/api/users', 'title: Users');
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		// Even with the check off: the config contradicts itself either way.
+		const dev = contentPlugin('serve', { links: { broken: 'ignore', outside: ['/docs/api'] } });
+
+		expect(() => dev.configureServer(fakeServer())).not.toThrow();
+		expect(error).toHaveBeenCalledTimes(1);
+		expect(error).toHaveBeenCalledWith(
+			expect.stringMatching(
+				/docs\/api\/users\/\+page\.md.*\/docs\/api\/users.*outside path '\/docs\/api'/s
+			)
+		);
+		error.mockRestore();
 	});
 
 	it('stays quiet in dev under `ignore`', () => {
