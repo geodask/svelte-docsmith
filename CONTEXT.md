@@ -85,7 +85,7 @@ _Avoid_: initial args, defaults (those are the component's own)
 
 **Usage line**:
 The markup a props playground shows for its current values, listing only the
-props that differ from the component's defaults.
+props that differ from the component's defaults, in declaration order.
 _Avoid_: code preview, generated source
 
 ### Doc page frontmatter

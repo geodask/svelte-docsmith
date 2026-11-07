@@ -1,81 +1,60 @@
 <script lang="ts">
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-	import type { ExtractedProp, ExtractedProps } from '../../core/extracted-props.js';
-	import { controlledProps, usageLine, type PlaygroundValues } from '../../core/playground.js';
+	import type { Playground } from './playground.svelte.js';
 	import { plainDescription } from '../../core/props-reference.js';
 	import { useClipboard } from '#lib/utils/clipboard.svelte.js';
 	import { Button } from '../shadcn/button/index.js';
 	import CopyButton from '../chrome/copy-button.svelte';
 
-	let {
-		of,
-		values = $bindable(),
-		onreset
+	const {
+		playground
 	}: {
-		/** The component's props import. */
-		of: ExtractedProps;
-		/** The current values, written as the reader edits a control. */
-		values: PlaygroundValues;
-		/** Put every control back to its starting value. */
-		onreset: () => void;
+		/** The example's playground: its controls, current values and usage line. */
+		playground: Playground;
 	} = $props();
 
-	const controlled = $derived(controlledProps(of));
-	const usage = $derived(usageLine(of, values));
 	const clipboard = useClipboard();
 
 	/** Up to this many options show as buttons; more become a select. */
 	const MAX_SEGMENTS = 4;
-
-	/**
-	 * A prop with no literal default can be left unset, so the component
-	 * applies its own fallback (a computed default, say). A required one that
-	 * starts unset shows it, rather than a choice it doesn't have.
-	 */
-	const unsettable = (prop: ExtractedProp) => prop.literalDefault === undefined;
-
-	const setValue = (name: string, value: unknown) => {
-		values[name] = value;
-	};
 </script>
 
 <div class="props-controls border-t border-border px-4 py-3 text-sm">
 	<div class="mb-2 flex items-center justify-between">
 		<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Controls</span>
-		<Button variant="ghost" size="xs" onclick={onreset}>
+		<Button variant="ghost" size="xs" onclick={() => playground.reset()}>
 			<RotateCcw />
 			Reset
 		</Button>
 	</div>
 
 	<div class="controls-grid">
-		{#each controlled as prop (prop.name)}
-			{@const control = prop.control!}
-			{@const value = values[prop.name]}
-			<code class="control-name" title={plainDescription(prop.description)}>{prop.name}</code>
+		{#each playground.controls as control (control.name)}
+			{@const value = playground.values[control.name]}
+			<code class="control-name" title={plainDescription(control.description)}>{control.name}</code>
 			<div class="control-input">
 				{#if control.kind === 'boolean'}
 					<button
 						type="button"
 						role="switch"
 						aria-checked={value === true}
-						aria-label={prop.name}
+						aria-label={control.name}
 						class="switch"
-						onclick={() => setValue(prop.name, value !== true)}
+						onclick={() => playground.toggle(control.name)}
 					>
 						<span class="switch-thumb"></span>
 					</button>
 				{:else if control.kind === 'options'}
-					{@const choices = unsettable(prop) ? [undefined, ...control.options] : control.options}
+					{@const choices = control.choices}
 					{#if choices.length <= MAX_SEGMENTS}
-						<div class="segments" role="group" aria-label={prop.name}>
+						<div class="segments" role="group" aria-label={control.name}>
 							{#each choices as choice, i (i)}
 								<button
 									type="button"
 									class="segment"
 									class:segment-unset={choice === undefined}
 									aria-pressed={value === choice}
-									onclick={() => setValue(prop.name, choice)}
+									onclick={() => playground.set(control.name, choice)}
 								>
 									{choice ?? 'unset'}
 								</button>
@@ -84,38 +63,23 @@
 					{:else}
 						<select
 							class="field"
-							aria-label={prop.name}
+							aria-label={control.name}
 							value={String(choices.indexOf(value as string | number | undefined))}
-							onchange={(e) => setValue(prop.name, choices[Number(e.currentTarget.value)])}
+							onchange={(e) => playground.set(control.name, choices[Number(e.currentTarget.value)])}
 						>
 							{#each choices as choice, i (i)}
 								<option value={String(i)}>{choice ?? 'unset'}</option>
 							{/each}
 						</select>
 					{/if}
-				{:else if control.kind === 'text'}
+				{:else}
 					<input
-						type="text"
+						type={control.kind}
 						class="field"
-						aria-label={prop.name}
-						placeholder={prop.required ? '' : 'unset'}
-						value={typeof value === 'string' ? value : ''}
-						oninput={(e) => {
-							const text = e.currentTarget.value;
-							setValue(prop.name, text === '' && !prop.required ? undefined : text);
-						}}
-					/>
-				{:else if control.kind === 'number'}
-					<input
-						type="number"
-						class="field"
-						aria-label={prop.name}
-						placeholder={prop.required ? '' : 'unset'}
-						value={typeof value === 'number' ? value : ''}
-						oninput={(e) => {
-							const n = e.currentTarget.valueAsNumber;
-							setValue(prop.name, Number.isNaN(n) ? undefined : n);
-						}}
+						aria-label={control.name}
+						placeholder={control.optional ? 'unset' : ''}
+						value={typeof value === (control.kind === 'number' ? 'number' : 'string') ? value : ''}
+						oninput={(e) => playground.enter(control.name, e.currentTarget.value)}
 					/>
 				{/if}
 			</div>
@@ -123,11 +87,11 @@
 	</div>
 
 	<div class="usage mt-3 flex items-start gap-1 rounded-md bg-muted pl-3">
-		<pre class="flex-1 py-2 font-mono text-xs whitespace-pre-wrap">{usage}</pre>
+		<pre class="flex-1 py-2 font-mono text-xs whitespace-pre-wrap">{playground.usage}</pre>
 		<CopyButton
 			label="Copy usage"
 			copied={clipboard.copied}
-			onclick={() => clipboard.copy(usage)}
+			onclick={() => clipboard.copy(playground.usage)}
 			class="shrink-0"
 		/>
 	</div>
