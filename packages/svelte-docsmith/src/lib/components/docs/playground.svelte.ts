@@ -63,7 +63,7 @@ export class Playground {
 	 * The current values, without unset props: what the example receives, so a
 	 * spread leaves the unset ones to the component's own defaults.
 	 */
-	readonly values: PlaygroundValues = $derived.by(() =>
+	readonly values: Readonly<PlaygroundValues> = $derived.by(() =>
 		Object.fromEntries(Object.entries(this.#values).filter(([, value]) => value !== undefined))
 	);
 
@@ -89,7 +89,8 @@ export class Playground {
 	/**
 	 * Set a text or number control from what the reader typed. An empty text
 	 * field leaves an optional prop unset and a required one `''`. A number
-	 * field that is empty or not a number leaves the prop unset.
+	 * field that is empty or not a finite number leaves the prop unset, even a
+	 * required one: there is no number to hold.
 	 */
 	enter(name: string, input: string): void {
 		const control = this.controls.find((c) => c.name === name);

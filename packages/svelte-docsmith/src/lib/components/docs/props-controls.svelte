@@ -89,7 +89,7 @@
 						class="field"
 						aria-label={control.name}
 						placeholder={control.optional ? 'unset' : ''}
-						value={typeof value === 'string' || typeof value === 'number' ? value : ''}
+						value={typeof value === (control.kind === 'number' ? 'number' : 'string') ? value : ''}
 						oninput={(e) => playground.enter(control.name, e.currentTarget.value)}
 					/>
 				{/if}

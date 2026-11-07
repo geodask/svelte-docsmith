@@ -112,6 +112,14 @@ describe('LiveExample', () => {
 		expect(rendered()).toMatchObject({ gap: '' });
 	});
 
+	it('clears an optional text prop back to unset', async () => {
+		render(Fixture, { props: { controls: props, args: { href: '/x' } } });
+		await fireEvent.input(screen.getByRole('textbox', { name: 'href' }), {
+			target: { value: '' }
+		});
+		expect(rendered()).not.toHaveProperty('href');
+	});
+
 	it('resets every control to its starting value', async () => {
 		render(Fixture, { props: { controls: props } });
 		await fireEvent.click(screen.getByRole('switch', { name: 'external' }));
