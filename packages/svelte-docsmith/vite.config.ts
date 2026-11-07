@@ -38,7 +38,7 @@ export default defineConfig({
 				'src/lib/core/nav.ts',
 				'src/lib/core/version.ts',
 				'src/lib/core/docs-page.ts',
-				'src/lib/core/playground.ts',
+				'src/lib/components/docs/playground.svelte.ts',
 				'src/lib/buildtime/vite/**/*.ts',
 				'src/lib/buildtime/props/**/*.ts',
 				'src/lib/utils/type-text.ts',

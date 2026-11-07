@@ -33,7 +33,7 @@ export { default as Prop } from './components/docs/prop.svelte';
 export type { ExtractedProps } from './core/extracted-props.js';
 // What a props playground (`<LiveExample controls={props}>`) passes to its
 // `children` snippet and takes as `args` (experimental, like the above).
-export type { PlaygroundValues } from './core/playground.js';
+export type { PlaygroundValues } from './components/docs/playground.svelte.js';
 
 // Landing page sections (for the marketing page in front of your docs)
 export { default as Hero } from './components/landing/hero.svelte';
