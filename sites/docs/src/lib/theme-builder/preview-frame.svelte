@@ -1,6 +1,7 @@
 <script lang="ts">
 	// One preview frame: /themes/preview in an iframe, rendered at desktop
-	// width and scaled to fit its box, painted with the builder's tokens in one
+	// width and scaled to fit its box (at the box's own width on a phone, where
+	// a scaled desktop page would be unreadable), painted with the builder's tokens in one
 	// colour mode. The frame says when it's ready; the theme is re-sent then,
 	// on load, and on every change. Its header mode toggle calls `onmode`.
 	import type { ThemeTokens } from './core.ts';
@@ -8,19 +9,23 @@
 	let {
 		tokens,
 		dark,
-		boxHeight = 'calc(100vh - 11rem)',
+		class: className = '',
 		onmode
 	}: {
 		tokens: ThemeTokens;
 		dark: boolean;
-		boxHeight?: string;
+		/** Sizes the box: the frame fills it. */
+		class?: string;
 		onmode?: (dark: boolean) => void;
 	} = $props();
 
 	const SRC = '/themes/preview';
 	const WIDTH = 1280;
+	/** Below this box width the page renders at the box's width, unscaled. */
+	const PHONE = 640;
 	let frame = $state<HTMLIFrameElement>();
 	let box = $state<HTMLDivElement>();
+	let width = $state(WIDTH);
 	let scale = $state(0.5);
 	let height = $state(800);
 
@@ -30,8 +35,11 @@
 		const ro = new ResizeObserver(([entry]) => {
 			cancelAnimationFrame(raf);
 			raf = requestAnimationFrame(() => {
-				scale = entry.contentRect.width / WIDTH;
-				height = entry.contentRect.height / scale;
+				const box = entry.contentRect;
+				if (!box.width) return; // hidden: keep the last size
+				width = box.width < PHONE ? box.width : WIDTH;
+				scale = box.width / width;
+				height = box.height / scale;
 			});
 		});
 		ro.observe(box);
@@ -67,8 +75,7 @@
 
 <div
 	bind:this={box}
-	class="border-border bg-background relative overflow-hidden rounded-xl border shadow-lg"
-	style="height: {boxHeight}"
+	class="border-border bg-background relative overflow-hidden rounded-xl border shadow-lg {className}"
 >
 	<iframe
 		bind:this={frame}
@@ -77,6 +84,6 @@
 		onload={send}
 		tabindex="-1"
 		class="absolute top-0 left-0 origin-top-left border-0"
-		style="width: {WIDTH}px; height: {height}px; transform: scale({scale})"
+		style="width: {width}px; height: {height}px; transform: scale({scale})"
 	></iframe>
 </div>

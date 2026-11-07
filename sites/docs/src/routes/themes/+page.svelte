@@ -44,9 +44,15 @@
 			'Build a Svelte DocSmith theme from a preset, your brand colour or a tweakcn export, preview it on a real docs page, and send it to your project.'
 	}}
 >
-	<div class="grid lg:grid-cols-[360px_minmax(0,1fr)]">
+	<!-- The panel and the preview share one height on large screens, the
+	     viewport less the header and the announcement bar, so the pinned
+	     button and the whole preview are in view without scrolling. -->
+	<div
+		class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:px-6 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start lg:px-8"
+		style="--builder-h: max(34rem, calc(100dvh - 9rem))"
+	>
 		<aside
-			class="border-border bg-sidebar text-sidebar-foreground flex flex-col border-b lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:border-r lg:border-b-0"
+			class="border-border bg-sidebar text-sidebar-foreground flex flex-col overflow-hidden rounded-xl border lg:sticky lg:top-20 lg:h-(--builder-h)"
 			aria-label="Theme builder controls"
 		>
 			<div class="border-border border-b p-4">
@@ -76,7 +82,7 @@
 							type="button"
 							role="tab"
 							aria-selected={tab === key}
-							class="relative rounded px-1.5 py-1 {tab === key
+							class="inline-flex items-center justify-center gap-1 rounded px-1.5 py-1 {tab === key
 								? 'bg-background text-foreground shadow-sm'
 								: 'text-muted-foreground hover:text-foreground'}"
 							onclick={() => (tab = key)}
@@ -84,7 +90,7 @@
 							{label}
 							{#if key === 'tokens' && issueCount}
 								<span
-									class="bg-destructive absolute top-0.5 right-0.5 size-1.5 rounded-full"
+									class="bg-destructive size-1.5 shrink-0 rounded-full"
 									aria-label="{issueCount} contrast warnings"
 								></span>
 							{/if}
@@ -93,7 +99,7 @@
 				</div>
 			</div>
 
-			<div class="flex-1 overflow-y-auto p-4" role="tabpanel">
+			<div class="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel">
 				{#if tab === 'guided'}
 					<GuidedPanel {builder} />
 				{:else if tab === 'tokens'}
@@ -117,7 +123,7 @@
 			{/if}
 		</aside>
 
-		<section class="flex min-w-0 flex-col gap-3 p-4 md:p-6" aria-label="Preview">
+		<section class="flex min-w-0 flex-col gap-3 lg:h-(--builder-h)" aria-label="Preview">
 			<div class="flex flex-wrap items-center gap-3 text-sm">
 				<p class="text-muted-foreground">Preview on a docs page, in the theme you're building.</p>
 				{#if siteThemed}
@@ -147,34 +153,22 @@
 				</div>
 			</div>
 
-			{#if view === 'both'}
-				<div class="hidden gap-4 lg:grid">
-					<PreviewFrame
-						{onmode}
-						tokens={builder.tokens}
-						dark={false}
-						boxHeight="calc(50vh - 6rem)"
-					/>
-					<PreviewFrame
-						{onmode}
-						tokens={builder.tokens}
-						dark={true}
-						boxHeight="calc(50vh - 6rem)"
-					/>
-				</div>
-				<div class="lg:hidden">
-					<PreviewFrame {onmode} tokens={builder.tokens} dark={false} boxHeight="70vh" />
-				</div>
-			{:else}
-				{#key view}
-					<PreviewFrame
-						{onmode}
-						tokens={builder.tokens}
-						dark={view === 'dark'}
-						boxHeight="max(70vh, calc(100vh - 9rem))"
-					/>
-				{/key}
-			{/if}
+			<!-- Both frames stay mounted and the view only hides one, so switching
+			     is instant: no frame reloads. -->
+			<div class="grid min-h-0 flex-1 gap-4 {view === 'both' ? 'lg:grid-rows-2' : ''}">
+				<PreviewFrame
+					{onmode}
+					tokens={builder.tokens}
+					dark={false}
+					class="h-[75vh] lg:h-full {view === 'dark' ? 'hidden' : ''}"
+				/>
+				<PreviewFrame
+					{onmode}
+					tokens={builder.tokens}
+					dark={true}
+					class="h-[75vh] lg:h-full {view === 'light' ? 'hidden' : ''}"
+				/>
+			</div>
 		</section>
 	</div>
 </DocsShell>
