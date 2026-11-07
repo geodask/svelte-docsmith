@@ -12,6 +12,7 @@ import { mdsvex, type MdsvexOptions } from 'mdsvex';
 import { fileURLToPath } from 'node:url';
 import rehypeSlug from 'rehype-slug';
 import { codeBlockMarkup, type RenderCodeBlock } from './code-block.js';
+import { rehypeOutsidePaths, type OutsidePathsOptions } from './outside-paths.js';
 
 /** The `markdown` options of `docsmith()`: how doc pages are compiled. */
 export interface DocsmithMarkdownOptions {
@@ -32,7 +33,10 @@ export interface DocsmithMarkdownOptions {
 	layout?: string | false;
 	/** Extra remark plugins, appended after docsmith's own. */
 	remarkPlugins?: MdsvexOptions['remarkPlugins'];
-	/** Extra rehype plugins, appended after docsmith's own (slug, sectionize). */
+	/**
+	 * Extra rehype plugins, appended after docsmith's own (slug, sectionize, and
+	 * `rel="external"` on links to outside paths).
+	 */
 	rehypePlugins?: MdsvexOptions['rehypePlugins'];
 	/**
 	 * Number every code block by default. Per-fence `showLineNumbers` /
@@ -60,10 +64,14 @@ export type CompileMarkdown = (
  * passed in rather than built here so a site's fences and its `?source`
  * panels share one renderer, and with it one set of themes and one Shiki
  * highlighter.
+ *
+ * `links` names the outside paths whose links compile with `rel="external"`;
+ * without it, no link is marked.
  */
 export function markdownCompiler(
 	options: DocsmithMarkdownOptions,
-	renderCodeBlock: RenderCodeBlock
+	renderCodeBlock: RenderCodeBlock,
+	links: OutsidePathsOptions = { outside: [], routesDir: '' }
 ): CompileMarkdown {
 	const layout =
 		options.layout === false
@@ -83,6 +91,7 @@ export function markdownCompiler(
 		rehypePlugins: [
 			rehypeSlug,
 			[rehypeSectionize, { idPropertyName: 'data-section-id' }],
+			rehypeOutsidePaths(links),
 			...(options.rehypePlugins ?? [])
 		] as MdsvexOptions['rehypePlugins']
 	});

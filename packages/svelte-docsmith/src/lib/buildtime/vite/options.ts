@@ -5,6 +5,7 @@
  * settings here, so a setting means the same thing to each of them.
  */
 import path from 'node:path';
+import { normalizePath } from '../../utils/url.js';
 import { checkSite, type DocsmithSite } from '../../core/config.js';
 import type { DocsVersions } from '../../core/version.js';
 import type { DocsmithMarkdownOptions } from '../markdown.js';
@@ -42,6 +43,15 @@ export interface DocsmithLinksOptions {
 	 * never ships.
 	 */
 	broken?: BrokenLinksLevel;
+	/**
+	 * Outside paths: same-origin path prefixes that something other than this
+	 * SvelteKit app serves, like a Worker or proxy sharing the site's origin.
+	 * Each starts with `/` and matches on whole segments, so `'/relative'`
+	 * covers `/relative/x` but not `/relatives`. A link to one is never a broken
+	 * link, and doc pages mark it `rel="external"` so SvelteKit's crawler skips
+	 * it and the client router loads it from the server. Default: none.
+	 */
+	outside?: string[];
 }
 
 /** The links options with every default applied. */
@@ -49,7 +59,8 @@ export interface ResolvedLinksOptions {
 	broken: BrokenLinksLevel;
 	/**
 	 * Outside paths: same-origin path prefixes that something other than this
-	 * SvelteKit app serves. Empty unless declared.
+	 * SvelteKit app serves, each starting with `/` and without a trailing
+	 * slash, as `isOutsidePath` expects them. Empty unless declared.
 	 */
 	outside: string[];
 }
@@ -196,5 +207,30 @@ function resolveLinks(links: DocsmithLinksOptions | undefined): ResolvedLinksOpt
 			`[svelte-docsmith] links.broken must be 'error', 'warn' or 'ignore', got ${JSON.stringify(broken)}.`
 		);
 	}
-	return { broken, outside: [] };
+	return { broken, outside: resolveOutside(links?.outside) };
+}
+
+/**
+ * Check the outside paths and normalise each: a trailing slash is dropped, so
+ * `'/relative/'` covers `/relative` itself too. A prefix that isn't
+ * site-absolute would never match a link, and one starting `//` names another
+ * origin, so either fails rather than quietly covering nothing.
+ */
+function resolveOutside(outside: unknown): string[] {
+	if (outside === undefined) return [];
+	if (!Array.isArray(outside)) {
+		throw new Error(
+			"[svelte-docsmith] links.outside must be an array of path prefixes, e.g. outside: ['/relative'], " +
+				`got ${JSON.stringify(outside)}.`
+		);
+	}
+	return outside.map((prefix: unknown) => {
+		if (typeof prefix !== 'string' || !prefix.startsWith('/') || prefix.startsWith('//')) {
+			throw new Error(
+				"[svelte-docsmith] each of links.outside must start with '/' (and not '//'), " +
+					`like '/relative', got ${JSON.stringify(prefix)}.`
+			);
+		}
+		return normalizePath(prefix);
+	});
 }
