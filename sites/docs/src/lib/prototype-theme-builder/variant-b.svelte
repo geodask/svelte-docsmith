@@ -14,13 +14,7 @@
 	let tab = $state<'guided' | 'tokens' | 'import' | 'export'>('guided');
 	let tokenMode = $state<'light' | 'dark'>('light');
 
-	const previewPages: [string, string][] = [
-		['/docs/theming', 'Theming (code, callouts, tables)'],
-		['/docs/introduction', 'Introduction'],
-		['/docs/components/tabs', 'Components: Tabs'],
-		['/', 'Landing page']
-	];
-	let previewPage = $state(previewPages[0][0]);
+	const previewPage = '/themes/preview';
 	let view = $state<'light' | 'dark' | 'both'>('light');
 	const shown = $derived(
 		tokenMode === 'light'
@@ -100,13 +94,9 @@
 
 	<div class="flex min-w-0 flex-col gap-4 p-4 md:p-6">
 		<div class="flex flex-wrap items-center gap-2 text-sm">
-			<span class="text-muted-foreground">Preview page</span>
-			<select
-				bind:value={previewPage}
-				class="border-input bg-background rounded-md border px-2 py-1 text-sm"
+			<span class="text-muted-foreground"
+				>Preview: one docs page built from the real shell components</span
 			>
-				{#each previewPages as [path, name] (path)}<option value={path}>{name}</option>{/each}
-			</select>
 			<div class="bg-muted ml-auto grid grid-cols-3 gap-1 rounded-md p-1 text-xs font-medium">
 				{#each [['light', 'Light'], ['dark', 'Dark'], ['both', 'Both']] as const as [v, name] (v)}
 					<button
