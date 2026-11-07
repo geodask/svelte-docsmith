@@ -388,11 +388,15 @@ describe('resolveDocsPage: issueHref', () => {
 		).toMatch(/^https:\/\/git\.corp\.dev\/o\/r\/issues\/new\?/);
 	});
 
-	it('is absent when site.github names an account or is not a URL', () => {
-		expect(
-			resolve('/docs/intro', { site: { github: 'https://github.com/o' } }).issueHref
-		).toBeUndefined();
-		expect(resolve('/docs/intro', { site: { github: 'o/r' } }).issueHref).toBeUndefined();
+	it.each([
+		['an account', 'https://github.com/o'],
+		['an org page', 'https://github.com/orgs/acme'],
+		['a sponsors page', 'https://github.com/sponsors/acme'],
+		['an empty repository segment', 'https://github.com/o/.git'],
+		['a non-web URL', 'git+https://github.com/o/r.git'],
+		['not a URL', 'o/r']
+	])('is absent when site.github is %s', (_, url) => {
+		expect(resolve('/docs/intro', { site: { github: url } }).issueHref).toBeUndefined();
 	});
 
 	it('is absent without site.github, or off a doc page', () => {

@@ -240,11 +240,18 @@ function isActiveLink(link: DocsmithLink, pathname: string): boolean {
 }
 
 /**
+ * GitHub pages whose first two segments look like `owner/repo` but name an
+ * account, so an issue link under them would 404.
+ */
+const ACCOUNT_PREFIXES = new Set(['orgs', 'users', 'sponsors', 'enterprises']);
+
+/**
  * A new GitHub issue on the repository `github` points into, prefilled to say
  * which page the feedback is about. `github` is only documented as "a GitHub
  * URL", so it may carry a trailing slash, a `.git`, a subpath (`/tree/main`),
- * a query or a hash; only its owner and repository segments are kept. Without
- * both (an account URL, or not a URL at all) there is no issue to open.
+ * a query or a hash; only its host, owner and repository are kept. Without a
+ * repository (an account or org URL, a non-web URL like `git+https:`, or not a
+ * URL at all) there is no issue to open.
  */
 function feedbackIssueHref(
 	github: string | undefined,
@@ -258,11 +265,13 @@ function feedbackIssueHref(
 	} catch {
 		return undefined;
 	}
-	const [owner, repo] = url.pathname.split('/').filter(Boolean);
-	if (!owner || !repo) return undefined;
+	if (url.protocol !== 'https:' && url.protocol !== 'http:') return undefined;
+	const [owner, segment] = url.pathname.split('/').filter(Boolean);
+	const repo = segment?.replace(/\.git$/, '');
+	if (!owner || !repo || ACCOUNT_PREFIXES.has(owner)) return undefined;
 	const issueTitle = encodeURIComponent(`Feedback: ${title}`);
 	const body = encodeURIComponent(`Page: ${pathname}\n\n<!-- What was unclear or missing? -->\n`);
-	return `${url.origin}/${owner}/${repo.replace(/\.git$/, '')}/issues/new?title=${issueTitle}&body=${body}`;
+	return `${url.origin}/${owner}/${repo}/issues/new?title=${issueTitle}&body=${body}`;
 }
 
 /**
