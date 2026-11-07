@@ -5,6 +5,20 @@ examples and API reference, all inside one real SvelteKit app.
 
 ## Language
 
+### Configuration
+
+**Site options**:
+Everything passed to the one `docsmith()` call in `vite.config.ts`, the only
+place a site is configured. The Vite plugin, the markdown compiler it runs and
+the archive CLI all read them.
+_Avoid_: config file, docsmith config, plugin options, preprocessor options
+
+**Site config**:
+The `site` group of the site options: title, links, SEO defaults and the rest
+of what the shell and the route handlers show. Served to the browser as
+`svelte-docsmith/site`, so it is plain data.
+_Avoid_: siteConfig, DocsmithConfig, defineConfig
+
 ### Navigation
 
 **Reading order**:
@@ -118,8 +132,8 @@ author writes)
 A ready request handler from `svelte-docsmith/server` for one file a docs site
 serves besides its pages: the sitemap, the changelog feed, `llms.txt`,
 `llms-full.txt`, a page's agent markdown at `<path>.md`, or the MCP server. It
-reads the generated indexes itself and keeps to the current version where that
-applies, so the author's route is one line over the site config.
+reads the site config and the generated indexes itself and keeps to the current
+version where that applies, so the author's route is one line.
 _Avoid_: generator, endpoint helper, server route
 
 **MCP server**:

@@ -2,12 +2,10 @@
 	import { content } from 'svelte-docsmith/content';
 	import { releases } from 'svelte-docsmith/changelog';
 	import { DocsShell, Changelog } from 'svelte-docsmith';
-	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
 <DocsShell
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
-	config={siteConfig}
 	{content}
 	layout="page"
 	pattern

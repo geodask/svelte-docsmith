@@ -63,6 +63,7 @@ import { docsmith } from 'svelte-docsmith/vite';
 export default defineConfig({
 	plugins: [
 		docsmith({
+			site: { title: 'My Library' },
 			versions: {
 				current: { id: 'v2', label: 'v2' },
 				archived: [{ id: 'v1', label: 'v1' }]
@@ -130,16 +131,11 @@ export of `svelte-docsmith/content`. Pass that to `DocsShell` as you already do.
 <script>
 	import { content } from 'svelte-docsmith/content';
 	import { DocsShell } from 'svelte-docsmith';
-	import { siteConfig } from '#lib/site-config.ts';
 
 	let { children } = $props();
 </script>
 
-<DocsShell
-	config={siteConfig}
-	{content}
-	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
->
+<DocsShell {content} search={() => import('svelte-docsmith/search').then((m) => m.docs)}>
 	{@render children()}
 </DocsShell>
 ```
@@ -177,8 +173,13 @@ To keep a version out of search engines entirely, set `noindex: true` on it.
 When you ship a breaking release, freeze the docs that described the old one:
 
 ```bash
-npx svelte-docsmith archive-version v1 --label v1
+npx svelte-docsmith archive-version v1
 ```
+
+Run it from your docs app. It reads your docs directory and declared versions
+from the `docsmith()` options in `vite.config.ts` (pass `--config <file>` for a
+config somewhere else), and when `v1` is the current version, the archive keeps
+its label. Pass `--label` to name it something else.
 
 This copies your current docs into `v1/`, and does three things a plain copy
 would get wrong. It rewrites in-content links so they stay inside the archive,
@@ -187,19 +188,22 @@ at your newest docs. It writes each page's real last-updated date into its
 frontmatter, so the archive does not claim every page changed on the day you
 created it. And it marks the folder as an archive.
 
-Review the diff, then update your config to serve the archive and rename the
-current version:
+Review the diff, then update `versions` to serve the archive and name the
+release your docs root now documents. The command prints the block to paste,
+built from the versions you already declared, with the new archive first:
 
 ```ts
 versions: {
-	current: { id: 'v2', label: 'v2' },
+	current: { id: '<new release>', label: '<new release>' },
 	archived: [{ id: 'v1', label: 'v1' }]
 }
 ```
 
 Until you paste that in, the build fails and reports the new archive as
 undeclared. That is deliberate: it is the reminder, and it arrives while you are
-still looking at the terminal. The command prints the block to paste.
+still looking at the terminal. The command checks the other direction before it
+copies anything: if your declared versions already disagree with the folders on
+disk, it stops and says how, rather than adding a second mistake to the first.
 
 ## What archives cost
 

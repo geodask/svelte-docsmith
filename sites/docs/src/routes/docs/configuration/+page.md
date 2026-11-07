@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Package exports, the config object, and the two shell components.
+description: Package exports, the docsmith() options, and the two shell components.
 section: Getting Started
 order: 4
 ---
@@ -9,17 +9,18 @@ order: 4
 	import { PropsTable, Prop, Callout } from 'svelte-docsmith';
 </script>
 
-Everything you wire up once: what the package exports, the config object you pass
-to the shell, and the two page-level components that own the site chrome. Props
+Everything you wire up once: what the package exports, the one `docsmith()` call
+that configures the whole site, and the two page-level components that own the
+site chrome. Props
 for the authoring components (`Callout`, `Tabs`, `Badge`, and the rest) live on
 their own pages in the [Components](/docs/components/callout) section.
 
 ## Package exports
 
-- **`svelte-docsmith`**: every component, plus `defineConfig`, `createSearchEngine`, and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
-- **`svelte-docsmith/server`**: ready route handlers for the files a site serves besides its pages: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown` (the `.md` page twins) and `mcpServer`. Each is one line in a `+server.ts` over your site config (see [SEO](/docs/seo), [Changelog](/docs/changelog) and [MCP server](/docs/mcp-server)). Server-only.
-- **`svelte-docsmith/preprocess`**: the mdsvex + Shiki preprocessor, passed to `sveltekit({ preprocess })` in `vite.config.ts` (or `svelte.config.js` on SvelteKit 2).
-- **`svelte-docsmith/vite`**: the Vite plugin (content, search, llms and changelog indexes, plus the `?source` and `?props` transforms).
+- **`svelte-docsmith`**: every component, plus `createSearchEngine` and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
+- **`svelte-docsmith/server`**: ready route handlers for the files a site serves besides its pages: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown` (the `.md` page twins) and `mcpServer`. Each is one line in a `+server.ts` that reads your site config itself (see [SEO](/docs/seo), [Changelog](/docs/changelog) and [MCP server](/docs/mcp-server)). Server-only.
+- **`svelte-docsmith/vite`**: the `docsmith()` Vite plugin, the one place a site is configured. It compiles markdown pages, builds the content, search, llms and changelog indexes, and serves the `?source` and `?props` imports.
+- **`svelte-docsmith/site`**: your site config, the `site` options of `docsmith()`, exported as `site`. `DocsShell`, `ErrorPage` and the route handlers read it themselves; import it when a page of your own needs the title or links.
 - **`svelte-docsmith/content`**: the generated sidebar index. Its `content` export (the pages as `docs` plus the version manifest as `versions`) is what `DocsShell` and `ErrorPage` take.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
 - **`svelte-docsmith/llms`**: the generated per-page agent markdown index, with props tables and example code written out, exported as `docs` (see [SEO](/docs/seo)).
@@ -28,22 +29,89 @@ their own pages in the [Components](/docs/components/callout) section.
 - **`svelte-docsmith/theme.css`**: the base style contract.
 - **`svelte-docsmith/themes/*.css`**: the pre-installed theme presets (see [Theming](/docs/theming)).
 
-## defineConfig
+## docsmith()
 
-Validates a `DocsmithConfig` and returns it unchanged, throwing a clear error on
-an invalid or dynamically-built config instead of rendering a blank header.
+From `svelte-docsmith/vite`, added to `plugins` in `vite.config.ts` before
+`sveltekit()`. It is the only place your docs are configured: it compiles your
+markdown pages, scans them into the generated indexes, serves the `?source`
+imports that [Live Examples](/docs/live-examples) use and the `?props` imports
+behind generated [Props Tables](/docs/components/props-table), and serves your
+site config to the shell and the route handlers. Only `site.title` is required.
 
-```ts
-const config = defineConfig({
-	title: 'My Library',
-	description: 'A short tagline, used as the default meta description.',
-	url: 'https://my-library.dev',
-	github: 'https://github.com/you/my-library',
-	version: '1.0.0'
+```ts title="vite.config.ts"
+import { docsmith } from 'svelte-docsmith/vite';
+
+export default defineConfig({
+	plugins: [
+		docsmith({
+			site: {
+				title: 'My Library',
+				description: 'A short tagline, used as the default meta description.',
+				url: 'https://my-library.dev',
+				github: 'https://github.com/you/my-library'
+			},
+			markdown: { lineNumbers: true }
+		}),
+		tailwindcss(),
+		sveltekit({ extensions: ['.svelte', '.md'], adapter: adapter() })
+	]
 });
 ```
 
-<PropsTable>
+The options are checked when Vite starts, so a mistyped option fails `dev` and
+`build` with a message that names it. Because they live in `vite.config.ts`,
+editing them restarts the dev server.
+
+<PropsTable title="docsmith()">
+	<Prop name="site" type="DocsmithSite" required>
+		The site config: title, links, SEO defaults. See <a href="#site">site</a> below.
+	</Prop>
+	<Prop name="content" type="string" default="'src/routes/docs'">
+		Directory scanned for doc pages.
+	</Prop>
+	<Prop name="routes" type="string" default="'src/routes'">
+		Routes root, used to derive each page's URL from its location.
+	</Prop>
+	<Prop name="versions" type="DocsVersions">
+		The current version and the archived ones. See <a href="/docs/versioning">Versioning</a>.
+		Experimental.
+	</Prop>
+	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
+		Shiki themes for every code block: markdown fences and the source panels of
+		<a href="/docs/live-examples">Live Examples</a> alike.
+	</Prop>
+	<Prop name="markdown" type="DocsmithMarkdownOptions">
+		How markdown pages are compiled. See <a href="#markdown">markdown</a> below.
+	</Prop>
+	<Prop name="changelog" type={'{ file?: string; path?: string } | false'}>
+		Where the changelog comes from and where it is served. <code>file</code> is the
+		changelog that feeds the release index (default <code>'CHANGELOG.md'</code>; point
+		it at the package you publish). <code>path</code> is the route it is served at
+		(default <code>'/changelog'</code>): the feed from <code>changelogFeed()</code> links
+		there, and hand-written per-release pages are found under it. <code>false</code>
+		skips the changelog.
+	</Prop>
+	<Prop name="tsconfig" type="string" default="'tsconfig.json'">
+		The tsconfig used to read prop types for <code>?props</code> imports, relative to
+		the Vite root. Experimental.
+	</Prop>
+	<Prop name="schema" type="StandardSchemaV1">
+		A schema for your pages' custom fields: Zod, Valibot, ArkType or any other
+		<a href="https://standardschema.dev">Standard Schema</a>. The built-in fields are
+		checked with or without one. See
+		<a href="/docs/writing-pages#validating-frontmatter">Validating frontmatter</a>.
+	</Prop>
+</PropsTable>
+
+### site
+
+What the header, footer and head tags show. The plugin serves it as
+`svelte-docsmith/site`, where `DocsShell`, `ErrorPage` and the
+[route handlers](/docs/seo) read it, so you never pass it around. It reaches the
+browser as JSON, so it must be plain data: strings, numbers, booleans, arrays
+and plain objects.
+
+<PropsTable title="site">
 	<Prop name="title" type="string" required>
 		Site title, shown in the header/sidebar and as the <code>&lt;title&gt;</code> suffix.
 	</Prop>
@@ -89,26 +157,33 @@ const config = defineConfig({
 	</Prop>
 </PropsTable>
 
-This site runs one: the thin bar above the header is `config.announcement`. Its
+This site runs one: the thin bar above the header is `site.announcement`. Its
 `id` tracks the library version, so it returns after each release and stays out
 of the way in between. Dismiss it and it holds until the next version.
 
-## docsmith() preprocessor
+A page of your own can read the same config, for example a landing page that
+shows the site title:
 
-From `svelte-docsmith/preprocess`, registered as a preprocessor in
-`sveltekit({ preprocess })` (or `svelte.config.js` on SvelteKit 2). It bundles
-mdsvex, Shiki, heading anchors and the page layout, so markdown compiles to real
-routes. Every option has a working default; pass none and it does the right
-thing.
+```svelte
+<script lang="ts">
+	import { site } from 'svelte-docsmith/site';
+</script>
 
-<PropsTable title="docsmith() — preprocess">
+<h1>{site.title}</h1>
+```
+
+### markdown
+
+How markdown pages are compiled. The plugin runs mdsvex, Shiki, heading anchors
+and the page layout over every `.md` file before SvelteKit compiles it, so
+markdown pages are real routes and there is no preprocessor to register. Every
+option has a working default.
+
+<PropsTable title="markdown">
 	<Prop name="extensions" type="string[]" default="['.md']">
-		File extensions compiled as markdown.
-	</Prop>
-	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
-		Shiki themes for the dual light/dark render of markdown code fences. The
-		Vite plugin has its own <code>themes</code> for live example source; set
-		both to the same pair or the two will not match.
+		File extensions compiled as markdown. SvelteKit has to route them too, so list
+		the same extensions in <code>sveltekit({'{ extensions }'})</code>; the plugin warns
+		when one is missing.
 	</Prop>
 	<Prop name="langs" type="string[]">
 		Extra Shiki languages on top of the built-in set. An unknown fence language
@@ -135,62 +210,20 @@ thing.
 	</Prop>
 </PropsTable>
 
-## docsmith() Vite plugin
-
-From `svelte-docsmith/vite`, added to `plugins` in `vite.config.ts`. It scans
-your pages into the generated indexes and serves the `?source` imports that
-[Live Examples](/docs/live-examples) use and the `?props` imports behind
-generated [Props Tables](/docs/components/props-table).
-
-<PropsTable title="docsmith() — vite">
-	<Prop name="content" type="string" default="'src/routes/docs'">
-		Directory scanned for doc pages.
-	</Prop>
-	<Prop name="routes" type="string" default="'src/routes'">
-		Routes root, used to derive each page's URL from its location.
-	</Prop>
-	<Prop name="themes" type={'{ light: string; dark: string }'} default="github-light / github-dark">
-		Shiki themes for the <code>?source</code> render behind
-		<a href="/docs/live-examples">Live Examples</a>. Separate from the
-		preprocessor's <code>themes</code>, because the two run from different
-		config files; set them to the same pair or your example source will not
-		match your code blocks.
-	</Prop>
-	<Prop name="changelog" type="string | false" default="'CHANGELOG.md'">
-		Path to the changelog that feeds the release index. Point it at the package
-		you publish, or <code>false</code> to skip it.
-	</Prop>
-	<Prop name="changelogPath" type="string" default="'/changelog'">
-		Route the changelog is served at. The feed from <code>changelogFeed()</code> links
-		there, and hand-written per-release pages are found under it.
-	</Prop>
-	<Prop name="tsconfig" type="string" default="'tsconfig.json'">
-		The tsconfig used to read prop types for <code>?props</code> imports, relative to
-		the Vite root. Experimental.
-	</Prop>
-	<Prop name="schema" type="StandardSchemaV1">
-		A schema for your pages' custom fields: Zod, Valibot, ArkType or any other
-		<a href="https://standardschema.dev">Standard Schema</a>. The built-in fields are
-		checked with or without one. See
-		<a href="/docs/writing-pages#validating-frontmatter">Validating frontmatter</a>.
-	</Prop>
-</PropsTable>
-
 ## DocsShell
 
 The full documentation shell: header, sidebar, content area, and table of
 contents.
 
 ```svelte
-<DocsShell {config} {content}>
+<DocsShell {content}>
 	{@render children()}
 </DocsShell>
 ```
 
+It reads the site config from `svelte-docsmith/site` itself.
+
 <PropsTable>
-	<Prop name="config" type="DocsmithConfig" required>
-		The site config (see <code>defineConfig</code> above).
-	</Prop>
 	<Prop name="content" type="DocsContent" required>
 		The <code>content</code> export of <code>svelte-docsmith/content</code>: every page,
 		which the sidebar is derived from, and the version manifest, which scopes the
@@ -229,7 +262,7 @@ contents.
 	<Prop name="copyPage" type="boolean" default="false">
 		Show the "Copy page" split button on doc pages (copy as Markdown, view the
 		raw <code>.md</code>, or open in ChatGPT / Claude). Needs the <code>.md</code>
-		endpoint. See <a href="/docs/seo">SEO</a>. With <code>config.mcp</code> set, it also
+		endpoint. See <a href="/docs/seo">SEO</a>. With <code>site.mcp</code> set, it also
 		offers “Connect to your editor”.
 	</Prop>
 	<Prop name="readingTime" type="boolean" default="true">
@@ -265,16 +298,14 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 <script lang="ts">
 	import { content } from 'svelte-docsmith/content';
 	import { ErrorPage } from 'svelte-docsmith';
-	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
-<ErrorPage config={siteConfig} {content} home="/docs" homeLabel="Back to the docs" />
+<ErrorPage {content} home="/docs" homeLabel="Back to the docs" />
 ```
 
+Like `DocsShell`, it reads the site config itself, so the chrome matches.
+
 <PropsTable>
-	<Prop name="config" type="DocsmithConfig" required>
-		Same config as <code>DocsShell</code>, so the chrome matches.
-	</Prop>
 	<Prop name="content" type="DocsContent">
 		Same <code>content</code> as <code>DocsShell</code>, so the header and footer nav
 		still work, and an error under an archived prefix keeps that version's search
@@ -306,7 +337,9 @@ theme). Drop it into a SvelteKit `+error.svelte`:
 
 ## Types
 
-- **`DocsmithConfig`**: the config object above.
+- **`DocsmithSite`**: the `site` options above, as `svelte-docsmith/site` serves them.
+- **`DocsmithOptions`** / **`DocsmithMarkdownOptions`** / **`DocsmithChangelogOptions`**:
+  the options of `docsmith()`, from `svelte-docsmith/vite`.
 - **`DocsContentItem`**: a content-index entry with `title`, `path`, and optional
   `section`, `order`, `description`, `toc`, and `data`.
 - **`DocsCustomFields`**: the type of `data`, a page's custom fields. Extend it
@@ -317,8 +350,8 @@ theme). Drop it into a SvelteKit `+error.svelte`:
   [Versioning](/docs/versioning).
 - **`DocsContent`**: the `content` export, `{ docs, versions }`, that `DocsShell`
   and `ErrorPage` take.
-- **`RouteSite`** / **`SitemapOptions`** / **`SitemapEntry`**: what the route
-  handlers in `svelte-docsmith/server` take.
+- **`SitemapOptions`** / **`SitemapEntry`**: what `sitemap()` in
+  `svelte-docsmith/server` takes.
 - **`CalloutVariant`** / **`BadgeVariant`**: the intent unions for `Callout` and `Badge`.
 
 The vendored shadcn primitives and internal helpers (the TOC engine, the

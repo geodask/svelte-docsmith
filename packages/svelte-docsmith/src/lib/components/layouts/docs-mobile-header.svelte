@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { DocsmithConfig, NavGroup } from '#lib/core/index.js';
+	import type { DocsmithSite, NavGroup } from '#lib/core/index.js';
 	import type { TocItem } from '#lib/toc/index.js';
 	import DocsSidebar from './docs-sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
@@ -29,7 +29,7 @@
 		logo,
 		actions
 	}: {
-		config: DocsmithConfig;
+		config: DocsmithSite;
 		/** Sidebar groups; omit on non-doc pages (the landing/`page` layout). */
 		nav?: NavGroup[];
 		/** Title shown between the menu and controls. Defaults to the site title. */

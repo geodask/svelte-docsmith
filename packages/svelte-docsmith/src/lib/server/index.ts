@@ -1,64 +1,59 @@
 /**
  * `svelte-docsmith/server`: ready route handlers for the files a docs site
- * serves besides its pages. Each reads the generated indexes itself and serves
- * the current version only, so a route is one line over your site config:
+ * serves besides its pages. Each reads the site config and the generated indexes
+ * itself and serves the current version only, so a route is one line:
  *
  * ```ts
  * // src/routes/sitemap.xml/+server.ts
  * import { sitemap } from 'svelte-docsmith/server';
- * import { siteConfig } from '$lib/site-config';
  *
  * export const prerender = true;
- * export const GET = sitemap(siteConfig, { extra: [{ path: '/' }] });
+ * export const GET = sitemap({ extra: [{ path: '/' }] });
  * ```
  *
  * Server-only, and only with the `docsmith()` Vite plugin, which serves the
- * indexes these read.
+ * site config and the indexes these read.
  */
 import { content } from 'svelte-docsmith/content';
 import { docs as llms } from 'svelte-docsmith/llms';
 import { docs as search } from 'svelte-docsmith/search';
 import { releases, changelogPath } from 'svelte-docsmith/changelog';
-import {
-	routeHandlers,
-	type FileHandler,
-	type RouteSite,
-	type SitemapOptions
-} from '#lib/server/routes.js';
+import { site } from 'svelte-docsmith/site';
+import { routeHandlers, type FileHandler, type SitemapOptions } from '#lib/server/routes.js';
 
-export type { FileHandler, RouteSite, SitemapOptions } from '#lib/server/routes.js';
+export type { FileHandler, SitemapOptions } from '#lib/server/routes.js';
 export type { SitemapEntry } from '#lib/generate/sitemap.js';
 
-const handlers = routeHandlers({ content, llms, search, releases, changelogPath });
+const handlers = routeHandlers({ site, content, llms, search, releases, changelogPath });
 
 /**
  * `sitemap.xml`: every docs page of the current version, with its last-updated
  * day, plus the `extra` pages you list. Links are absolute when the config has
- * a `url`.
+ * `site.url`.
  */
-export function sitemap(site: RouteSite, options?: SitemapOptions): FileHandler {
-	return handlers.sitemap(site, options);
+export function sitemap(options?: SitemapOptions): FileHandler {
+	return handlers.sitemap(options);
 }
 
 /**
  * `changelog.xml`: an Atom feed of your releases, linking to the changelog page
- * at the plugin's `changelogPath`.
+ * at `docsmith({ changelog: { path } })`.
  */
-export function changelogFeed(site: RouteSite): FileHandler {
-	return handlers.changelogFeed(site);
+export function changelogFeed(): FileHandler {
+	return handlers.changelogFeed();
 }
 
 /**
- * `llms.txt`: the site title and description, the MCP server when the config
+ * `llms.txt`: the site title and description, the MCP server when `site.mcp`
  * names one, and a link to every current page in reading order.
  */
-export function llmsTxt(site: RouteSite): FileHandler {
-	return handlers.llmsTxt(site);
+export function llmsTxt(): FileHandler {
+	return handlers.llmsTxt();
 }
 
 /** `llms-full.txt`: every current page's agent markdown, in reading order. */
-export function llmsFullTxt(site: RouteSite): FileHandler {
-	return handlers.llmsFullTxt(site);
+export function llmsFullTxt(): FileHandler {
+	return handlers.llmsFullTxt();
 }
 
 /**
@@ -81,11 +76,11 @@ export function agentMarkdown() {
  *
  * ```ts
  * export const prerender = false;
- * export const { GET, POST, OPTIONS } = mcpServer(siteConfig);
+ * export const { GET, POST, OPTIONS } = mcpServer();
  * ```
  *
  * @experimental Outside the 1.0 stability promise. May change in a minor.
  */
-export function mcpServer(site: RouteSite) {
-	return handlers.mcpServer(site);
+export function mcpServer() {
+	return handlers.mcpServer();
 }

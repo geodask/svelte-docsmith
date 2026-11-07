@@ -7,7 +7,7 @@
 	import { useSearch } from '#lib/search/context.svelte.js';
 	import ThemeToggle from '../chrome/theme-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
-	import type { DocsmithConfig, DocsmithLink } from '#lib/core/index.js';
+	import type { DocsmithSite, DocsmithLink } from '#lib/core/index.js';
 	import BookOpenText from '@lucide/svelte/icons/book-open-text';
 	import type { Snippet } from 'svelte';
 	import { cn } from '#lib/utils/cn.js';
@@ -19,7 +19,7 @@
 		logo,
 		actions
 	}: {
-		config: DocsmithConfig;
+		config: DocsmithSite;
 		/** Custom logo mark; defaults to a book icon in a primary-tinted chip. */
 		logo?: Snippet;
 		/** Extra header controls, rendered before the theme toggle. */

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { DocsShell } from 'svelte-docsmith';
 	import { mode, toggleMode } from 'mode-watcher';
-	import { siteConfig } from '#lib/site-config.ts';
 	import { themes, defaultThemeSlug } from '#lib/themes-data.ts';
 	import { themeStore } from '#lib/theme-store.svelte.ts';
 	import ThemePicker from '#lib/components/theme-picker.svelte';
@@ -27,7 +26,6 @@
 
 <DocsShell
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
-	config={siteConfig}
 	layout="page"
 	pattern
 	seo={{

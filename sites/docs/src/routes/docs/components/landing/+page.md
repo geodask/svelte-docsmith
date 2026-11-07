@@ -32,10 +32,9 @@ contents and gives the sections the full width of the viewport.
 <script>
 	import { content } from 'svelte-docsmith/content';
 	import { DocsShell, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
-	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
-<DocsShell config={siteConfig} {content} layout="page" pattern>
+<DocsShell {content} layout="page" pattern>
 	<Hero title="Your project" description="One line on what it does and who it's for.">
 		{#snippet actions()}
 			<Action href="/docs/quick-start">Get started</Action>

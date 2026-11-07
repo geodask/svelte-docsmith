@@ -19,14 +19,14 @@ live table of contents. No per-page wiring, no content collection to configure.
 > include breaking changes until v1.0.
 >
 > **What 1.0 will lock.** Authoring components, `DocsShell`, `ErrorPage`,
-> `defineConfig`, the preprocessor, the Vite plugin, the sitemap / llms / feed
+> the `docsmith()` options, the sitemap / llms / feed
 > route handlers, the search engine, and the theming contract — ordinary semver,
 > breaking changes ride a major.
 >
 > **What stays experimental.** Versioning: `DocsVersions`, the archive marker,
 > and the `archive-version` command. Generated props tables: `?props` imports
 > and `PropsTable`'s `of`. The MCP server: `mcpServer` and the
-> `mcp` config field. Agent markdown: the props tables and example code written
+> `site.mcp` field. Agent markdown: the props tables and example code written
 > into `llms-full.txt` and `.md` pages. They may still change in a minor until
 > authors have used them for real.
 
@@ -52,16 +52,14 @@ standard way in your app.
 
 Two small pieces, once.
 
-**1. Vite.** Everything goes in `vite.config.ts`. DocSmith has two halves, both
-called `docsmith()`:
-
-- The **Vite plugin** (`svelte-docsmith/vite`) scans your doc pages' frontmatter
-  into the `svelte-docsmith/content` module (so the sidebar is derived from
-  content, never hand-written), builds the search index, and powers
-  `LiveExample`. It goes before `sveltekit()`.
-- The **markdown pipeline** (`svelte-docsmith/preprocess`) bundles mdsvex, Shiki
-  highlighting (dual light/dark themes, a generous language set, plain-text
-  fallback for unknown languages), heading anchors, and the packaged page layout.
+**1. Vite.** DocSmith is one Vite plugin, `docsmith()` from
+`svelte-docsmith/vite`, and it is the only place your docs are configured. It
+compiles your `.md` pages (mdsvex, Shiki highlighting with dual light/dark
+themes and a generous language set, heading anchors, and the packaged page
+layout), scans their frontmatter into the `svelte-docsmith/content` module (so
+the sidebar is derived from content, never hand-written), builds the search
+index, powers `LiveExample`, and serves your site config to the shell and the
+route handlers. It goes before `sveltekit()`:
 
 ```ts
 // vite.config.ts
@@ -70,16 +68,17 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { docsmith } from 'svelte-docsmith/vite';
-import { docsmith as markdown } from 'svelte-docsmith/preprocess';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [
-		docsmith(),
+		docsmith({
+			site: { title: 'My Library', github: 'https://github.com/you/my-library' }
+		}),
 		tailwindcss(),
 		sveltekit({
 			extensions: ['.svelte', '.md'],
-			preprocess: [vitePreprocess(), markdown()],
+			preprocess: [vitePreprocess()],
 			adapter: adapter()
 		})
 	]
@@ -89,8 +88,9 @@ export default defineConfig({
 On SvelteKit 2, `extensions` and `preprocess` go in `svelte.config.js` instead,
 and `sveltekit()` takes no options.
 
-By default it scans `src/routes/docs`; pass `docsmith({ content: 'src/routes/guide' })`
-to point elsewhere.
+By default it scans `src/routes/docs`; pass `content: 'src/routes/guide'` to
+point elsewhere. Code block themes, markdown options, versions and the
+changelog all go in the same call.
 
 **2. The stylesheet.** In your root `app.css`, once Tailwind v4 is set up the
 standard way (`tailwindcss` + the `@tailwindcss/vite` plugin, stylesheet imported
@@ -109,23 +109,19 @@ after the import, or import a preset (see [Themes](#themes)).
 ## The shell
 
 Add `DocsShell` once, in `src/routes/docs/+layout.svelte`. It composes the
-header, sidebar, content area, and table of contents. `docs` is the generated
+header, sidebar, content area, and table of contents. `content` is the generated
 content index, so there is no content collection to import and no alias to
-configure:
+configure, and the shell reads your `site` options itself:
 
 ```svelte
 <script lang="ts">
-	import { DocsShell, defineConfig } from 'svelte-docsmith';
+	import { DocsShell } from 'svelte-docsmith';
 	import { content } from 'svelte-docsmith/content';
 
-	const config = defineConfig({
-		title: 'My Library',
-		github: 'https://github.com/you/my-library'
-	});
 	const { children } = $props();
 </script>
 
-<DocsShell {config} {content}>
+<DocsShell {content}>
 	{@render children()}
 </DocsShell>
 ```
@@ -224,7 +220,7 @@ outside the 1.0 promise for now.
   for the marketing page in front of your docs.
 - **Route handlers.** `svelte-docsmith/server` serves `sitemap.xml`, `llms.txt`
   / `llms-full.txt`, the `.md` page twins, the changelog Atom feed and the MCP
-  server, each one line in a `+server.ts` over your site config.
+  server, each one line in a `+server.ts` that reads your site config itself.
 - **Components.** `Callout`, `Tabs`, `Steps`, `Card`, `Accordion`, `Badge`,
   `Kbd`, `FileTree`, `PropsTable`, and more, authored right inside markdown.
 - Heading anchors, a scroll-spy table of contents, and one-click copy on every

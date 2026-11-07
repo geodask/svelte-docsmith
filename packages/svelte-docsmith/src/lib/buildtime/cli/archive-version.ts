@@ -18,7 +18,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { assertValidVersionId } from '../../core/version.js';
+import {
+	assertValidVersionId,
+	checkVersions,
+	type DocsVersion,
+	type DocsVersions
+} from '../../core/version.js';
 import {
 	boundaryCrossings,
 	freezeLastUpdated,
@@ -34,13 +39,18 @@ import { CliError } from './error.js';
 export type ArchiveVersionOptions = {
 	/** Id of the archive to create. Becomes its directory name and URL segment. */
 	id: string;
-	/** Switcher label for the archive. Defaults to the id. */
+	/**
+	 * Switcher label for the archive. Defaults to the current version's label
+	 * when the id is the current version's, and to the id otherwise.
+	 */
 	label?: string;
-	/** Docs content directory, resolved against `cwd`. */
-	content?: string;
-	/** SvelteKit routes directory, resolved against `cwd`. */
-	routes?: string;
-	/** Working directory the relative options resolve against. */
+	/** Absolute docs content directory, from `docsmith({ content })`. */
+	contentDir: string;
+	/** Absolute SvelteKit routes directory, from `docsmith({ routes })`. */
+	routesDir: string;
+	/** The site's declared versions, from `docsmith({ versions })`. */
+	versions?: DocsVersions;
+	/** Working directory paths are reported relative to. */
 	cwd?: string;
 };
 
@@ -57,7 +67,7 @@ export function archiveVersion(
 	log: (line: string) => void
 ): number {
 	const cwd = options.cwd ?? process.cwd();
-	const { id, label = options.id } = options;
+	const { id, contentDir, routesDir, versions } = options;
 
 	try {
 		assertValidVersionId(id);
@@ -65,8 +75,6 @@ export function archiveVersion(
 		throw new CliError((error as Error).message);
 	}
 
-	const contentDir = path.resolve(cwd, options.content ?? 'src/routes/docs');
-	const routesDir = path.resolve(cwd, options.routes ?? 'src/routes');
 	const toDir = path.join(contentDir, id);
 	const rel = (p: string) => path.relative(cwd, p);
 
@@ -76,6 +84,21 @@ export function archiveVersion(
 	if (fs.existsSync(toDir)) {
 		throw new CliError(`target already exists: ${rel(toDir)}`);
 	}
+	// The same check the build makes, before anything is written: archiving on
+	// top of a config that already disagrees with the tree would bury the first
+	// mistake under a second. An entry for this very archive is allowed: the
+	// author may have declared it before running the command.
+	try {
+		const before = versions && {
+			...versions,
+			archived: versions.archived?.filter((v) => v.id !== id)
+		};
+		checkVersions(before, discoverArchives(contentDir), ARCHIVE_MARKER);
+	} catch (error) {
+		throw new CliError((error as Error).message.replace(/^\[svelte-docsmith\] /, ''));
+	}
+	const label =
+		options.label ?? (versions?.current.id === id ? versions.current.label : undefined) ?? id;
 
 	const docsBase = docsBaseFrom(routesDir, contentDir);
 	// Archives already on disk, so this run neither copies them into the new
@@ -163,15 +186,41 @@ export function archiveVersion(
 		log('  current library rather than the version this archive documents.\n');
 	}
 
-	log('Review the diff, then update docsmith({ versions }) so the archive');
-	log('is served:\n');
-	log('  versions: {');
-	log("    current: { id: '<new release>', label: '<new release>' },");
-	log(`    archived: [{ id: '${id}', label: '${label}' }${archivedIds.size ? ', …' : ''}]`);
-	log('  }\n');
+	log('Review the diff, then update `versions` in your docsmith() options so the');
+	log('archive is served:\n');
+	log(nextVersionsBlock(versions, { id, label }));
+	log('');
 	// Until that paste lands the build fails, by design: the archive is on disk
 	// and undeclared. See docs/adr/0003-the-archive-marker-defines-an-archive.md.
 	log('Until then the build will fail, reporting this archive as undeclared.\n');
 
 	return pages;
+}
+
+/** One version as the object literal an author would write. */
+function versionLiteral(version: DocsVersion): string {
+	const fields = Object.entries(version)
+		.filter(([, value]) => value !== undefined)
+		.map(([key, value]) => `${key}: ${typeof value === 'string' ? `'${value}'` : String(value)}`);
+	return `{ ${fields.join(', ')} }`;
+}
+
+/**
+ * The `versions` block after this archive: the new archive first, then the
+ * archives already declared, and a placeholder for the release the docs root
+ * documents from now on. Read from the site's own options, so the author
+ * pastes it as it is rather than merging it into what they have.
+ */
+export function nextVersionsBlock(
+	versions: DocsVersions | undefined,
+	archive: DocsVersion
+): string {
+	const earlier = (versions?.archived ?? []).filter((v) => v.id !== archive.id);
+	const archived = [archive, ...earlier].map(versionLiteral);
+	return (
+		'  versions: {\n' +
+		"    current: { id: '<new release>', label: '<new release>' },\n" +
+		`    archived: [${archived.join(', ')}]\n` +
+		'  }'
+	);
 }

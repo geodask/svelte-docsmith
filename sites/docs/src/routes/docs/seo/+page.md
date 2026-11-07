@@ -30,16 +30,18 @@ order: 2
 
 ## Site-wide defaults
 
-Set the defaults once in your `DocsmithConfig`. `url` is the piece that unlocks
+Set the defaults once in the `site` options of `docsmith()`. `url` is the piece that unlocks
 absolute links (a canonical `<link>` and absolute `og:url`/image), so search
 engines and social scrapers resolve them correctly:
 
-```ts
-export const siteConfig = defineConfig({
-	title: 'My Library',
-	description: 'A short tagline, used when a page has no description.',
-	url: 'https://my-library.dev',
-	ogImage: '/og.png' // absolute, or resolved against `url`
+```ts title="vite.config.ts"
+docsmith({
+	site: {
+		title: 'My Library',
+		description: 'A short tagline, used when a page has no description.',
+		url: 'https://my-library.dev',
+		ogImage: '/og.png' // absolute, or resolved against `url`
+	}
 });
 ```
 
@@ -64,7 +66,7 @@ frontmatter, so pass the `seo` prop to set or override the head:
 
 ```svelte
 <DocsShell
-	{config}
+	{content}
 	layout="page"
 	seo={{ title: 'Themes', description: 'Preview the built-in themes.' }}
 >
@@ -80,13 +82,12 @@ Add a `src/routes/sitemap.xml/+server.ts`:
 
 ```ts title="src/routes/sitemap.xml/+server.ts"
 import { sitemap } from 'svelte-docsmith/server';
-import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-export const GET = sitemap(siteConfig, { extra: [{ path: '/' }] });
+export const GET = sitemap({ extra: [{ path: '/' }] });
 ```
 
-Links are absolute when your config sets `url`. On a
+Links are absolute when your `site` options set `url`. On a
 [versioned](/docs/versioning) site only the current version's pages are listed,
 so archived releases don't compete with it in search results.
 
@@ -119,24 +120,22 @@ Add `src/routes/llms.txt/+server.ts`:
 
 ```ts title="src/routes/llms.txt/+server.ts"
 import { llmsTxt } from 'svelte-docsmith/server';
-import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-export const GET = llmsTxt(siteConfig);
+export const GET = llmsTxt();
 ```
 
 And `src/routes/llms-full.txt/+server.ts`, identical but for `llmsFullTxt`:
 
 ```ts title="src/routes/llms-full.txt/+server.ts"
 import { llmsFullTxt } from 'svelte-docsmith/server';
-import { siteConfig } from '#lib/site-config.ts';
 
 export const prerender = true;
-export const GET = llmsFullTxt(siteConfig);
+export const GET = llmsFullTxt();
 ```
 
-Both take the title, description and `url` from your config, and keep to the
-current version on a versioned site. When the config sets `mcp`, `llms.txt`
+Both take the title, description and `url` from your `site` options, and keep
+to the current version on a versioned site. When `site.mcp` is set, `llms.txt`
 also tells agents where your [MCP server](/docs/mcp-server) is.
 
 Both follow your sidebar reading order exactly: the same groups, sorted by
@@ -167,7 +166,7 @@ The same per-page markdown powers a "Copy page" button on every doc page. Turn
 it on with the `copyPage` prop on `DocsShell`:
 
 ```svelte
-<DocsShell {config} {content} copyPage>
+<DocsShell {content} copyPage>
 	{@render children()}
 </DocsShell>
 ```
@@ -175,7 +174,7 @@ it on with the `copyPage` prop on `DocsShell`:
 The split button copies the page as Markdown, and its dropdown links to the raw
 `.md`, or opens the page in ChatGPT or Claude. All of them use the page's agent
 markdown, props tables and example code included. With an
-[MCP server](/docs/mcp-server) and `mcp` set in your config, the dropdown also
+[MCP server](/docs/mcp-server) and `mcp` set in your `site` options, the dropdown also
 offers "Connect to your editor". The button expects each page to be
 available at `<path>.md`, so add one catch-all endpoint,
 `src/routes/[...slug].md/+server.ts`. Export both: `entries` lists every page,

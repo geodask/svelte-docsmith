@@ -44,8 +44,7 @@ export { default as Action } from './components/landing/action.svelte';
 
 // Config
 export {
-	defineConfig,
-	type DocsmithConfig,
+	type DocsmithSite,
 	type DocsContent,
 	type DocsContentItem,
 	type DocsCustomFields,

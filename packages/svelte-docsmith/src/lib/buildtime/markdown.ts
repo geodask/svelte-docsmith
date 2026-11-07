@@ -1,22 +1,25 @@
 /**
- * `svelte-docsmith/preprocess` — the entire markdown pipeline in one call.
+ * The markdown pipeline: mdsvex with the shared code block renderer, heading
+ * slugs and anchor sections, and the packaged doc layout. The `docsmith()`
+ * Vite plugin runs it on every markdown file before vite-plugin-svelte sees
+ * the file (see `./vite/markdown.ts`), so it takes its options from the one
+ * `docsmith({ markdown })` call and is never registered by hand.
  *
- * This entry runs in Node at config time (registered in `svelte.config.js`,
- * or in `vite.config.js` once SvelteKit 3 consolidates the two — the factory
- * doesn't care where it's registered). It must never import component code.
+ * Runs in Node at build time. It must never import component code.
  */
 import rehypeSectionize from '@hbsnow/rehype-sectionize';
 import { mdsvex, type MdsvexOptions } from 'mdsvex';
 import { fileURLToPath } from 'node:url';
 import rehypeSlug from 'rehype-slug';
-import type { PreprocessorGroup } from 'svelte/compiler';
-import { codeBlockMarkup, codeBlockRenderer } from './code-block.js';
+import { codeBlockMarkup, type RenderCodeBlock } from './code-block.js';
 
-export interface DocsmithPreprocessOptions {
-	/** File extensions compiled as markdown. Default: `['.md']`. */
+/** The `markdown` options of `docsmith()`: how doc pages are compiled. */
+export interface DocsmithMarkdownOptions {
+	/**
+	 * File extensions compiled as markdown. Default: `['.md']`. SvelteKit must
+	 * route them too, so list the same extensions in its `extensions`.
+	 */
 	extensions?: string[];
-	/** Shiki themes for the dual light/dark render. Default: github-light/github-dark. */
-	themes?: { light: string; dark: string };
 	/** Extra Shiki languages to load on top of the defaults. */
 	langs?: string[];
 	/**
@@ -46,24 +49,28 @@ export interface DocsmithPreprocessOptions {
 	twoslash?: boolean;
 }
 
-/**
- * Build the svelte-docsmith preprocessor: mdsvex with Shiki highlighting (via
- * the raw-code `highlight` hook, the correct mdsvex integration point), heading
- * slugs/anchor sections, and the packaged doc layout. Unknown code-fence
- * languages fall back to plain text instead of failing the build.
- */
-export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorGroup {
-	const renderCodeBlock = codeBlockRenderer(options);
+/** Compile one markdown file to Svelte markup, or `undefined` if it isn't one. */
+export type CompileMarkdown = (
+	content: string,
+	filename: string
+) => Promise<{ code: string; map?: unknown } | undefined>;
 
+/**
+ * Build the markdown compiler over a code block renderer. The renderer is
+ * passed in rather than built here so a site's fences and its `?source`
+ * panels share one renderer, and with it one set of themes and one Shiki
+ * highlighter.
+ */
+export function markdownCompiler(
+	options: DocsmithMarkdownOptions,
+	renderCodeBlock: RenderCodeBlock
+): CompileMarkdown {
 	const layout =
 		options.layout === false
 			? undefined
 			: (options.layout ?? fileURLToPath(new URL('./markdown-layout.svelte', import.meta.url)));
 
-	// mdsvex types `markup`'s filename as required where Svelte types it as
-	// optional — runtime-compatible (Svelte always passes a filename for real
-	// files), but structurally incompatible, hence the cast.
-	return mdsvex({
+	const group = mdsvex({
 		extensions: options.extensions ?? ['.md'],
 		layout,
 		highlight: {
@@ -78,5 +85,10 @@ export function docsmith(options: DocsmithPreprocessOptions = {}): PreprocessorG
 			[rehypeSectionize, { idPropertyName: 'data-section-id' }],
 			...(options.rehypePlugins ?? [])
 		] as MdsvexOptions['rehypePlugins']
-	}) as unknown as PreprocessorGroup;
+	});
+
+	return async (content, filename) => {
+		const result = await group.markup?.({ content, filename });
+		return result ? { code: result.code, map: result.map } : undefined;
+	};
 }

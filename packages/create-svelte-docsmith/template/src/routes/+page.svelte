@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { content } from 'svelte-docsmith/content';
 	import { DocsShell, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
-	import { siteConfig } from '#lib/site-config.ts';
 </script>
 
 <!--
@@ -9,7 +8,7 @@
 	rewrite it freely — or delete this file and add a `+page.ts` that redirects
 	straight to /docs/introduction if you'd rather not have one.
 -->
-<DocsShell config={siteConfig} {content} layout="page" pattern>
+<DocsShell {content} layout="page" pattern>
 	<Hero
 		title={{ SITE_TITLE }}
 		description="A short line about what your project does and who it's for."

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { join, normalizePath } from '#lib/utils/url.js';
-	import type { DocsmithConfig } from '#lib/core/index.js';
+	import type { DocsmithSite } from '#lib/core/index.js';
 
 	const {
 		config,
@@ -9,7 +9,7 @@
 		description,
 		noindex = false
 	}: {
-		config: DocsmithConfig;
+		config: DocsmithSite;
 		/** The page's own title (frontmatter or override); omit for the site root. */
 		title?: string;
 		/** The page's own description; falls back to `config.description`. */

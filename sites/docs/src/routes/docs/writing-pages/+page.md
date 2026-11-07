@@ -127,7 +127,7 @@ dropping the page from where you expected it. A custom key one letter away from
 a built-in one, like `ordr` or `Title`, prints a warning.
 
 To check your custom fields too, pass a `schema` to the
-[`docsmith()` Vite plugin](/docs/configuration#docsmith-vite-plugin). Any
+[`docsmith()` Vite plugin](/docs/configuration#docsmith). Any
 [Standard Schema](https://standardschema.dev) works: Zod, Valibot, ArkType and
 others. It sees only the custom fields, so list just yours. Make it strict and
 any key you didn't declare, typo or not, fails the build.
@@ -149,7 +149,7 @@ export const customFields = z.strictObject({
 // vite.config.ts
 import { customFields } from './src/lib/frontmatter';
 
-docsmith({ schema: customFields });
+docsmith({ site, schema: customFields });
 ```
 
 ```ts

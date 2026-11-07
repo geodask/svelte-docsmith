@@ -1,6 +1,8 @@
 /**
- * Static site configuration passed to `DocsShell`. Content-derived data (the
- * sidebar nav) is NOT here — it comes from your content collection at runtime.
+ * The site config: the `site` options of `docsmith()`, which the plugin checks
+ * at startup and serves as `svelte-docsmith/site` for `DocsShell`, `ErrorPage`
+ * and the route handlers to read. Content-derived data (the sidebar nav) is
+ * NOT here — it comes from the content index.
  */
 /** A link rendered in the header nav or footer. */
 export type DocsmithLink = {
@@ -36,7 +38,7 @@ export type DocsmithAnnouncement = {
 	dismissible?: boolean;
 };
 
-export type DocsmithConfig = {
+export type DocsmithSite = {
 	/** Site title, shown in the header/sidebar and in the `<title>` suffix. */
 	title: string;
 	/**
@@ -93,17 +95,20 @@ export type DocsmithConfig = {
 };
 
 /**
- * Validate a {@link DocsmithConfig} at build time. Purely a pass-through for
- * typed callers; the runtime checks catch untyped or dynamically-built configs
- * with a real error message instead of a blank header.
+ * Check the `site` options when the plugin starts, so a mistyped or
+ * dynamically-built config fails `dev` and `build` with a real error message
+ * instead of a blank header. The site is served to the browser, so it must
+ * also be plain data: see {@link assertPlainData}.
  */
-export function defineConfig(config: DocsmithConfig): DocsmithConfig {
-	if (typeof config !== 'object' || config === null) {
-		throw new Error('[svelte-docsmith] defineConfig expects a config object.');
-	}
-	if (typeof config.title !== 'string' || config.title.trim() === '') {
+export function checkSite(site: DocsmithSite): DocsmithSite {
+	if (typeof site !== 'object' || site === null) {
 		throw new Error(
-			'[svelte-docsmith] config.title is required — the site title shown in the sidebar header.'
+			"[svelte-docsmith] docsmith() needs a `site` object, e.g. docsmith({ site: { title: 'My Docs' } })."
+		);
+	}
+	if (typeof site.title !== 'string' || site.title.trim() === '') {
+		throw new Error(
+			'[svelte-docsmith] site.title is required — the site title shown in the sidebar header.'
 		);
 	}
 	for (const key of [
@@ -116,84 +121,111 @@ export function defineConfig(config: DocsmithConfig): DocsmithConfig {
 		'editUrl',
 		'mcp'
 	] as const) {
-		if (config[key] !== undefined && typeof config[key] !== 'string') {
-			throw new Error(`[svelte-docsmith] config.${key} must be a string when set.`);
+		if (site[key] !== undefined && typeof site[key] !== 'string') {
+			throw new Error(`[svelte-docsmith] site.${key} must be a string when set.`);
 		}
 	}
-	if (config.announcement !== undefined) {
-		const a = config.announcement;
+	if (site.announcement !== undefined) {
+		const a = site.announcement;
 		if (typeof a !== 'object' || a === null) {
 			throw new Error(
-				'[svelte-docsmith] config.announcement must be an object ({ text, href?, id?, external?, dismissible? }).'
+				'[svelte-docsmith] site.announcement must be an object ({ text, href?, id?, external?, dismissible? }).'
 			);
 		}
 		if (typeof a.text !== 'string' || a.text.trim() === '') {
-			throw new Error(
-				'[svelte-docsmith] config.announcement.text is required and must be a string.'
-			);
+			throw new Error('[svelte-docsmith] site.announcement.text is required and must be a string.');
 		}
 		for (const key of ['tag', 'href', 'id'] as const) {
 			if (a[key] !== undefined && typeof a[key] !== 'string') {
-				throw new Error(`[svelte-docsmith] config.announcement.${key} must be a string when set.`);
+				throw new Error(`[svelte-docsmith] site.announcement.${key} must be a string when set.`);
 			}
 		}
 		for (const key of ['external', 'dismissible'] as const) {
 			if (a[key] !== undefined && typeof a[key] !== 'boolean') {
-				throw new Error(`[svelte-docsmith] config.announcement.${key} must be a boolean when set.`);
+				throw new Error(`[svelte-docsmith] site.announcement.${key} must be a boolean when set.`);
 			}
 		}
 	}
-	if (config.nav !== undefined) {
-		if (!Array.isArray(config.nav)) {
-			throw new Error('[svelte-docsmith] config.nav must be an array of { label, href } links.');
+	if (site.nav !== undefined) {
+		if (!Array.isArray(site.nav)) {
+			throw new Error('[svelte-docsmith] site.nav must be an array of { label, href } links.');
 		}
-		for (const link of config.nav) {
+		for (const link of site.nav) {
 			if (typeof link?.label !== 'string' || typeof link?.href !== 'string') {
-				throw new Error(
-					'[svelte-docsmith] each config.nav entry needs a string `label` and `href`.'
-				);
+				throw new Error('[svelte-docsmith] each site.nav entry needs a string `label` and `href`.');
 			}
 		}
 	}
-	if (config.footer !== undefined) {
-		if (typeof config.footer !== 'object' || config.footer === null) {
+	if (site.footer !== undefined) {
+		if (typeof site.footer !== 'object' || site.footer === null) {
 			throw new Error(
-				'[svelte-docsmith] config.footer must be an object ({ copyright?, columns?, poweredBy? }).'
+				'[svelte-docsmith] site.footer must be an object ({ copyright?, columns?, poweredBy? }).'
 			);
 		}
-		const { copyright, columns, poweredBy } = config.footer;
+		const { copyright, columns, poweredBy } = site.footer;
 		if (copyright !== undefined && typeof copyright !== 'string') {
-			throw new Error('[svelte-docsmith] config.footer.copyright must be a string when set.');
+			throw new Error('[svelte-docsmith] site.footer.copyright must be a string when set.');
 		}
 		if (poweredBy !== undefined && typeof poweredBy !== 'boolean') {
-			throw new Error('[svelte-docsmith] config.footer.poweredBy must be a boolean when set.');
+			throw new Error('[svelte-docsmith] site.footer.poweredBy must be a boolean when set.');
 		}
 		if (columns !== undefined) {
 			if (!Array.isArray(columns)) {
 				throw new Error(
-					'[svelte-docsmith] config.footer.columns must be an array of { title, links } columns.'
+					'[svelte-docsmith] site.footer.columns must be an array of { title, links } columns.'
 				);
 			}
 			for (const column of columns) {
 				if (typeof column?.title !== 'string') {
 					throw new Error(
-						'[svelte-docsmith] each config.footer.columns entry needs a string `title`.'
+						'[svelte-docsmith] each site.footer.columns entry needs a string `title`.'
 					);
 				}
 				if (!Array.isArray(column.links)) {
 					throw new Error(
-						`[svelte-docsmith] config.footer column "${column.title}" needs a \`links\` array.`
+						`[svelte-docsmith] site.footer column "${column.title}" needs a \`links\` array.`
 					);
 				}
 				for (const link of column.links) {
 					if (typeof link?.label !== 'string' || typeof link?.href !== 'string') {
 						throw new Error(
-							`[svelte-docsmith] each link in config.footer column "${column.title}" needs a string \`label\` and \`href\`.`
+							`[svelte-docsmith] each link in site.footer column "${column.title}" needs a string \`label\` and \`href\`.`
 						);
 					}
 				}
 			}
 		}
 	}
-	return config;
+	assertPlainData(site, 'site');
+	return site;
+}
+
+/**
+ * Throw unless `value` survives `JSON.stringify` unchanged: strings, finite
+ * numbers, booleans, `null`, arrays and plain objects, with `undefined` allowed
+ * as an object value (it is dropped, like an unset key). The site config is
+ * served to the browser as JSON, so a function, class instance or `Date` in it
+ * would arrive changed or not at all.
+ */
+export function assertPlainData(value: unknown, at: string): void {
+	if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+	if (typeof value === 'number' && Number.isFinite(value)) return;
+	if (Array.isArray(value)) {
+		value.forEach((item, i) => assertPlainData(item, `${at}[${i}]`));
+		return;
+	}
+	if (typeof value === 'object') {
+		const proto = Object.getPrototypeOf(value);
+		if (proto === Object.prototype || proto === null) {
+			for (const [key, item] of Object.entries(value)) {
+				if (item !== undefined) assertPlainData(item, `${at}.${key}`);
+			}
+			return;
+		}
+	}
+	const kind =
+		typeof value === 'object' ? (value.constructor?.name ?? 'object') : String(typeof value);
+	throw new Error(
+		`[svelte-docsmith] ${at} is a ${kind}, but the site config is sent to the browser as JSON, so it must be plain data (strings, numbers, booleans, arrays and plain objects).`
+	);
 }

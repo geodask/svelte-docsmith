@@ -3,8 +3,8 @@
 // several of these (e.g. the shell) import from here; the public surface is
 // re-exported through `src/lib/index.ts`.
 export {
-	defineConfig,
-	type DocsmithConfig,
+	checkSite,
+	type DocsmithSite,
 	type DocsmithLink,
 	type DocsmithFooterColumn,
 	type DocsmithAnnouncement

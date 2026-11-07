@@ -1,19 +1,21 @@
 import { compile } from 'svelte/compiler';
 import { describe, expect, it, vi } from 'vitest';
-import { docsmith, type DocsmithPreprocessOptions } from './preprocess.js';
+import { codeBlockRenderer } from './code-block.js';
+import { markdownCompiler, type DocsmithMarkdownOptions } from './markdown.js';
 
-type MarkupResult = { code: string } | void;
-type Markup = (input: { content: string; filename: string }) => Promise<MarkupResult>;
-
-/** Run the docsmith preprocessor's markup step over a markdown string. */
-async function render(content: string, options?: DocsmithPreprocessOptions): Promise<string> {
-	const markup = docsmith(options).markup as unknown as Markup;
-	const result = await markup({ content, filename: 'src/routes/docs/x.md' });
-	if (!result) throw new Error('preprocessor returned nothing');
+/** Compile a markdown string as the plugin would, with one renderer per call. */
+async function render(content: string, options: DocsmithMarkdownOptions = {}): Promise<string> {
+	const renderer = codeBlockRenderer({
+		langs: options.langs,
+		lineNumbers: options.lineNumbers,
+		twoslash: options.twoslash
+	});
+	const result = await markdownCompiler(options, renderer)(content, 'src/routes/docs/x.md');
+	if (!result) throw new Error('compiler returned nothing');
 	return result.code;
 }
 
-describe('docsmith preprocessor', () => {
+describe('markdown compiler', () => {
 	it('highlights code fences with dual light/dark Shiki themes', async () => {
 		const code = await render('```js\nconst a = 1;\n```');
 		expect(code).toContain('--shiki-dark');

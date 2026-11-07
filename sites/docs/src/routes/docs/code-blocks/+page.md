@@ -25,17 +25,17 @@ You write:
 
 <!-- prettier-ignore -->
 ```text
-const config = defineConfig({
+const site = {
 	title: 'My Library' // [!code highlight]
-});
+};
 ```
 
 Which renders as:
 
 ```ts
-const config = defineConfig({
+const site = {
 	title: 'My Library' // [!code highlight]
-});
+};
 ```
 
 ## Additions and deletions
@@ -48,8 +48,8 @@ You write:
 <!-- prettier-ignore -->
 ```text
 export default {
-	preprocess: [vitePreprocess()],             // [!code --]
-	preprocess: [vitePreprocess(), docsmith()], // [!code ++]
+	plugins: [tailwindcss(), sveltekit()],             // [!code --]
+	plugins: [docsmith({ site }), tailwindcss(), sveltekit()], // [!code ++]
 };
 ```
 
@@ -57,8 +57,8 @@ Which renders as:
 
 ```ts
 export default {
-	preprocess: [vitePreprocess()], // [!code --]
-	preprocess: [vitePreprocess(), docsmith()] // [!code ++]
+	plugins: [tailwindcss(), sveltekit()], // [!code --]
+	plugins: [docsmith({ site }), tailwindcss(), sveltekit()] // [!code ++]
 };
 ```
 
@@ -147,9 +147,10 @@ fence itself instead. A single line, a list, or a range all work.
 ````md
 ```svelte {4}
 <DocsShell
-	config={siteConfig}
 	{content}
+	pattern
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
+	copyPage
 >
 	{@render children()}
 </DocsShell>
@@ -160,9 +161,10 @@ renders as:
 
 ```svelte {4}
 <DocsShell
-	config={siteConfig}
 	{content}
+	pattern
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
+	copyPage
 >
 	{@render children()}
 </DocsShell>
@@ -179,7 +181,7 @@ a longer file, so the numbers match the real source.
 ````md
 ```ts title="vite.config.ts" showLineNumbers
 import { docsmith } from 'svelte-docsmith/vite';
-export default { plugins: [docsmith()] };
+export default { plugins: [docsmith({ site })] };
 ```
 ````
 
@@ -187,14 +189,14 @@ renders as:
 
 ```ts title="vite.config.ts" showLineNumbers
 import { docsmith } from 'svelte-docsmith/vite';
-export default { plugins: [docsmith()] };
+export default { plugins: [docsmith({ site })] };
 ```
 
-Numbering every block by default is a preprocessor option, and a single fence
-can still opt out with `noLineNumbers`:
+Numbering every block by default is a `markdown` option of `docsmith()`, and a
+single fence can still opt out with `noLineNumbers`:
 
 ```ts title="vite.config.ts"
-sveltekit({ preprocess: [vitePreprocess(), markdown({ lineNumbers: true })] });
+docsmith({ site, markdown: { lineNumbers: true } });
 ```
 
 ## Real types on hover
@@ -217,11 +219,11 @@ const version = '0.9.0';
 const parts = version.split('.').map(Number);
 ```
 
-Twoslash is opt-in twice over: enable it in the preprocessor, then mark the
-individual fences that want it.
+Twoslash is opt-in twice over: enable it in the `markdown` options, then mark
+the individual fences that want it.
 
 ```ts title="vite.config.ts"
-sveltekit({ preprocess: [vitePreprocess(), markdown({ twoslash: true })] });
+docsmith({ site, markdown: { twoslash: true } });
 ```
 
 It needs three optional peer dependencies, pulled in only if you use it:

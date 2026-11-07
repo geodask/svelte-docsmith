@@ -23,7 +23,7 @@ npm create svelte-docsmith@latest
 It asks a short set of questions (all with sensible defaults):
 
 - **Directory** — where to create the project (skipped if you passed a name).
-- **Site title** — used in the header and `site-config.ts`.
+- **Site title** — used in the header and the `site` options in `vite.config.ts`.
 - **Theme** — a built-in preset, or the default.
 - **Install dependencies?** — runs your package manager for you.
 - **Initialize a git repository?**
