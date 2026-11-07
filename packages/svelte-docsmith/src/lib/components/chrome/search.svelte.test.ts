@@ -29,6 +29,9 @@ const docs: SearchDoc[] = [
 
 const PLACEHOLDER = 'Search documentation...';
 
+// The dialog renders the shell's search session and owns the keys. What the
+// session shows (lazy loading, caching, version scope, starter pages) is
+// covered without a DOM in `search/session.svelte.test.ts`.
 describe('Search palette', () => {
 	// Activating a result is a real <a href>; with no SvelteKit router in jsdom the
 	// anchor's default would log "Not implemented: navigation". The app navigates
@@ -58,23 +61,6 @@ describe('Search palette', () => {
 		await vi.waitFor(() =>
 			expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument()
 		);
-	});
-
-	it('loads the index lazily — never before opening, and only once', async () => {
-		const load = vi.fn(() => Promise.resolve(docs));
-		render(Harness, { props: { load } });
-
-		expect(load).not.toHaveBeenCalled(); // index is code-split, not eager
-
-		await fireEvent.click(screen.getByTestId('open-search'));
-		await screen.findByPlaceholderText(PLACEHOLDER);
-		await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
-
-		// Close and reopen: the engine is cached, so no second fetch.
-		await fireEvent.keyDown(window, { key: 'k', metaKey: true }); // close
-		await fireEvent.click(screen.getByTestId('open-search')); // reopen
-		await screen.findByPlaceholderText(PLACEHOLDER);
-		expect(load).toHaveBeenCalledTimes(1);
 	});
 
 	it('shows engine results for a query and opens the picked page', async () => {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SearchIcon from '@lucide/svelte/icons/search';
-	import { useSearch } from '#lib/search/context.svelte.js';
+	import { useSearch } from '#lib/search/session.svelte.js';
 
 	const { class: className = '' }: { class?: string } = $props();
 

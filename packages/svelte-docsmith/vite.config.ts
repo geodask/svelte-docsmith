@@ -49,6 +49,7 @@ export default defineConfig({
 				'src/lib/utils/clipboard.svelte.ts',
 				'src/lib/utils/url.ts',
 				'src/lib/search/create-search.ts',
+				'src/lib/search/session.svelte.ts',
 				'src/lib/search/snippet.ts',
 				'src/lib/generate/sitemap.ts',
 				'src/lib/generate/llms.ts',
