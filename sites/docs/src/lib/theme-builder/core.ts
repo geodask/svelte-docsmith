@@ -500,7 +500,7 @@ export function parseThemeFile(source: string): ThemeTokens | { error: string } 
 	if (!Object.keys(light).length && !Object.keys(dark).length) {
 		return {
 			error:
-				"That isn't a theme file: it needs a :root { … } block of --tokens (and usually a .dark one)."
+				"That isn't a theme file: it needs a :root { … } block of custom properties, and usually a .dark one."
 		};
 	}
 	return { light, dark };

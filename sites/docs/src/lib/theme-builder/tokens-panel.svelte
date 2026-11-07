@@ -3,7 +3,7 @@
 	// until a guided control changes that token; text under WCAG AA is flagged.
 	import { modeTokens, parseColour, type Mode } from './core.ts';
 	import type { Builder } from './builder.svelte.ts';
-	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
+	import Segmented from './segmented.svelte';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
@@ -33,18 +33,15 @@
 <div class="flex flex-col gap-4 text-sm">
 	<!-- Stays in view while the token list scrolls under it. -->
 	<div class="bg-card sticky -top-4 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2">
-		<ToggleGroup.Root
-			type="single"
-			variant="outline"
-			size="sm"
+		<Segmented
+			label="Colour mode"
 			value={mode}
-			onValueChange={(v) => v && (mode = v as Mode)}
-			class="w-full"
-			aria-label="Colour mode"
-		>
-			<ToggleGroup.Item value="light" class="flex-1">Light</ToggleGroup.Item>
-			<ToggleGroup.Item value="dark" class="flex-1">Dark</ToggleGroup.Item>
-		</ToggleGroup.Root>
+			options={[
+				['light', 'Light'],
+				['dark', 'Dark']
+			]}
+			onchange={(m) => (mode = m)}
+		/>
 	</div>
 
 	{#if issues.length}

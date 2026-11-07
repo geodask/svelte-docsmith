@@ -4,7 +4,7 @@
 	import { fontOptions, oklchToHex, parseColour, shadowOptions } from './core.ts';
 	import type { Builder } from './builder.svelte.ts';
 	import * as Select from '#lib/components/ui/select/index.ts';
-	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
+	import Segmented from './segmented.svelte';
 	import { Slider } from '#lib/components/ui/slider/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
@@ -30,6 +30,8 @@
 	const mono = $derived(
 		fontOptions.mono.includes(i.fontMono) ? fontOptions.mono : [i.fontMono, ...fontOptions.mono]
 	);
+	// The picker's icon in black or white, whichever reads on the brand colour.
+	const onBrand = $derived((parseColour(i.brand)?.[0] ?? 0) > 0.7 ? 'text-black' : 'text-white');
 	// A typed hex (or any colour CSS takes) applies once it parses.
 	function typeBrand(value: string) {
 		const colour = parseColour(value.trim());
@@ -66,7 +68,7 @@
 				style="background: {i.brand}"
 				title="Pick any colour"
 			>
-				<Pipette class="size-4 text-white mix-blend-difference" aria-hidden="true" />
+				<Pipette class="size-4 {onBrand}" aria-hidden="true" />
 				<input
 					type="color"
 					value={/^#[0-9a-f]{6}$/i.test(i.brand) ? i.brand : '#000000'}
@@ -121,18 +123,14 @@
 
 	<fieldset>
 		<legend class="text-sm font-medium">Shadows</legend>
-		<ToggleGroup.Root
-			type="single"
-			variant="outline"
-			size="sm"
-			value={i.shadow}
-			onValueChange={(v) => v && builder.set({ shadow: v as typeof i.shadow })}
-			class="mt-2 w-full"
-		>
-			{#each shadowOptions as [value, name] (value)}
-				<ToggleGroup.Item {value} class="flex-1">{name}</ToggleGroup.Item>
-			{/each}
-		</ToggleGroup.Root>
+		<div class="mt-2">
+			<Segmented
+				label="Shadows"
+				value={i.shadow}
+				options={shadowOptions}
+				onchange={(shadow) => builder.set({ shadow })}
+			/>
+		</div>
 	</fieldset>
 
 	<div class="grid gap-3">

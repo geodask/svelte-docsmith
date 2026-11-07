@@ -29,9 +29,22 @@ export interface CliSession {
 }
 
 const CLI_KEY = 'docsmith-builder-cli';
+/** The theme in progress, so a reload or the tab the CLI opens keeps the work. */
+const DRAFT_KEY = 'docsmith-builder-draft';
 
 /** Where the current theme started, for the preset row and the notice. */
 export type Origin = { kind: 'preset'; slug: string } | { kind: 'paste' } | { kind: 'link' };
+
+/** The `#theme=` payload of a theme link, or of a bare payload; null if there is none. */
+export function themeLinkPayload(text: string): string | null {
+	const value = text.trim();
+	const hash = value.indexOf('#');
+	if (hash >= 0) {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
+		return new URLSearchParams(value.slice(hash + 1)).get('theme');
+	}
+	return /^[\w-]{16,}$/.test(value) ? value : null;
+}
 
 function presetState(slug: string): BuilderState {
 	const preset =
@@ -60,6 +73,14 @@ export class Builder {
 	/** Call during component init: reads the URL in the browser and keeps the exports current. */
 	start() {
 		$effect(() => untrack(() => this.readUrl()));
+		$effect(() => {
+			const draft = JSON.stringify({ state: this.state, origin: this.origin });
+			try {
+				localStorage.setItem(DRAFT_KEY, draft);
+			} catch {
+				/* storage unavailable: the draft lasts as long as the tab */
+			}
+		});
 		$effect(() => {
 			const snapshot = $state.snapshot(this.state) as BuilderState;
 			const file = this.file;
@@ -94,19 +115,22 @@ export class Builder {
 
 		const preset = params.get('preset');
 		if (preset && themes.some((t) => t.slug === preset)) this.loadPreset(preset);
+		else this.restoreDraft();
 
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const payload = new URLSearchParams(location.hash.slice(1)).get('theme');
 		if (payload) {
-			decodeThemeLink(payload)
-				.then((state) => {
-					this.load(state, { kind: 'link' });
-					this.notice = 'Opened from a theme link.';
-				})
-				.catch((error: Error) => {
-					this.notice = `${error.message} Starting from Darkmatter instead.`;
-				});
+			this.openLink(payload)
+				.then(() => (this.notice = 'Opened from a theme link.'))
+				.catch((error: Error) => (this.notice = error.message));
 		}
+	}
+
+	/** Load a theme link: the whole URL, or just its `#theme=` payload. Throws if it won't decode. */
+	async openLink(link: string) {
+		const payload = themeLinkPayload(link);
+		if (!payload) throw new Error("That isn't a theme link: it has no #theme= part.");
+		this.load(await decodeThemeLink(payload), { kind: 'link' });
 	}
 
 	set(patch: Partial<Inputs>) {
@@ -139,6 +163,19 @@ export class Builder {
 				? clearToken(this.state, mode, key)
 				: setToken(this.state, mode, key, previous);
 		delete this.edits[mode][key];
+	}
+
+	/** Pick up the theme from the last visit, if there is one. */
+	private restoreDraft() {
+		try {
+			const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
+			if (draft?.state?.inputs && draft.state.overrides?.light && draft.state.overrides?.dark) {
+				this.state = draft.state;
+				this.origin = draft.origin ?? { kind: 'paste' };
+			}
+		} catch {
+			/* no draft, or one we can't read: start from the default */
+		}
 	}
 
 	/** Start over from new tokens: no edits to undo. */
