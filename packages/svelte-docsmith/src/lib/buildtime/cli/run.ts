@@ -1,6 +1,5 @@
 /**
- * The `svelte-docsmith` maintenance CLI. Currently one command:
- * `archive-version`.
+ * The `svelte-docsmith` maintenance CLI: `archive-version` and `theme`.
  *
  * This is the whole command, not a helper for it: `bin/svelte-docsmith.mjs` is a
  * shim that hands over `process.argv` and turns a thrown {@link CliError} into a
@@ -14,15 +13,20 @@
 import { archiveVersion } from './archive-version.js';
 import { CliError } from './error.js';
 import { loadDocsmithOptions } from './load-options.js';
+import { parseThemeArgs, themeCommand, THEME_HELP, type ThemeIo } from './theme.js';
 
 export { CliError } from './error.js';
 export { archiveVersion } from './archive-version.js';
+export { themeCommand, writeTheme, themeFileFromLink, decodePasteCode } from './theme.js';
 
 export const HELP = `svelte-docsmith — docs maintenance CLI
 
 Usage:
   svelte-docsmith archive-version <id> [options]
+  svelte-docsmith theme [options]
 
+archive-version
+---------------
 Freeze the current docs into an archived version folder. The archive keeps
 serving the release it documents while you go on editing the docs root.
 
@@ -34,10 +38,13 @@ Options:
                    version's label when <id> is the current version, else <id>)
   --config <file>  vite config to read (default: the one Vite finds here).
                    Paths in it resolve from here, as they do for vite build.
-`;
+
+theme
+-----
+${THEME_HELP.replace(/^Usage:\n.*\n\n/, '')}`;
 
 /** Where the command writes, and what it resolves relative paths against. */
-export type CliIo = {
+export type CliIo = Pick<ThemeIo, 'input' | 'openUrl' | 'timeoutMs'> & {
 	cwd?: string;
 	log?: (line: string) => void;
 };
@@ -77,6 +84,10 @@ export async function run(argv: string[], io: CliIo = {}): Promise<void> {
 
 	if (!command) {
 		log(HELP);
+		return;
+	}
+	if (command === 'theme') {
+		await themeCommand(parseThemeArgs(rest), { ...io, log });
 		return;
 	}
 	if (command !== 'archive-version') {

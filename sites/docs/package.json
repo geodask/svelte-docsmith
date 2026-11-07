@@ -19,11 +19,10 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --config ../../.prettierrc --write .",
 		"lint": "prettier --config ../../.prettierrc --check . && eslint .",
-		"test": "echo 'No tests configured for docs site'",
-		"test:unit": "echo 'No unit tests configured for docs site'",
-		"test:coverage": "echo 'No test coverage configured for docs site'",
-		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"prototype:theme-cli": "node scripts/prototype-theme-cli.mjs"
+		"test": "vitest run",
+		"test:unit": "vitest run",
+		"test:coverage": "vitest run",
+		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
 	},
 	"devDependencies": {
 		"@lucide/svelte": "^1.70.0",
@@ -41,7 +40,8 @@
 		"tailwindcss": "^4.3.4",
 		"twoslash-svelte": "0.3.9",
 		"typescript": "^6.0.3",
-		"vite": "^8.3.6"
+		"vite": "^8.3.6",
+		"vitest": "^5.1.0"
 	},
 	"imports": {
 		"#lib": "./src/lib/index.js",

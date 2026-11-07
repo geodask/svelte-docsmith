@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 /* The whole svelte-docsmith CSS contract: package scan, design tokens,
- * typography/animation plugins, base styles. The baked-in default theme is
- * Darkmatter, so no preset import is needed here; it matches defaultThemeSlug
- * in themes-data.ts, so the /themes picker's default agrees with what renders. */
+ * typography/animation plugins, base styles. The theme itself comes from
+ * docsmith({ theme }) in vite.config.ts. */
 @import 'svelte-docsmith/theme.css';

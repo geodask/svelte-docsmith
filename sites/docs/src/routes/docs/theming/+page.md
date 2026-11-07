@@ -51,7 +51,8 @@ toggle dark mode to see both sides:
 Available: `darkmatter`, `tangerine`, `amethyst`, `graphite`, `evergreen`,
 `rose`, `ocean`, `nord`, `claude`, `bubblegum`, and `mono`. Each one sets
 colours, radius, code colours and, where its look calls for it, shadows, for
-both colour modes. The [themes page](/themes) shows every component in each.
+both colour modes. To start your own theme from one, open it in the
+[theme builder](/themes).
 
 ## Your own theme
 
@@ -98,6 +99,50 @@ you normally would, and set the family in the theme.
 
 </Callout>
 
+## Build a theme
+
+The [theme builder](/themes) makes a theme file without writing CSS. Start from
+a preset, your brand colour or a tweakcn export, adjust it with a few guided
+controls or token by token, and watch a real docs page follow, in light and
+dark side by side. It warns about any text and surface pair below WCAG AA
+contrast.
+
+When it looks right, take it to your project. The quickest way is to run this
+from your docs app:
+
+```bash
+npx svelte-docsmith theme
+```
+
+It opens the builder in your browser. Press **Send to my project** there and the
+command writes the theme to `src/theme.css` and sets `theme: './src/theme.css'`
+in the `docsmith()` call in `vite.config.ts`. A running `vite dev` picks it up
+straight away. Nothing leaves your machine: the browser sends the theme straight
+to the command, which listens on `127.0.0.1` only and accepts one send, from the
+tab it opened.
+
+If the browser can't reach the terminal, because the command runs in a
+container or over SSH, the builder shows a short code under **Didn't arrive?**.
+Paste it at the command's prompt instead.
+
+| Option            | What it does                                                               |
+| ----------------- | -------------------------------------------------------------------------- |
+| `--link <url>`    | Write the theme a [theme link](#theme-links) carries, without the browser. |
+| `--file <path>`   | Where to write the theme file. Default `src/theme.css`.                    |
+| `--config <file>` | The vite config to update. Default `vite.config.*` here.                   |
+| `--builder <url>` | The builder to open. Default the one on this site.                         |
+| `--no-open`       | Print the builder link instead of opening a browser.                       |
+
+You can also skip the command: the builder's Export tab copies or downloads the
+theme file, for the `theme` option as in [Your own theme](#your-own-theme).
+
+### Theme links
+
+**Copy theme link** in the Export tab gives a link that reopens the builder on
+exactly that theme, to share with a teammate or come back to later. Run
+`npx svelte-docsmith theme --link '<link>'` to write the theme a link carries
+straight into a project.
+
 ## Overriding tokens
 
 To adjust one or two tokens without writing a theme, redefine them in `app.css`.
@@ -125,6 +170,53 @@ The full set, with Darkmatter's light values or the fallback `theme.css` gives
 when a theme leaves a token out:
 
 <ThemeTokens />
+
+## For agents
+
+An agent can make a theme without the builder. Write a theme file: a `:root`
+block and a `.dark` block, setting the colour tokens above as `oklch()` values,
+plus any of the others. Save it as `src/theme.css` and set
+`theme: './src/theme.css'` in `docsmith()`. Keep body text at 4.5:1 contrast on
+its surface and `--primary` at 3:1 on `--background`.
+
+To hand the theme to a person to look at and adjust, give them a theme link.
+The format is stable: `https://docsmith.geodask.com/themes#theme=` followed by
+base64url of raw deflate of this JSON.
+
+```json
+{
+	"v": 1,
+	"tokens": {
+		"light": { "background": "oklch(1 0 0)", "primary": "oklch(0.55 0.2 265)" },
+		"dark": { "background": "oklch(0.18 0 0)", "primary": "oklch(0.7 0.16 265)" }
+	}
+}
+```
+
+Token names have no leading `--`. `light` and `dark` each hold a whole mode, and
+a token either leaves out is generated from the rest. An optional `inputs`
+object only sets the builder's guided controls, and is inferred when missing.
+This script builds the link from a theme file:
+
+```js title="theme-link.mjs"
+import { readFileSync } from 'node:fs';
+import { deflateRawSync } from 'node:zlib';
+
+const css = readFileSync(process.argv[2] ?? 'src/theme.css', 'utf8');
+const tokens = (selector) => {
+	const body = css.match(new RegExp(`${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
+	return Object.fromEntries(
+		[...body.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()])
+	);
+};
+const light = tokens(':root');
+const dark = { ...light, ...tokens('\\.dark') };
+const payload = deflateRawSync(JSON.stringify({ v: 1, tokens: { light, dark } }));
+console.log(`https://docsmith.geodask.com/themes#theme=${payload.toString('base64url')}`);
+```
+
+`npx svelte-docsmith theme --link '<link>'` writes a link's theme into a
+project, so an agent and a person can pass one theme back and forth.
 
 ## Code colours
 
