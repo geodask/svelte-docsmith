@@ -53,10 +53,15 @@ test('jsString folds line breaks into a space', () => {
 	}
 });
 
-test('imports a chosen preset after theme.css', () => {
+test('sets a chosen preset as the theme in vite.config.ts, leaving app.css alone', () => {
+	const pristine = fs.readFileSync(path.join(templateDir, 'src/app.css'), 'utf-8');
 	const read = scaffold({ title: 'T', preset: 'ocean' });
-	assert.match(
-		read('src/app.css'),
-		/@import 'svelte-docsmith\/theme\.css';\n@import 'svelte-docsmith\/themes\/ocean\.css';\n/
-	);
+	assert.match(read('vite.config.ts'), /^\t+theme: 'ocean',$/m);
+	assert.doesNotMatch(read('vite.config.ts'), /\/\/ theme:/);
+	assert.equal(read('src/app.css'), pristine);
+});
+
+test('names no theme for the default preset', () => {
+	const read = scaffold({ title: 'T', preset: 'default' });
+	assert.doesNotMatch(read('vite.config.ts'), /^\s*theme:/m);
 });

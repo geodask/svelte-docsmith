@@ -13,6 +13,11 @@ export default defineConfig({
 		// `.md` pages, builds the content and search indexes, and powers
 		// LiveExample. It must come before sveltekit().
 		docsmith({
+			// The theme: Darkmatter unless you name another preset, or a path to a
+			// theme file of your own (such as one exported from tweakcn.com).
+			// Available: tangerine, amethyst, graphite, evergreen, rose, ocean, nord,
+			// claude, bubblegum, mono.
+			// theme: 'ocean',
 			// The site config: what the header, footer and SEO tags show. Every
 			// page and route reads it from here. See https://docsmith.geodask.com.
 			site: {

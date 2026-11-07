@@ -12,7 +12,7 @@ export function jsString(text) {
 
 /**
  * Fill the template placeholders in a freshly copied template at `dest`, and
- * wire the chosen theme preset into app.css. The site title goes into
+ * set the chosen theme preset in vite.config.ts. The site title goes into
  * `vite.config.ts` once; the landing page and footer read it from there.
  */
 export function applyOptions(dest, { pkgName, title, preset }) {
@@ -25,10 +25,10 @@ export function applyOptions(dest, { pkgName, title, preset }) {
 	edit('README.md', (t) => t.replaceAll('{{PROJECT_NAME}}', () => title));
 	edit('vite.config.ts', (t) => t.replaceAll("'{{SITE_TITLE}}'", () => jsString(title)));
 	if (preset && preset !== 'default') {
-		edit('src/app.css', (t) =>
+		edit('vite.config.ts', (t) =>
 			t.replace(
-				"@import 'svelte-docsmith/theme.css';\n",
-				`@import 'svelte-docsmith/theme.css';\n@import 'svelte-docsmith/themes/${preset}.css';\n`
+				/^(\t+)\/\/ theme: 'ocean',$/m,
+				(_, indent) => `${indent}theme: ${jsString(preset)},`
 			)
 		);
 	}
