@@ -7,19 +7,18 @@ import * as p from '@clack/prompts';
 
 const templateDir = fileURLToPath(new URL('./template', import.meta.url));
 
-const PRESETS = [
-	{ value: 'default', label: 'Default (Darkmatter)' },
-	{ value: 'tangerine', label: 'Tangerine' },
-	{ value: 'amethyst', label: 'Amethyst' },
-	{ value: 'graphite', label: 'Graphite' },
-	{ value: 'evergreen', label: 'Evergreen' },
-	{ value: 'rose', label: 'Rose' },
-	{ value: 'ocean', label: 'Ocean' },
-	{ value: 'nord', label: 'Nord' },
-	{ value: 'claude', label: 'Claude' },
-	{ value: 'bubblegum', label: 'Bubblegum' },
-	{ value: 'mono', label: 'Mono' }
-];
+// Generated from the library's preset CSS by
+// packages/svelte-docsmith/scripts/theme-presets.mjs; don't edit it by hand.
+const presets = JSON.parse(
+	fs.readFileSync(fileURLToPath(new URL('./presets.json', import.meta.url)), 'utf-8')
+);
+
+/** The theme prompt's options. The default preset needs no import, so it is `default`. */
+const PRESETS = presets.map((preset) =>
+	preset.default
+		? { value: 'default', label: `Default (${preset.name})` }
+		: { value: preset.slug, label: preset.name }
+);
 
 /** Copy `src` into `dest`, renaming the packaged `_gitignore` back to `.gitignore`. */
 function copyTemplate(src, dest) {
