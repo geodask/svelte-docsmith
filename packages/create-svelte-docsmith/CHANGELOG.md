@@ -1,5 +1,11 @@
 # create-svelte-docsmith
 
+## 0.5.2
+
+### Patch Changes
+
+- Pin the starter template to `svelte-docsmith@^0.21.0` so freshly scaffolded projects install the current release.
+
 ## 0.5.1
 
 ### Patch Changes
