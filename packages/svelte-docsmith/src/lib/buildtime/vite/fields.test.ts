@@ -62,12 +62,15 @@ describe('likelyTypoOf', () => {
 		['Title', 'title'],
 		['sectoin', 'section'],
 		['lastupdated', 'lastUpdated'],
-		['descripton', 'description']
+		['descripton', 'description'],
+		['itle', 'title'],
+		['rder', 'order'],
+		['roder', 'order']
 	])('reads %s as %s', (key, builtin) => {
 		expect(likelyTypoOf(key)).toBe(builtin);
 	});
 
-	it.each(['draft', 'badge', 'tags', 'sidebar', 'layout'])('leaves %s alone', (key) => {
+	it.each(['draft', 'badge', 'tags', 'sidebar', 'layout', 'border'])('leaves %s alone', (key) => {
 		expect(likelyTypoOf(key)).toBeUndefined();
 	});
 });

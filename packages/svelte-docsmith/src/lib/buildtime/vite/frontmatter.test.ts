@@ -9,6 +9,14 @@ describe('parseFrontmatter', () => {
 		});
 	});
 
+	// YAML 1.1 parsers read an unquoted date as a Date, which the `lastUpdated`
+	// check would reject. js-yaml 5 keeps it a string, as the check expects.
+	it('keeps an unquoted date a string', () => {
+		expect(parseFrontmatter('---\nlastUpdated: 2024-01-15\n---\n', 'page.md')).toEqual({
+			lastUpdated: '2024-01-15'
+		});
+	});
+
 	it('returns an empty object for a page without frontmatter', () => {
 		expect(parseFrontmatter('# body\n', 'page.md')).toEqual({});
 		expect(parseFrontmatter('---\ntitle: X\nnever closed', 'page.md')).toEqual({});

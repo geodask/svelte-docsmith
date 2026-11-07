@@ -201,8 +201,13 @@ export function archiveVersion(
 function versionLiteral(version: DocsVersion): string {
 	const fields = Object.entries(version)
 		.filter(([, value]) => value !== undefined)
-		.map(([key, value]) => `${key}: ${typeof value === 'string' ? `'${value}'` : String(value)}`);
+		.map(([key, value]) => `${key}: ${typeof value === 'string' ? quote(value) : String(value)}`);
 	return `{ ${fields.join(', ')} }`;
+}
+
+/** A single-quoted JavaScript string, so a label like `Bob's 1.x` pastes as valid code. */
+function quote(text: string): string {
+	return `'${text.replace(/[\\']/g, '\\$&').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}'`;
 }
 
 /**

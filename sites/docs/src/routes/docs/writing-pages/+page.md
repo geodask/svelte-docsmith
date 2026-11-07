@@ -124,7 +124,8 @@ label, not a paragraph. Search and `llms.txt` don't include them.
 The built-in fields are always checked: `order: "2"` or a `title` that YAML
 reads as a number fails the build with the page's path, instead of quietly
 dropping the page from where you expected it. A custom key one letter away from
-a built-in one, like `ordr` or `Title`, prints a warning.
+a built-in one, like `ordr` or `Title`, prints a warning, unless your schema
+declares it.
 
 To check your custom fields too, pass a `schema` to the
 [`docsmith()` Vite plugin](/docs/configuration#docsmith). Any

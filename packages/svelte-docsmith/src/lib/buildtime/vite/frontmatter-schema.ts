@@ -79,16 +79,28 @@ function builtinProblems(frontmatter: Record<string, unknown>): FieldProblem[] {
 	}));
 }
 
-async function schemaProblems(
+/**
+ * What the schema says about the custom fields: its problems, and the keys it
+ * kept in its output. A key the schema kept is one the author declared (a
+ * non-strict object schema drops the keys it doesn't know).
+ */
+async function checkWithSchema(
 	fields: Record<string, unknown>,
 	schema: StandardSchemaV1
-): Promise<FieldProblem[]> {
+): Promise<{ problems: FieldProblem[]; declared: Set<string> }> {
 	const result = await schema['~standard'].validate(fields);
-	return (result.issues ?? []).map((issue) => ({ path: pathOf(issue), message: issue.message }));
+	const problems = (result.issues ?? []).map((issue) => ({
+		path: pathOf(issue),
+		message: issue.message
+	}));
+	const output = 'value' in result ? result.value : undefined;
+	const declared = new Set(output && typeof output === 'object' ? Object.keys(output) : []);
+	return { problems, declared };
 }
 
-function typoLines(fields: Record<string, unknown>): string[] {
+function typoLines(fields: Record<string, unknown>, declared: Set<string>): string[] {
 	return Object.keys(fields).flatMap((key) => {
+		if (declared.has(key)) return [];
 		const meant = likelyTypoOf(key);
 		return meant ? [`${key}: did you mean \`${meant}\`? It is kept as a custom field.`] : [];
 	});
@@ -106,8 +118,8 @@ const pagesCount = (n: number) => (n === 1 ? '1 page' : `${n} pages`);
 
 /**
  * Check every page that has a frontmatter block. Throws one error listing each
- * page's problems; otherwise returns a warning about likely typos, if there
- * are any. A page with no block is left alone: it is a stub the indexes skip,
+ * page's problems; otherwise returns a warning about likely typos (custom keys
+ * the schema doesn't declare), if there are any. A page with no block is left alone: it is a stub the indexes skip,
  * not something the author configured.
  */
 export async function checkFrontmatter(
@@ -120,15 +132,13 @@ export async function checkFrontmatter(
 	for (const page of pages) {
 		if (!page.hasFrontmatter) continue;
 		const fields = customFields(page.frontmatter);
-		const problems = [
-			...builtinProblems(page.frontmatter),
-			...(schema ? await schemaProblems(fields, schema) : [])
-		];
+		const checked = schema ? await checkWithSchema(fields, schema) : undefined;
+		const problems = [...builtinProblems(page.frontmatter), ...(checked?.problems ?? [])];
 		if (problems.length) {
 			const lines = problems.map((p) => (p.path ? `${p.path}: ${p.message}` : p.message));
 			errors.push({ file: page.file, lines });
 		}
-		const typoed = typoLines(fields);
+		const typoed = typoLines(fields, checked?.declared ?? new Set());
 		if (typoed.length) typos.push({ file: page.file, lines: typoed });
 	}
 
@@ -141,7 +151,7 @@ export async function checkFrontmatter(
 		return (
 			`[svelte-docsmith] possible frontmatter typos in ${pagesCount(typos.length)}\n` +
 			`${formatReports(typos)}\n` +
-			`  Rename the key, or pass a strict \`schema\` to docsmith() to declare your custom fields.`
+			`  Rename the key, or declare it in the \`schema\` you pass to docsmith().`
 		);
 	}
 }
