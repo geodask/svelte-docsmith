@@ -3,6 +3,10 @@
 	// until a guided control changes that token; text under WCAG AA is flagged.
 	import { modeTokens, parseColour, type Mode } from './core.ts';
 	import type { Builder } from './builder.svelte.ts';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 
 	let { builder }: { builder: Builder } = $props();
 	let mode = $state<Mode>('light');
@@ -26,22 +30,18 @@
 </script>
 
 <div class="flex flex-col gap-4 text-sm">
-	<div
-		class="bg-muted grid grid-cols-2 gap-1 rounded-md p-1 text-xs font-medium"
-		role="group"
+	<ToggleGroup.Root
+		type="single"
+		variant="outline"
+		size="sm"
+		value={mode}
+		onValueChange={(v) => v && (mode = v as Mode)}
+		class="w-full"
 		aria-label="Colour mode"
 	>
-		{#each ['light', 'dark'] as const as m (m)}
-			<button
-				type="button"
-				aria-pressed={mode === m}
-				class="rounded px-2 py-1 capitalize {mode === m
-					? 'bg-background text-foreground shadow-sm'
-					: 'text-muted-foreground'}"
-				onclick={() => (mode = m)}>{m}</button
-			>
-		{/each}
-	</div>
+		<ToggleGroup.Item value="light" class="flex-1">Light</ToggleGroup.Item>
+		<ToggleGroup.Item value="dark" class="flex-1">Dark</ToggleGroup.Item>
+	</ToggleGroup.Root>
 
 	{#if issues.length}
 		<div class="border-destructive/40 bg-destructive/5 rounded-md border p-3 text-xs" role="status">
@@ -83,18 +83,19 @@
 								{#if flagged.has(key)}<span class="text-destructive" title="Below WCAG AA">●</span
 									>{/if}
 							</span>
-							<input
+							<Input
 								{value}
 								aria-label="{key} ({mode})"
 								onchange={(e) => builder.setToken(mode, key, e.currentTarget.value)}
-								class="border-input bg-background focus-visible:ring-ring min-w-0 flex-1 rounded border px-1.5 py-0.5 font-mono outline-none focus-visible:ring-2"
+								class="h-7 min-w-0 flex-1 px-2 font-mono text-xs md:text-xs"
 							/>
 							{#if key in edited}
-								<button
-									type="button"
-									class="text-muted-foreground hover:text-foreground"
+								<Button
+									variant="ghost"
+									size="icon-xs"
 									aria-label="Undo the edit to {key}"
-									onclick={() => builder.clearToken(mode, key)}>↺</button
+									onclick={() => builder.clearToken(mode, key)}
+									><RotateCcw aria-hidden="true" /></Button
 								>
 							{/if}
 						</label>

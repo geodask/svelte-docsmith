@@ -3,6 +3,7 @@
 	// link, and, when a terminal opened the builder, a one-click send with a
 	// paste-code fallback.
 	import type { Builder } from './builder.svelte.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 
 	let { builder }: { builder: Builder } = $props();
 	let copied = $state('');
@@ -24,8 +25,6 @@
 		URL.revokeObjectURL(url);
 	}
 
-	const btn =
-		'border-border hover:bg-accent hover:text-accent-foreground rounded-md border px-2.5 py-1.5 text-sm font-medium';
 	const pre = 'bg-muted text-foreground rounded-md p-3 font-mono text-xs';
 </script>
 
@@ -40,11 +39,7 @@
 				Sending writes <code class="font-mono">src/theme.css</code> and points
 				<code class="font-mono">docsmith(&#123; theme &#125;)</code> at it.
 			</p>
-			<button
-				type="button"
-				class="bg-primary text-primary-foreground mt-3 w-full rounded-md py-2 font-medium"
-				onclick={() => builder.sendToCli()}>Send to my project</button
-			>
+			<Button class="mt-3 w-full" onclick={() => builder.sendToCli()}>Send to my project</Button>
 			<details class="mt-2">
 				<summary class="text-muted-foreground cursor-pointer text-xs"
 					>Didn't arrive? Paste a code instead</summary
@@ -52,11 +47,11 @@
 				<p class="text-muted-foreground mt-2 text-xs">
 					Copy this and paste it at the terminal's prompt.
 				</p>
-				<button
-					type="button"
-					class="{btn} mt-2 w-full"
+				<Button
+					variant="outline"
+					class="mt-2 w-full"
 					onclick={() => copy('code', builder.pasteCode)}
-					>{copied === 'code' ? 'Copied' : 'Copy code'}</button
+					>{copied === 'code' ? 'Copied' : 'Copy code'}</Button
 				>
 			</details>
 		</section>
@@ -65,10 +60,10 @@
 	<section>
 		<h3 class="font-medium">1. Save the theme file</h3>
 		<div class="mt-2 flex gap-2">
-			<button type="button" class={btn} onclick={() => copy('file', builder.file)}
-				>{copied === 'file' ? 'Copied' : 'Copy'}</button
+			<Button variant="outline" onclick={() => copy('file', builder.file)}
+				>{copied === 'file' ? 'Copied' : 'Copy'}</Button
 			>
-			<button type="button" class={btn} onclick={download}>Download theme.css</button>
+			<Button variant="outline" onclick={download}>Download theme.css</Button>
 		</div>
 		<pre
 			class="{pre} text-muted-foreground mt-2 max-h-56 overflow-auto text-[11px] leading-snug">{builder.file}</pre>
@@ -76,7 +71,8 @@
 
 	<section>
 		<h3 class="font-medium">2. Point docsmith() at it</h3>
-		<pre class="{pre} mt-2">docsmith(&#123; site, theme: './src/theme.css' &#125;)</pre>
+		<pre
+			class="{pre} mt-2 overflow-x-auto">docsmith(&#123; site, theme: './src/theme.css' &#125;)</pre>
 		<p class="text-muted-foreground mt-2 text-xs">
 			Or run <code class="font-mono">npx svelte-docsmith theme</code> in your project and it does both
 			steps.
@@ -88,8 +84,8 @@
 		<p class="text-muted-foreground mt-1 text-xs">
 			A theme link reopens the builder on exactly this theme.
 		</p>
-		<button type="button" class="{btn} mt-2" onclick={() => copy('link', builder.link)}
-			>{copied === 'link' ? 'Copied' : 'Copy theme link'}</button
+		<Button variant="outline" class="mt-2" onclick={() => copy('link', builder.link)}
+			>{copied === 'link' ? 'Copied' : 'Copy theme link'}</Button
 		>
 	</section>
 
@@ -98,8 +94,8 @@
 		<p class="text-muted-foreground mt-1 text-xs">
 			Paint this theme on the whole docs site while you browse.
 		</p>
-		<button type="button" class="{btn} mt-2" onclick={() => builder.applyToSite()}
-			>Apply to this site</button
+		<Button variant="outline" class="mt-2" onclick={() => builder.applyToSite()}
+			>Apply to this site</Button
 		>
 	</section>
 </div>

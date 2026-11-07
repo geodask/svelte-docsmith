@@ -1,8 +1,14 @@
 <script lang="ts">
 	// The guided controls: a few inputs that steer every token. Moving one
 	// replaces only the tokens it changes, even over a preset or a paste.
-	import { fontOptions, shadowOptions } from './core.ts';
+	import { fontOptions, oklchToHex, parseColour, shadowOptions } from './core.ts';
 	import type { Builder } from './builder.svelte.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.ts';
+	import { Slider } from '#lib/components/ui/slider/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import Pipette from '@lucide/svelte/icons/pipette';
 
 	let { builder }: { builder: Builder } = $props();
 
@@ -24,8 +30,11 @@
 	const mono = $derived(
 		fontOptions.mono.includes(i.fontMono) ? fontOptions.mono : [i.fontMono, ...fontOptions.mono]
 	);
-	const select =
-		'border-input bg-background focus-visible:ring-ring mt-1.5 w-full rounded-md border px-2 py-1.5 text-sm outline-none focus-visible:ring-2';
+	// A typed hex (or any colour CSS takes) applies once it parses.
+	function typeBrand(value: string) {
+		const colour = parseColour(value.trim());
+		if (colour) builder.set({ brand: oklchToHex(colour) });
+	}
 	const hint = 'text-muted-foreground mt-0.5 text-xs leading-relaxed';
 </script>
 
@@ -49,93 +58,103 @@
 					onclick={() => builder.set({ brand: s })}
 				></button>
 			{/each}
+		</div>
+		<div class="mt-2.5 flex items-center gap-2">
+			<!-- The system colour dialog, behind a swatch: shadcn has no picker. -->
 			<label
-				class="border-border flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-xs"
+				class="border-input focus-within:ring-ring/50 relative flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border shadow-xs focus-within:ring-3"
+				style="background: {i.brand}"
+				title="Pick any colour"
 			>
+				<Pipette class="size-4 text-white mix-blend-difference" aria-hidden="true" />
 				<input
 					type="color"
-					value={i.brand}
+					value={/^#[0-9a-f]{6}$/i.test(i.brand) ? i.brand : '#000000'}
 					oninput={(e) => builder.set({ brand: e.currentTarget.value })}
-					class="size-5 cursor-pointer border-0 bg-transparent p-0"
+					class="absolute inset-0 cursor-pointer opacity-0"
 					aria-label="Pick any brand colour"
 				/>
-				<span class="font-mono">{i.brand}</span>
 			</label>
+			<Input
+				value={i.brand}
+				onchange={(e) => typeBrand(e.currentTarget.value)}
+				class="font-mono"
+				aria-label="Brand colour, as hex or any CSS colour"
+			/>
 		</div>
 	</fieldset>
 
-	<label class="block">
-		<span class="flex items-baseline justify-between text-sm font-medium">
-			Neutral tint <span class="text-muted-foreground font-mono text-xs"
-				>{Math.round(i.tint * 100)}%</span
-			>
-		</span>
-		<span class="{hint} block"
-			>How much of the brand hue the page, borders and muted text carry.</span
-		>
-		<input
-			type="range"
-			min="0"
-			max="1"
-			step="0.05"
+	<div>
+		<div class="flex items-baseline justify-between">
+			<Label id="tint-label">Neutral tint</Label>
+			<span class="text-muted-foreground font-mono text-xs">{Math.round(i.tint * 100)}%</span>
+		</div>
+		<p class={hint}>How much of the brand hue the page, borders and muted text carry.</p>
+		<Slider
+			type="single"
+			min={0}
+			max={1}
+			step={0.05}
 			value={i.tint}
-			oninput={(e) => builder.set({ tint: +e.currentTarget.value })}
-			class="accent-primary mt-2 w-full"
+			onValueChange={(v) => builder.set({ tint: v })}
+			aria-labelledby="tint-label"
+			class="mt-3"
 		/>
-	</label>
+	</div>
 
-	<label class="block">
-		<span class="flex items-baseline justify-between text-sm font-medium">
-			Corner radius <span class="text-muted-foreground font-mono text-xs">{i.radius}rem</span>
-		</span>
-		<input
-			type="range"
-			min="0"
-			max="1.5"
-			step="0.125"
+	<div>
+		<div class="flex items-baseline justify-between">
+			<Label id="radius-label">Corner radius</Label>
+			<span class="text-muted-foreground font-mono text-xs">{i.radius}rem</span>
+		</div>
+		<Slider
+			type="single"
+			min={0}
+			max={1.5}
+			step={0.125}
 			value={i.radius}
-			oninput={(e) => builder.set({ radius: +e.currentTarget.value })}
-			class="accent-primary mt-2 w-full"
+			onValueChange={(v) => builder.set({ radius: v })}
+			aria-labelledby="radius-label"
+			class="mt-3"
 		/>
-	</label>
+	</div>
 
 	<fieldset>
 		<legend class="text-sm font-medium">Shadows</legend>
-		<div class="bg-muted mt-2 grid grid-cols-4 gap-1 rounded-md p-1">
+		<ToggleGroup.Root
+			type="single"
+			variant="outline"
+			size="sm"
+			value={i.shadow}
+			onValueChange={(v) => v && builder.set({ shadow: v as typeof i.shadow })}
+			class="mt-2 w-full"
+		>
 			{#each shadowOptions as [value, name] (value)}
-				<button
-					type="button"
-					aria-pressed={i.shadow === value}
-					class="rounded px-2 py-1 text-xs font-medium {i.shadow === value
-						? 'bg-background text-foreground shadow-sm'
-						: 'text-muted-foreground hover:text-foreground'}"
-					onclick={() => builder.set({ shadow: value })}>{name}</button
-				>
+				<ToggleGroup.Item {value} class="flex-1">{name}</ToggleGroup.Item>
 			{/each}
-		</div>
+		</ToggleGroup.Root>
 	</fieldset>
 
 	<div class="grid gap-3">
-		<label class="block">
-			<span class="text-sm font-medium">Text font</span>
-			<select
-				class={select}
-				value={i.fontSans}
-				onchange={(e) => builder.set({ fontSans: e.currentTarget.value })}
-			>
-				{#each sans as f (f)}<option>{f}</option>{/each}
-			</select>
-		</label>
-		<label class="block">
-			<span class="text-sm font-medium">Code font</span>
-			<select
-				class={select}
-				value={i.fontMono}
-				onchange={(e) => builder.set({ fontMono: e.currentTarget.value })}
-			>
-				{#each mono as f (f)}<option>{f}</option>{/each}
-			</select>
-		</label>
+		{#each [{ id: 'font-sans', label: 'Text font', key: 'fontSans', options: sans }, { id: 'font-mono', label: 'Code font', key: 'fontMono', options: mono }] as const as field (field.id)}
+			<div class="grid gap-1.5">
+				<Label id={field.id}>{field.label}</Label>
+				<Select.Root
+					type="single"
+					value={i[field.key]}
+					onValueChange={(v) => v && builder.set({ [field.key]: v })}
+				>
+					<Select.Trigger class="w-full" aria-labelledby={field.id}>
+						{i[field.key]}
+					</Select.Trigger>
+					<Select.Content>
+						{#each field.options as f (f)}
+							<Select.Item value={f} label={f} />
+						{/each}
+					</Select.Content>
+				</Select.Root>
+			</div>
+		{/each}
 		<p class={hint}>
 			A theme names its fonts; your site loads them, with a link in <code class="font-mono"
 				>app.html</code

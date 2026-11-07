@@ -9,6 +9,8 @@
 	import ImportPanel from '#lib/theme-builder/import-panel.svelte';
 	import ExportPanel from '#lib/theme-builder/export-panel.svelte';
 	import PreviewFrame from '#lib/theme-builder/preview-frame.svelte';
+	import * as Tabs from '#lib/components/ui/tabs/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 
 	// The theme builder (ADR-0012). The panel and the page around it keep the
@@ -49,7 +51,7 @@
 		style="--builder-h: max(34rem, calc(100dvh - 9rem))"
 	>
 		<aside
-			class="border-border bg-sidebar text-sidebar-foreground flex flex-col overflow-hidden rounded-xl border lg:sticky lg:top-20 lg:h-(--builder-h)"
+			class="border-border bg-card text-card-foreground flex flex-col overflow-hidden rounded-xl border shadow-xs lg:sticky lg:top-20 lg:h-(--builder-h)"
 			aria-label="Theme builder controls"
 		>
 			<div class="border-border border-b p-4">
@@ -69,52 +71,43 @@
 				{/if}
 			</div>
 
-			<div class="border-border border-b px-4 py-2">
-				<div
-					class="bg-muted grid grid-cols-4 gap-1 rounded-md p-1 text-xs font-medium"
-					role="tablist"
-				>
-					{#each tabs as [key, label] (key)}
-						<button
-							type="button"
-							role="tab"
-							aria-selected={tab === key}
-							class="inline-flex items-center justify-center gap-1 rounded px-1.5 py-1 {tab === key
-								? 'bg-background text-foreground shadow-sm'
-								: 'text-muted-foreground hover:text-foreground'}"
-							onclick={() => (tab = key)}
-						>
-							{label}
-							{#if key === 'tokens' && issueCount}
-								<span
-									class="bg-destructive size-1.5 shrink-0 rounded-full"
-									aria-label="{issueCount} contrast warnings"
-								></span>
-							{/if}
-						</button>
-					{/each}
+			<Tabs.Root bind:value={tab} class="min-h-0 flex-1 gap-0">
+				<div class="border-border border-b px-4 py-2">
+					<Tabs.List class="w-full">
+						{#each tabs as [key, label] (key)}
+							<Tabs.Trigger value={key}>
+								{label}
+								{#if key === 'tokens' && issueCount}
+									<span
+										class="bg-destructive size-1.5 shrink-0 rounded-full"
+										aria-label="{issueCount} contrast warnings"
+									></span>
+								{/if}
+							</Tabs.Trigger>
+						{/each}
+					</Tabs.List>
 				</div>
-			</div>
-
-			<div class="min-h-0 flex-1 overflow-y-auto p-4" role="tabpanel">
-				{#if tab === 'guided'}
+				<Tabs.Content value="guided" class="min-h-0 overflow-y-auto p-4">
 					<GuidedPanel {builder} />
-				{:else if tab === 'tokens'}
+				</Tabs.Content>
+				<Tabs.Content value="tokens" class="min-h-0 overflow-y-auto p-4">
 					<TokensPanel {builder} />
-				{:else if tab === 'import'}
+				</Tabs.Content>
+				<Tabs.Content value="import" class="min-h-0 overflow-y-auto p-4">
 					<ImportPanel {builder} onimported={() => (tab = 'guided')} />
-				{:else}
+				</Tabs.Content>
+				<Tabs.Content value="export" class="min-h-0 overflow-y-auto p-4">
 					<ExportPanel {builder} />
-				{/if}
-			</div>
+				</Tabs.Content>
+			</Tabs.Root>
 
 			{#if tab !== 'export'}
 				<div class="border-border border-t p-3">
-					<button
-						type="button"
-						class="bg-primary text-primary-foreground w-full rounded-md py-2 text-sm font-medium"
+					<Button
+						size="lg"
+						class="w-full"
 						onclick={() => (builder.cli ? builder.sendToCli() : (tab = 'export'))}
-						>{builder.cli ? 'Send to my project' : 'Use this theme'}</button
+						>{builder.cli ? 'Send to my project' : 'Use this theme'}</Button
 					>
 				</div>
 			{/if}
@@ -124,13 +117,9 @@
 			<div class="flex flex-wrap items-center gap-3 text-sm">
 				<p class="text-muted-foreground">Preview on a docs page, in light and dark.</p>
 				{#if siteThemed}
-					<button
-						type="button"
-						class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs font-medium"
-						onclick={() => themeStore.reset()}
-					>
-						<RotateCcw class="size-3.5" aria-hidden="true" /> Reset site theme
-					</button>
+					<Button variant="ghost" size="xs" onclick={() => themeStore.reset()}>
+						<RotateCcw aria-hidden="true" /> Reset site theme
+					</Button>
 				{/if}
 			</div>
 
