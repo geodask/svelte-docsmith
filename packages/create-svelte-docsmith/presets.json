@@ -1,0 +1,47 @@
+[
+	{
+		"slug": "darkmatter",
+		"name": "Darkmatter",
+		"default": true
+	},
+	{
+		"slug": "tangerine",
+		"name": "Tangerine"
+	},
+	{
+		"slug": "amethyst",
+		"name": "Amethyst"
+	},
+	{
+		"slug": "graphite",
+		"name": "Graphite"
+	},
+	{
+		"slug": "evergreen",
+		"name": "Evergreen"
+	},
+	{
+		"slug": "rose",
+		"name": "Rosé"
+	},
+	{
+		"slug": "ocean",
+		"name": "Ocean"
+	},
+	{
+		"slug": "nord",
+		"name": "Nord"
+	},
+	{
+		"slug": "claude",
+		"name": "Claude"
+	},
+	{
+		"slug": "bubblegum",
+		"name": "Bubblegum"
+	},
+	{
+		"slug": "mono",
+		"name": "Mono"
+	}
+]

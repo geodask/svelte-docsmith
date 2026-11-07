@@ -88,7 +88,9 @@ export default defineConfig({
 				test: {
 					name: 'server',
 					environment: 'node',
-					include: ['src/**/*.{test,spec}.{js,ts}'],
+					// scripts/ holds repo tooling (the theme preset manifest) that is
+					// tested here but not packaged.
+					include: ['src/**/*.{test,spec}.{js,ts}', 'scripts/**/*.test.js'],
 					exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
 				}
 			}
