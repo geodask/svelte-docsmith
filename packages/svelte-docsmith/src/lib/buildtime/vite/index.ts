@@ -50,8 +50,9 @@ import { createPropsReader } from '../props/reader.js';
 import { docImportReads, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
 import { checkFrontmatter } from './frontmatter-schema.js';
 import { markdownPlugin } from './markdown.js';
+import { markdownExtensions } from '../markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
-import { brokenLinks, brokenLinksReport, type BrokenLink } from '../links.js';
+import { brokenLinks, brokenLinksCount, brokenLinksReport, type BrokenLink } from '../links.js';
 import { checkOutsidePaths } from '../outside-paths.js';
 
 export type {
@@ -146,9 +147,8 @@ function reportBrokenLinks(broken: BrokenLink[], level: 'error' | 'warn') {
 		return;
 	}
 	console.error(report);
-	const count = broken.length === 1 ? '1 broken link' : `${broken.length} broken links`;
 	throw new Error(
-		`[svelte-docsmith] ${count} in doc pages, listed above. Fix them, or set ` +
+		`[svelte-docsmith] ${brokenLinksCount(broken)} in doc pages, listed above. Fix them, or set ` +
 			"`links: { broken: 'warn' }` in docsmith() to build anyway."
 	);
 }
@@ -173,10 +173,10 @@ function contentIndexPlugin(
 	const indexOptions = { contentDir, routesDir, versions };
 	// A link to a `+page.svelte` beside the doc pages is a link to a page too.
 	// Listed afresh on every check, as the pages are read afresh.
-	const markdownExtensions = options.markdown.extensions ?? ['.md'];
+	const extensions = markdownExtensions(options.markdown);
 	const linkCheckOptions = () => ({
 		...indexOptions,
-		pageRoutes: listRouteFiles(contentDir, markdownExtensions)
+		pageRoutes: listRouteFiles(contentDir, extensions)
 	});
 
 	// `vite build` checks links where the content index reads the pages, and
@@ -327,7 +327,7 @@ function contentIndexPlugin(
 			const onChange = (file: string) => {
 				if (!isPageFile(file)) {
 					// No index reads a `+page.svelte`, but links to it count.
-					if (isRouteFile(file, markdownExtensions)) warnAboutBrokenLinks();
+					if (isRouteFile(file, extensions)) warnAboutBrokenLinks();
 					return;
 				}
 				warnAboutBrokenLinks();

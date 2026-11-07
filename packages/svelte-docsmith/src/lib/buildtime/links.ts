@@ -130,12 +130,20 @@ export function brokenLinks(
  * directory, the path an author would type to open them.
  */
 export function brokenLinksReport(broken: BrokenLink[]): string {
-	const count = broken.length === 1 ? '1 broken link' : `${broken.length} broken links`;
 	const lines = broken.map(
 		({ file, line, link, problem }) =>
 			`  ${relativeToCwd(file)}:${line}  ${link}  ${describeProblem(problem)}`
 	);
-	return [`[svelte-docsmith] ${count} in doc pages`, ...lines].join('\n');
+	return [`[svelte-docsmith] ${brokenLinksCount(broken)} in doc pages`, ...lines].join('\n');
+}
+
+/**
+ * How many links `broken` holds, in words: `1 broken link`, `3 broken links`.
+ * Shared by the report and the error that fails the build after it, so the two
+ * always count alike.
+ */
+export function brokenLinksCount(broken: BrokenLink[]): string {
+	return broken.length === 1 ? '1 broken link' : `${broken.length} broken links`;
 }
 
 function describeProblem(problem: LinkProblem): string {

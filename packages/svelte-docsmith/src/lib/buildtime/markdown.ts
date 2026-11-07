@@ -53,6 +53,15 @@ export interface DocsmithMarkdownOptions {
 	twoslash?: boolean;
 }
 
+/**
+ * The file extensions compiled as markdown: the author's, or `['.md']`. One
+ * default for every pass that has to agree on which files are doc pages: the
+ * compiler, the plugin that runs it, and the broken-link check's route list.
+ */
+export function markdownExtensions(options: DocsmithMarkdownOptions): string[] {
+	return options.extensions ?? ['.md'];
+}
+
 /** Compile one markdown file to Svelte markup, or `undefined` if it isn't one. */
 export type CompileMarkdown = (
 	content: string,
@@ -79,7 +88,7 @@ export function markdownCompiler(
 			: (options.layout ?? fileURLToPath(new URL('./markdown-layout.svelte', import.meta.url)));
 
 	const group = mdsvex({
-		extensions: options.extensions ?? ['.md'],
+		extensions: markdownExtensions(options),
 		layout,
 		highlight: {
 			// mdsvex passes the fence's trailing metadata as the third argument,
