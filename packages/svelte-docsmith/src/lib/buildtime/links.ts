@@ -18,7 +18,7 @@ import GithubSlugger from 'github-slugger';
 import path from 'node:path';
 import { Marked, type Token, type Tokens } from 'marked';
 import { isOutsidePath } from '../core/outside-path.js';
-import { under } from '../utils/url.js';
+import { normalizePath, sitePathOf, under } from '../utils/url.js';
 import { splitFrontmatter } from './markdown-source.js';
 import { docsBaseFrom, relativeToCwd, urlFor } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
@@ -180,47 +180,24 @@ function siteOf(pages: SourcePage[], options: LinkCheckOptions): Site {
 }
 
 /**
- * Where a link points, when that is a path on this site: one starting with `/`,
- * or a relative one starting `./` or `../`, which resolves against `writtenOn`,
- * the URL of the page it is written on, as does a same-page `#fragment`. A link
- * with a scheme (`https:`, `mailto:`) or starting `//` names another origin and
- * is left alone.
+ * Where a link points, when that is a path on this site, as {@link sitePathOf}
+ * resolves it against `writtenOn`, the URL of the page it is written on: the
+ * same resolver the compiler marks links to outside paths with, so the two
+ * never disagree on where a link goes.
  *
- * The path is reduced to the page it reaches: the query string goes, and so do
- * one trailing slash and a trailing `.md`, since `/docs/intro.md` is the agent
- * markdown twin of `/docs/intro` and stands or falls with it.
+ * The path is reduced to the page it reaches: a trailing slash goes, and so
+ * does a trailing `.md`, since `/docs/intro.md` is the agent markdown twin of
+ * `/docs/intro` and stands or falls with it.
  */
 function targetOf(href: string, writtenOn: string): Target | undefined {
-	if (href.startsWith('#')) return { path: writtenOn, fragment: href.slice(1) };
-	const relative = href.startsWith('./') || href.startsWith('../');
-	if (!relative && (!href.startsWith('/') || href.startsWith('//'))) return undefined;
+	const sitePath = sitePathOf(href, writtenOn);
+	if (sitePath === undefined) return undefined;
 	const hash = href.indexOf('#');
-	const beforeHash = hash === -1 ? href : href.slice(0, hash);
-	const fragment = hash === -1 ? undefined : href.slice(hash + 1);
-	const written = beforeHash.split('?')[0];
-	return { path: pagePathOf(relative ? resolveRelative(written, writtenOn) : written), fragment };
-}
-
-/**
- * `relative` resolved against `pageUrl` the way a browser resolves it: pages
- * are served without a trailing slash, so `./theming` on `/docs/guide/setup`
- * is the sibling `/docs/guide/theming`, and `../intro` is `/docs/intro`.
- * Segment by segment rather than through `URL`, which would percent-encode the
- * path and stop it matching a page directory named as written.
- */
-function resolveRelative(relative: string, pageUrl: string): string {
-	const segments = pageUrl.split('/').slice(1, -1);
-	for (const segment of relative.split('/')) {
-		if (segment === '..') segments.pop();
-		else if (segment !== '.') segments.push(segment);
-	}
-	return '/' + segments.join('/');
-}
-
-/** `urlPath` without one trailing slash, then without a trailing `.md`. */
-function pagePathOf(urlPath: string): string {
-	const trimmed = urlPath.length > 1 && urlPath.endsWith('/') ? urlPath.slice(0, -1) : urlPath;
-	return trimmed.endsWith('.md') ? trimmed.slice(0, -'.md'.length) : trimmed;
+	const pagePath = normalizePath(sitePath);
+	return {
+		path: pagePath.endsWith('.md') ? pagePath.slice(0, -'.md'.length) : pagePath,
+		fragment: hash === -1 ? undefined : href.slice(hash + 1)
+	};
 }
 
 /**

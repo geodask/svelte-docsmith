@@ -534,4 +534,13 @@ describe('brokenLinks with outside paths', () => {
 
 		expect(found.map(({ link }) => link)).toEqual(['/docs/apis']);
 	});
+
+	it('resolves a relative link to an outside path without percent-encoding it', () => {
+		// The compiler marks this same link rel="external"; see `markdown.test.ts`.
+		const body = '[a](./café/x) [b](/docs/café) [c](./cafe) [d](./caf%C3%A9/y)';
+
+		const found = brokenLinks([page('intro', body)], options, { outside: ['/docs/café'] });
+
+		expect(found.map(({ link }) => link)).toEqual(['./cafe']);
+	});
 });

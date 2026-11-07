@@ -14,6 +14,7 @@
  */
 import path from 'node:path';
 import { isOutsidePath } from '../core/outside-path.js';
+import { sitePathOf } from '../utils/url.js';
 import { relativeToCwd, urlFor } from './paths.js';
 import type { IndexOptions } from './vite/collect.js';
 import type { SourcePage } from './vite/pages.js';
@@ -76,14 +77,16 @@ type HastNode = {
  * it is left alone, as is a `rel={...}` it couldn't add to.
  *
  * Relative hrefs (`./x`, `../x`) resolve against the page's URL, as the
- * crawler resolves them, which only a file under the routes root has.
+ * crawler resolves them, which only a file under the routes root has. They go
+ * through `sitePathOf`, the resolver the broken-link check uses, so a link it
+ * accepts as an outside path is a link marked here.
  */
 export function rehypeOutsidePaths({ outside, routesDir }: OutsidePathsOptions) {
 	return () => (tree: HastNode, file: { filename?: string }) => {
 		if (!outside.length) return;
 		const pageUrl = pageUrlOf(file.filename, routesDir);
 		const isOutside = (href: string) => {
-			const target = siteAbsolute(href, pageUrl);
+			const target = sitePathOf(href, pageUrl);
 			return target !== undefined && isOutsidePath(target, outside);
 		};
 		const visit = (node: HastNode) => {
@@ -101,18 +104,6 @@ function pageUrlOf(filename: string | undefined, routesDir: string): string | un
 	const rel = path.relative(routesDir, path.dirname(filename));
 	if (rel.startsWith('..') || path.isAbsolute(rel)) return undefined;
 	return urlFor(routesDir, path.dirname(filename));
-}
-
-/**
- * `href` as a site-absolute path, when it is a same-origin path: as written
- * when it starts with `/`, resolved against `pageUrl` when it starts `./` or
- * `../`. Anything with a scheme or starting `//` names another origin.
- */
-function siteAbsolute(href: string, pageUrl: string | undefined): string | undefined {
-	if (href.startsWith('//')) return undefined;
-	if (href.startsWith('/')) return href;
-	if (pageUrl === undefined || !/^\.\.?\//.test(href)) return undefined;
-	return new URL(href, `http://docsmith.invalid${pageUrl}`).pathname;
 }
 
 function markElement(node: HastNode, isOutside: (href: string) => boolean) {

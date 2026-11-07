@@ -216,6 +216,19 @@ describe('markdown compiler with outside paths', () => {
 		expect(seen).toEqual([['external']]);
 	});
 
+	it('marks a relative link to an outside path without percent-encoding it', async () => {
+		// The broken-link check accepts this same link; see `links.test.ts`.
+		const compile = markdownCompiler({ layout: false }, codeBlockRenderer({}), {
+			outside: ['/docs/café'],
+			routesDir
+		});
+		const result = await compile('[a](./café/x) <a href="./café">b</a> [c](./cafe)', intro);
+		// remark writes the markdown link's href encoded; the raw <a> keeps it as written.
+		expect(result?.code).toContain('<a href="./caf%C3%A9/x" rel="external">');
+		expect(result?.code).toContain('<a href="./café" rel="external">');
+		expect(result?.code).toContain('<a href="./cafe">');
+	});
+
 	it('leaves relative links alone in a markdown file outside the routes root', async () => {
 		// It has no URL of its own, so there is nothing to resolve them against.
 		const code = await renderPage('[a](../relative)', {}, path.resolve('/app/src/lib/notes.md'));

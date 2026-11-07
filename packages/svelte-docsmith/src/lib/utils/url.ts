@@ -84,3 +84,55 @@ export function join(left: string, right: string): string {
 	if (!right) return l || '/';
 	return l + '/' + right.replace(/^\/+/, '');
 }
+
+/**
+ * The site-absolute path an href written on the page at `pageUrl` points at,
+ * without its query or fragment, or `undefined` when it names another origin.
+ * The one resolver behind both halves of outside paths, the broken-link check
+ * and the compiler's `rel="external"`, so a link one accepts as an outside path
+ * is a link the other marks.
+ *
+ * Only the forms a doc page links within the site by are resolved: a path
+ * starting `/`, a relative one starting `./` or `../`, and a same-page
+ * `#fragment`, which is the page itself. Anything with a scheme (`https:`,
+ * `mailto:`) or starting `//` names another origin. A bare relative path
+ * (`theming`) or a query alone is no form DocSmith reads, and is `undefined`
+ * too, as is a relative href or fragment with no `pageUrl` to resolve against.
+ *
+ * Resolved as a browser resolves it, segment by segment: pages are served
+ * without a trailing slash, so `./theming` on `/docs/guide/setup` is the
+ * sibling `/docs/guide/theming`, and `../intro` is `/docs/intro`. Not through
+ * `URL`, which percent-encodes, so a path would stop matching a directory named
+ * as written (`café`). Each segment is percent-decoded instead, since remark
+ * writes a markdown link's href encoded and a browser reads both spellings as
+ * one path; `%2F` and its kin stay encoded, so decoding never adds a segment.
+ * A trailing slash is kept: whether it matters is the caller's call (see
+ * {@link normalizePath}).
+ */
+export function sitePathOf(href: string, pageUrl: string | undefined): string | undefined {
+	let segments: string[];
+	let written = href.split(/[?#]/, 1)[0];
+	if (href.startsWith('#') || href.startsWith('./') || href.startsWith('../')) {
+		if (pageUrl === undefined) return undefined;
+		if (href.startsWith('#')) return pageUrl;
+		segments = pageUrl.split('/').slice(1, -1);
+	} else if (href.startsWith('/') && !href.startsWith('//')) {
+		segments = [];
+		written = written.slice(1);
+	} else return undefined;
+
+	for (const segment of written.split('/')) {
+		if (segment === '..') segments.pop();
+		else if (segment !== '.') segments.push(decodeSegment(segment));
+	}
+	return '/' + segments.join('/');
+}
+
+/** One path segment percent-decoded, or as written when it doesn't decode. */
+function decodeSegment(segment: string): string {
+	try {
+		return decodeURI(segment);
+	} catch {
+		return segment;
+	}
+}
