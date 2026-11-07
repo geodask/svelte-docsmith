@@ -109,21 +109,25 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 	// Results stay valid until one of the files they were read from changes.
 	// The client and server builds both import every props module, so the
 	// second build is served from here. An extraction still running counts as
-	// valid, so a component asked for twice at once is read once.
-	type Entry = { stamps?: [string, number][]; result: Promise<ExtractResult> };
+	// valid while the component is unchanged, so a component asked for twice at
+	// once is read once. The component is stamped as it was when extraction
+	// started, so an edit made while it ran is picked up by the next call.
+	type Entry = { started: number; stamps?: [string, number][]; result: Promise<ExtractResult> };
 	const cache = new Map<string, Entry>();
-	const valid = (entry: Entry) =>
-		entry.stamps === undefined || entry.stamps.every(([f, time]) => mtimeOf(f) === time);
+	const valid = (file: string, entry: Entry) =>
+		entry.stamps === undefined
+			? mtimeOf(file) === entry.started
+			: entry.stamps.every(([f, time]) => mtimeOf(f) === time);
 
 	return {
 		async extract(file) {
 			const cached = cache.get(file);
-			if (cached && valid(cached)) return { ...(await cached.result), fresh: false };
-			const entry: Entry = { result: extractFresh(file) };
+			if (cached && valid(file, cached)) return { ...(await cached.result), fresh: false };
+			const entry: Entry = { started: mtimeOf(file), result: extractFresh(file) };
 			cache.set(file, entry);
 			try {
 				const result = await entry.result;
-				entry.stamps = result.watchFiles.map((f) => [f, mtimeOf(f)]);
+				entry.stamps = result.watchFiles.map((f) => [f, f === file ? entry.started : mtimeOf(f)]);
 				return { ...result, fresh: true };
 			} catch (error) {
 				// Not cached, so the next import tries again rather than rethrowing this.

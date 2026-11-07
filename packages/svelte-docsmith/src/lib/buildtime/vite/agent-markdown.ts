@@ -156,13 +156,18 @@ const DOC_TAG = new RegExp(
 	'gm'
 );
 
-/** The local name `attribute={name}`, or the `{attribute}` shorthand, binds in `attributes`. */
-function boundName(attributes: string, attribute: string): string | undefined {
-	const match = new RegExp(
-		String.raw`(?:(?:^|\s)${attribute}\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}|\{\s*(${attribute})\s*\})`
-	).exec(attributes);
-	return match?.[1] ?? match?.[2];
-}
+/**
+ * Per tag, the pattern for the local name its kind's `attribute={name}`, or
+ * the `{attribute}` shorthand, binds.
+ */
+const BINDING_BY_TAG = new Map(
+	DOC_IMPORT_KINDS.map((kind) => [
+		kind.tag,
+		new RegExp(
+			String.raw`(?:(?:^|\s)${kind.attribute}\s*=\s*\{\s*([A-Za-z_$][\w$]*)\s*\}|\{\s*(${kind.attribute})\s*\})`
+		)
+	])
+);
 
 /**
  * A page's agent markdown: the page as written with its frontmatter and setup
@@ -182,24 +187,36 @@ function agentMarkdown(
 	let level = 1;
 	return outsideCodeFenceRuns(content, (prose) => {
 		const levelAt = (offset: number) => lastHeadingLevel(prose.slice(0, offset)) ?? level;
-		const written = prose.replace(
-			DOC_TAG,
-			(tag, indent: string, name: string, attributes: string, offset: number) => {
-				const kind = KIND_BY_TAG.get(name)!;
-				const local = boundName(attributes, kind.attribute);
-				const read = local === undefined ? undefined : reads.get(local);
-				// Not bound to an import of this kind: not ours to write out.
-				if (read === undefined || read.kind !== kind) return tag;
-				if (read.value === undefined) {
-					warn(
-						`${relativeToCwd(page.file)}: could not read \`${read.specifier}\` ` +
-							`for <${name} ${kind.attribute}={${local}}>, so agent markdown keeps the tag.`
-					);
-					return tag;
+		// `base` is where `text` starts in `prose`, for the heading level.
+		const rewrite = (text: string, base: number): string =>
+			text.replace(
+				DOC_TAG,
+				(tag, indent: string, name: string, attributes: string, offset: number) => {
+					const kind = KIND_BY_TAG.get(name)!;
+					const match = BINDING_BY_TAG.get(name)!.exec(attributes);
+					const local = match?.[1] ?? match?.[2];
+					const read = local === undefined ? undefined : reads.get(local);
+					const value = read?.kind === kind ? read.value : undefined;
+					if (read?.kind === kind && value === undefined) {
+						warn(
+							`${relativeToCwd(page.file)}: could not read \`${read.specifier}\` ` +
+								`for <${name} ${kind.attribute}={${local}}>, so agent markdown keeps the tag.`
+						);
+					}
+					if (value === undefined) {
+						// Kept as written, but a tag of another kind inside it is still
+						// written out. Past the `<`, so this tag can't match itself again.
+						const head = indent.length + 1;
+						return tag.slice(0, head) + rewrite(tag.slice(head), base + offset + head);
+					}
+					return kind.write(value as never, {
+						attributes,
+						indent,
+						level: levelAt(base + offset)
+					});
 				}
-				return kind.write(read.value as never, { attributes, indent, level: levelAt(offset) });
-			}
-		);
+			);
+		const written = rewrite(prose, 0);
 		level = levelAt(prose.length);
 		return written;
 	});

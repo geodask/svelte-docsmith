@@ -14,15 +14,20 @@ export const sourceImport: DocImportKind<'source'> = {
 
 	async module(file, hook, { render }) {
 		hook.addWatchFile(file);
-		const code = readExampleSource(file);
-		if (code === undefined) throw new Error(`[svelte-docsmith] could not read ${file}`);
+		// Unlike agent markdown, which keeps the tag, the page can't render
+		// without it: let the read fail the import with its own error.
+		const code = exampleSource(file);
 		// The same renderer as a markdown fence, so the panel matches one.
 		const html = sourcePanelHtml(await render(code, 'svelte'));
 		return `export default ${JSON.stringify(html)};`;
 	},
 
 	async read(file) {
-		return readExampleSource(file);
+		try {
+			return exampleSource(file);
+		} catch {
+			return undefined;
+		}
 	},
 
 	tag: 'LiveExample',
@@ -34,14 +39,7 @@ export const sourceImport: DocImportKind<'source'> = {
 	}
 };
 
-/**
- * The example as both sides show it: the file as written, trailing whitespace
- * trimmed; `undefined` when it can't be read.
- */
-function readExampleSource(file: string): string | undefined {
-	try {
-		return fs.readFileSync(file, 'utf-8').trimEnd();
-	} catch {
-		return undefined;
-	}
+/** The example as both sides show it: the file as written, trailing whitespace trimmed. */
+function exampleSource(file: string): string {
+	return fs.readFileSync(file, 'utf-8').trimEnd();
 }

@@ -191,6 +191,24 @@ describe('createPropsExtractor', COLD, () => {
 		expect(later.props).toBe(first.props);
 	});
 
+	it('picks up an edit made while the component was being extracted', async () => {
+		const file = path.join(tmp, 'racing.svelte');
+		fs.writeFileSync(file, '<script>\n\tlet { a } = $props();\n</script>\n');
+		const racing = createPropsExtractor({ root });
+
+		// The file is read as extraction starts; edit it before that one finishes.
+		const first = racing.extract(file);
+		fs.writeFileSync(file, '<script>\n\tlet { a, b } = $props();\n</script>\n');
+		const later = new Date(Date.now() + 5000);
+		fs.utimesSync(file, later, later);
+		const second = await racing.extract(file);
+
+		expect((await first).props.props.map((p) => p.name)).toEqual(['a']);
+		expect(second.fresh).toBe(true);
+		expect(second.props.props.map((p) => p.name)).toEqual(['a', 'b']);
+		expect((await racing.extract(file)).fresh).toBe(false);
+	});
+
 	it('picks up edits to a component', async () => {
 		const file = path.join(tmp, 'live.svelte');
 		const write = (type: string) =>

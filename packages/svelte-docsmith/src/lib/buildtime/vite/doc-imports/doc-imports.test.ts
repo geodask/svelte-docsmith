@@ -97,7 +97,7 @@ describe('?source', () => {
 		const missing = path.join(tmp, 'Missing.svelte');
 		await expect(
 			importThrough(docImportsPlugin(deps()), './Missing.svelte?source', missing)
-		).rejects.toThrow(`could not read ${missing}`);
+		).rejects.toThrow(/ENOENT/);
 	});
 
 	it('reads the same source for agent markdown, or nothing when it is missing', async () => {
