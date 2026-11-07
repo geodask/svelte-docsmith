@@ -21,9 +21,14 @@ const ALL_KEYS = [
 	...new Set(themes.flatMap((t) => [...Object.keys(t.light), ...Object.keys(t.dark)]))
 ];
 
+let customKeys: string[] = [];
+
 class ThemeStore {
 	/** Active preset slug, or null for the site's own theme (docsmith({ theme }), Darkmatter here). */
 	active = $state<string | null>(null);
+
+	/** PROTOTYPE: tokens from the theme builder, which win over `active` while set. */
+	custom = $state<{ light: Record<string, string>; dark: Record<string, string> } | null>(null);
 
 	/** Read the persisted choice (client only). Call once on mount. */
 	init() {
@@ -47,13 +52,27 @@ class ThemeStore {
 export const themeStore = new ThemeStore();
 
 /** Write (or clear) the active theme's tokens on <html> for the current mode. */
-export function applyActiveTheme(active: string | null, dark: boolean) {
+export function applyActiveTheme(
+	active: string | null,
+	dark: boolean,
+	custom: { light: Record<string, string>; dark: Record<string, string> } | null = null
+) {
 	if (typeof document === 'undefined') return;
 	const root = document.documentElement;
 
 	// Clear any previously-applied preset first, so switching themes never leaves
 	// a stale property behind.
 	for (const key of ALL_KEYS) root.style.removeProperty(`--${key}`);
+	for (const key of customKeys) root.style.removeProperty(`--${key}`);
+	customKeys = [];
+
+	// PROTOTYPE: the theme builder's tokens, applied without persisting.
+	if (custom) {
+		const tokens = dark ? { ...custom.light, ...custom.dark } : custom.light;
+		for (const [key, value] of Object.entries(tokens)) root.style.setProperty(`--${key}`, value);
+		customKeys = Object.keys(tokens);
+		return;
+	}
 
 	if (!active) {
 		try {

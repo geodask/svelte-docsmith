@@ -13,7 +13,7 @@
 	// Showcase: re-apply the viewer's chosen preset across the whole site, and
 	// keep it correct as they toggle light/dark.
 	onMount(() => themeStore.init());
-	$effect(() => applyActiveTheme(themeStore.active, mode.current === 'dark'));
+	$effect(() => applyActiveTheme(themeStore.active, mode.current === 'dark', themeStore.custom));
 </script>
 
 {@render children()}

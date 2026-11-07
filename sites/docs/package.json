@@ -22,7 +22,8 @@
 		"test": "echo 'No tests configured for docs site'",
 		"test:unit": "echo 'No unit tests configured for docs site'",
 		"test:coverage": "echo 'No test coverage configured for docs site'",
-		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+		"typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"prototype:theme-cli": "node scripts/prototype-theme-cli.mjs"
 	},
 	"devDependencies": {
 		"@lucide/svelte": "^1.70.0",

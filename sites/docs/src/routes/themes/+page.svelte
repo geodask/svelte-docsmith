@@ -8,6 +8,19 @@
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';
+	// PROTOTYPE: theme builder variants, shown with ?variant=A|B|C.
+	const browser = typeof window !== 'undefined';
+	import { page } from '$app/state';
+	import VariantA from '#lib/prototype-theme-builder/variant-a.svelte';
+	import VariantB from '#lib/prototype-theme-builder/variant-b.svelte';
+	import VariantC from '#lib/prototype-theme-builder/variant-c.svelte';
+	import Switcher from '#lib/prototype-theme-builder/switcher.svelte';
+	const variants: [string, string][] = [
+		['A', 'Guided steps'],
+		['B', 'Editor'],
+		['C', 'Preset remix']
+	];
+	const variant = $derived(browser ? page.url.searchParams.get('variant') : null);
 
 	// Picking a theme applies it to the whole site; the components below (and the
 	// chrome around them) re-skin live, so you see the theme in situ.
@@ -33,73 +46,81 @@
 		description: 'Preview and switch between the built-in Svelte DocSmith themes.'
 	}}
 >
-	<section class="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8 lg:py-24">
-		<div class="max-w-2xl">
-			<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Themes</h1>
-			<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
-				Eleven presets ship in the box. Pick one and it applies across the whole site instantly, so
-				every component and the chrome around it show the theme exactly as it renders in a real
-				project. Toggle dark mode to see both sides.
-			</p>
-		</div>
+	{#if variant}
+		{#key variant}
+			{#if variant === 'A'}<VariantA />{:else if variant === 'B'}<VariantB />{:else}<VariantC
+				/>{/if}
+		{/key}
+		<Switcher {variants} current={variant} />
+	{:else}
+		<section class="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8 lg:py-24">
+			<div class="max-w-2xl">
+				<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Themes</h1>
+				<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
+					Eleven presets ship in the box. Pick one and it applies across the whole site instantly,
+					so every component and the chrome around it show the theme exactly as it renders in a real
+					project. Toggle dark mode to see both sides.
+				</p>
+			</div>
 
-		<!-- Picker + controls -->
-		<div class="mt-8 flex flex-col gap-4">
-			<ThemePicker {themes} active={activeSlug} onselect={(slug) => themeStore.set(slug)} />
+			<!-- Picker + controls -->
+			<div class="mt-8 flex flex-col gap-4">
+				<ThemePicker {themes} active={activeSlug} onselect={(slug) => themeStore.set(slug)} />
 
-			<div class="flex flex-wrap items-center gap-3 text-sm">
-				<button
-					type="button"
-					onclick={toggleMode}
-					aria-label="Toggle dark mode"
-					class="border-border text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors outline-none focus-visible:ring-2"
-				>
-					{#if mode.current === 'dark'}
-						<Sun class="size-3.5" aria-hidden="true" /> Light
-					{:else}
-						<Moon class="size-3.5" aria-hidden="true" /> Dark
-					{/if}
-				</button>
-
-				{#if themeStore.active}
+				<div class="flex flex-wrap items-center gap-3 text-sm">
 					<button
 						type="button"
-						onclick={() => themeStore.reset()}
+						onclick={toggleMode}
+						aria-label="Toggle dark mode"
 						class="border-border text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors outline-none focus-visible:ring-2"
 					>
-						<RotateCcw class="size-3.5" aria-hidden="true" /> Reset to default
+						{#if mode.current === 'dark'}
+							<Sun class="size-3.5" aria-hidden="true" /> Light
+						{:else}
+							<Moon class="size-3.5" aria-hidden="true" /> Dark
+						{/if}
 					</button>
-				{/if}
 
-				<span class="text-muted-foreground">
-					Showing <span class="text-foreground font-medium">{activeName}</span>
-					{#if isDefault}<span class="text-muted-foreground/80">(default)</span>{/if}
-				</span>
+					{#if themeStore.active}
+						<button
+							type="button"
+							onclick={() => themeStore.reset()}
+							class="border-border text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors outline-none focus-visible:ring-2"
+						>
+							<RotateCcw class="size-3.5" aria-hidden="true" /> Reset to default
+						</button>
+					{/if}
+
+					<span class="text-muted-foreground">
+						Showing <span class="text-foreground font-medium">{activeName}</span>
+						{#if isDefault}<span class="text-muted-foreground/80">(default)</span>{/if}
+					</span>
+				</div>
 			</div>
-		</div>
 
-		<!-- Live components in the applied theme -->
-		<div class="mt-8">
-			<ThemeShowcase />
-		</div>
+			<!-- Live components in the applied theme -->
+			<div class="mt-8">
+				<ThemeShowcase />
+			</div>
 
-		<!-- How to use -->
-		<div class="border-border mt-16 max-w-2xl border-t pt-10">
-			<h2 class="text-2xl font-semibold tracking-tight">Use this theme in your project</h2>
-			<p class="text-muted-foreground mt-3 leading-relaxed">
-				The picker applies themes at runtime for this demo. In your own site you choose one in
-				<code class="font-mono text-sm">vite.config.ts</code>:
-			</p>
-			<pre
-				class="bg-card text-foreground border-border mt-4 overflow-x-auto rounded-lg border p-4 font-mono text-sm leading-relaxed"><code
-					>{configSnippet}</code
-				></pre>
-			<p class="text-muted-foreground mt-4 text-sm">
-				See <a
-					href="/docs/theming"
-					class="text-primary font-medium underline-offset-4 hover:underline">Theming</a
-				> for theme files of your own, overriding individual tokens and how dark mode is wired.
-			</p>
-		</div>
-	</section>
+			<!-- How to use -->
+			<div class="border-border mt-16 max-w-2xl border-t pt-10">
+				<h2 class="text-2xl font-semibold tracking-tight">Use this theme in your project</h2>
+				<p class="text-muted-foreground mt-3 leading-relaxed">
+					The picker applies themes at runtime for this demo. In your own site you choose one in
+					<code class="font-mono text-sm">vite.config.ts</code>:
+				</p>
+				<pre
+					class="bg-card text-foreground border-border mt-4 overflow-x-auto rounded-lg border p-4 font-mono text-sm leading-relaxed"><code
+						>{configSnippet}</code
+					></pre>
+				<p class="text-muted-foreground mt-4 text-sm">
+					See <a
+						href="/docs/theming"
+						class="text-primary font-medium underline-offset-4 hover:underline">Theming</a
+					> for theme files of your own, overriding individual tokens and how dark mode is wired.
+				</p>
+			</div>
+		</section>
+	{/if}
 </DocsShell>
