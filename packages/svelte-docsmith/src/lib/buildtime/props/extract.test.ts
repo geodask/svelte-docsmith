@@ -178,6 +178,19 @@ describe('createPropsExtractor', COLD, () => {
 		expect(warnings[0]).toContain('published package file');
 	});
 
+	it('marks only the call that extracted a result as fresh', async () => {
+		const file = path.join(tmp, 'fresh.svelte');
+		fs.writeFileSync(file, '<script>\n\tlet { a } = $props();\n</script>\n');
+		const fresh = createPropsExtractor({ root });
+
+		const [first, concurrent] = await Promise.all([fresh.extract(file), fresh.extract(file)]);
+		const later = await fresh.extract(file);
+
+		expect([first.fresh, concurrent.fresh, later.fresh]).toEqual([true, false, false]);
+		expect(concurrent.props).toBe(first.props);
+		expect(later.props).toBe(first.props);
+	});
+
 	it('picks up edits to a component', async () => {
 		const file = path.join(tmp, 'live.svelte');
 		const write = (type: string) =>

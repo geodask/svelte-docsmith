@@ -49,8 +49,19 @@ export interface PropsExtractorOptions {
 	tsconfig?: string;
 }
 
+/** One `extract()` call's answer: the result, and whether this call produced it. */
+export interface Extraction extends ExtractResult {
+	/**
+	 * `true` for the one call that extracted this result, `false` for every call
+	 * served it from the cache, concurrent ones included. Report the warnings
+	 * only when fresh and they go out once per extraction: again after one of
+	 * the `watchFiles` changes, never once per caller.
+	 */
+	fresh: boolean;
+}
+
 export interface PropsExtractor {
-	extract(file: string): Promise<ExtractResult>;
+	extract(file: string): Promise<Extraction>;
 }
 
 type TypedResult = TypedComponent | undefined | Error | 'missing-peers';
@@ -97,17 +108,28 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 
 	// Results stay valid until one of the files they were read from changes.
 	// The client and server builds both import every props module, so the
-	// second build is served from here.
-	const cache = new Map<string, { stamps: [string, number][]; result: ExtractResult }>();
-	const stamp = mtimeOf;
+	// second build is served from here. An extraction still running counts as
+	// valid, so a component asked for twice at once is read once.
+	type Entry = { stamps?: [string, number][]; result: Promise<ExtractResult> };
+	const cache = new Map<string, Entry>();
+	const valid = (entry: Entry) =>
+		entry.stamps === undefined || entry.stamps.every(([f, time]) => mtimeOf(f) === time);
 
 	return {
 		async extract(file) {
 			const cached = cache.get(file);
-			if (cached && cached.stamps.every(([f, time]) => stamp(f) === time)) return cached.result;
-			const result = await extractFresh(file);
-			cache.set(file, { stamps: result.watchFiles.map((f) => [f, stamp(f)]), result });
-			return result;
+			if (cached && valid(cached)) return { ...(await cached.result), fresh: false };
+			const entry: Entry = { result: extractFresh(file) };
+			cache.set(file, entry);
+			try {
+				const result = await entry.result;
+				entry.stamps = result.watchFiles.map((f) => [f, mtimeOf(f)]);
+				return { ...result, fresh: true };
+			} catch (error) {
+				// Not cached, so the next import tries again rather than rethrowing this.
+				if (cache.get(file) === entry) cache.delete(file);
+				throw error;
+			}
 		}
 	};
 
