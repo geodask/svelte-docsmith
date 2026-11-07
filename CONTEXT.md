@@ -105,6 +105,22 @@ The optional Standard Schema passed to `docsmith({ schema })`. It checks custom
 fields only, and never changes them.
 _Avoid_: docs schema, content schema, collection schema
 
+### Links
+
+**Broken link**:
+A link written in a doc page, as markdown or as an HTML `<a>`, whose path sits
+under the docs base but is no page of the site, or names an anchor its target
+page doesn't have. Relative links count once resolved against the page's URL.
+Links elsewhere on the site (`/`, `/llms.txt`) are the app's own business, and
+links to an outside path are valid, so neither is ever a broken link.
+_Avoid_: dead link, non-existent link, missing link
+
+**Outside path**:
+A same-origin path that something other than the docs site's SvelteKit app
+serves, such as a Worker, a reverse proxy or another app. Declared by the
+author as path prefixes; no doc page may live under one.
+_Avoid_: external path (external means another origin), passthrough path
+
 ### Code blocks
 
 **Code block**:
