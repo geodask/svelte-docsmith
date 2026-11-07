@@ -1,0 +1,105 @@
+import { describe, expect, it } from 'vitest';
+import type { ExtractedProps } from './extracted-props.js';
+import { plainDescription, propsReference } from './props-reference.js';
+
+const props = (rest: Partial<ExtractedProps> = {}): ExtractedProps => ({
+	name: 'Select',
+	typeParameters: [],
+	props: [],
+	inherited: [],
+	...rest
+});
+
+describe('propsReference', () => {
+	it('captions the table with the component name and its type parameters', () => {
+		expect(propsReference(props()).caption).toBe('Select');
+		expect(propsReference(props({ typeParameters: ['T', 'U'] })).caption).toBe('Select<T, U>');
+	});
+
+	it("lets the author's title replace the caption", () => {
+		expect(propsReference(props({ typeParameters: ['T'] }), 'Picker').caption).toBe('Picker');
+	});
+
+	it('gives each prop a row, with the deprecation note before the description', () => {
+		const { rows } = propsReference(
+			props({
+				props: [
+					{
+						name: 'variant',
+						type: "'a' | 'b'",
+						default: "'a'",
+						required: false,
+						bindable: false,
+						description: 'Visual intent.'
+					},
+					{
+						name: 'old',
+						required: true,
+						bindable: true,
+						deprecated: 'Use <code>value</code>.',
+						description: 'The old value.'
+					}
+				]
+			})
+		);
+		expect(rows).toEqual([
+			{
+				name: 'variant',
+				type: "'a' | 'b'",
+				default: "'a'",
+				required: false,
+				bindable: false,
+				deprecated: false,
+				description: ['Visual intent.']
+			},
+			{
+				name: 'old',
+				type: undefined,
+				default: undefined,
+				required: true,
+				bindable: true,
+				deprecated: true,
+				description: ['Deprecated: Use <code>value</code>.', 'The old value.']
+			}
+		]);
+	});
+
+	it('marks a bare @deprecated without adding a note', () => {
+		const { rows } = propsReference(
+			props({ props: [{ name: 'old', required: false, bindable: false, deprecated: '' }] })
+		);
+		expect(rows[0]).toMatchObject({ deprecated: true, description: [] });
+	});
+
+	it('sums up inherited attributes by what they belong to', () => {
+		const { notes } = propsReference(
+			props({
+				props: [{ name: 'size', required: false, bindable: false }],
+				inherited: [
+					{ kind: 'element', label: 'a' },
+					{ kind: 'type', label: 'ButtonProps' }
+				]
+			})
+		);
+		expect(notes).toEqual([
+			['Also accepts every ', { code: '<a>' }, ' attribute.'],
+			['Also accepts every prop of ', { code: 'ButtonProps' }, '.']
+		]);
+	});
+
+	it('says so when a component takes no props', () => {
+		expect(propsReference(props()).notes).toEqual([['No props.']]);
+		expect(propsReference(props({ inherited: [{ kind: 'element', label: 'div' }] })).notes).toEqual(
+			[['Also accepts every ', { code: '<div>' }, ' attribute.']]
+		);
+	});
+});
+
+describe('plainDescription', () => {
+	it('drops tags and decodes the entities the build-time renderer writes', () => {
+		expect(plainDescription('Use <code>a &lt; b</code> &amp; &quot;c&quot; &#39;d&#39;.')).toBe(
+			`Use a < b & "c" 'd'.`
+		);
+		expect(plainDescription(undefined)).toBeUndefined();
+	});
+});
