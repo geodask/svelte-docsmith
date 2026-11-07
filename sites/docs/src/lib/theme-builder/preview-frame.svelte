@@ -3,20 +3,18 @@
 	// width and scaled to fit its box (at the box's own width on a phone, where
 	// a scaled desktop page would be unreadable), painted with the builder's tokens in one
 	// colour mode. The frame says when it's ready; the theme is re-sent then,
-	// on load, and on every change. Its header mode toggle calls `onmode`.
+	// on load, and on every change.
 	import type { ThemeTokens } from './core.ts';
 
 	let {
 		tokens,
 		dark,
-		class: className = '',
-		onmode
+		class: className = ''
 	}: {
 		tokens: ThemeTokens;
 		dark: boolean;
 		/** Sizes the box: the frame fills it. */
 		class?: string;
-		onmode?: (dark: boolean) => void;
 	} = $props();
 
 	const SRC = '/themes/preview';
@@ -66,7 +64,6 @@
 		const onmessage = (e: MessageEvent) => {
 			if (e.origin !== location.origin || e.source !== frame?.contentWindow) return;
 			if (e.data?.type === 'docsmith-preview-ready') send();
-			if (e.data?.type === 'docsmith-preview-mode') onmode?.(Boolean(e.data.dark));
 		};
 		window.addEventListener('message', onmessage);
 		return () => window.removeEventListener('message', onmessage);

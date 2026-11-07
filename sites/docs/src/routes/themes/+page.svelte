@@ -26,9 +26,6 @@
 		['export', 'Export']
 	];
 	let tab = $state<Tab>('guided');
-	let view = $state<'light' | 'dark' | 'both'>('light');
-	// A preview frame's own mode toggle switches the view.
-	const onmode = (dark: boolean) => (view = dark ? 'dark' : 'light');
 
 	const startedFrom = $derived(builder.origin.kind === 'preset' ? builder.origin.slug : '');
 	const siteThemed = $derived(Boolean(themeStore.custom || themeStore.active));
@@ -125,7 +122,7 @@
 
 		<section class="flex min-w-0 flex-col gap-3 lg:h-(--builder-h)" aria-label="Preview">
 			<div class="flex flex-wrap items-center gap-3 text-sm">
-				<p class="text-muted-foreground">Preview on a docs page, in the theme you're building.</p>
+				<p class="text-muted-foreground">Preview on a docs page, in light and dark.</p>
 				{#if siteThemed}
 					<button
 						type="button"
@@ -135,39 +132,12 @@
 						<RotateCcw class="size-3.5" aria-hidden="true" /> Reset site theme
 					</button>
 				{/if}
-				<div
-					class="bg-muted ml-auto grid grid-cols-2 gap-1 rounded-md p-1 text-xs font-medium lg:grid-cols-3"
-					role="group"
-					aria-label="Preview colour mode"
-				>
-					{#each [['light', 'Light'], ['dark', 'Dark'], ['both', 'Both']] as const as [v, name] (v)}
-						<button
-							type="button"
-							aria-pressed={view === v}
-							class="rounded px-2.5 py-1 {v === 'both' ? 'hidden lg:block' : ''} {view === v
-								? 'bg-background text-foreground shadow-sm'
-								: 'text-muted-foreground hover:text-foreground'}"
-							onclick={() => (view = v)}>{name}</button
-						>
-					{/each}
-				</div>
 			</div>
 
-			<!-- Both frames stay mounted and the view only hides one, so switching
-			     is instant: no frame reloads. -->
-			<div class="grid min-h-0 flex-1 gap-4 {view === 'both' ? 'lg:grid-rows-2' : ''}">
-				<PreviewFrame
-					{onmode}
-					tokens={builder.tokens}
-					dark={false}
-					class="h-[75vh] lg:h-full {view === 'dark' ? 'hidden' : ''}"
-				/>
-				<PreviewFrame
-					{onmode}
-					tokens={builder.tokens}
-					dark={true}
-					class="h-[75vh] lg:h-full {view === 'light' ? 'hidden' : ''}"
-				/>
+			<!-- Light and dark, always both, one above the other. -->
+			<div class="grid min-h-0 flex-1 gap-4 lg:grid-rows-2">
+				<PreviewFrame tokens={builder.tokens} dark={false} class="h-[70vh] lg:h-full" />
+				<PreviewFrame tokens={builder.tokens} dark={true} class="h-[70vh] lg:h-full" />
 			</div>
 		</section>
 	</div>

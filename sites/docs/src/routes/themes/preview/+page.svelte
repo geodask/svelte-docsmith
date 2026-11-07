@@ -5,7 +5,6 @@
 	// mode and posts the theme in; the root layout applies it. Nothing here
 	// navigates or saves: every click is swallowed, so a button in the preview
 	// can't dismiss the real site's announcement or switch its colour mode.
-	// The header's mode toggle asks the builder to switch its view instead.
 	import { DocsShell } from 'svelte-docsmith';
 	// Not public exports: imported from the package source through the
 	// `$docsmith` alias, so the preview uses the real components without
@@ -60,10 +59,6 @@
 		if (!target) return;
 		e.preventDefault();
 		e.stopPropagation();
-		if (target.matches('button[aria-label^="Switch to"]') && window.parent !== window) {
-			const dark = !document.documentElement.classList.contains('dark');
-			window.parent.postMessage({ type: 'docsmith-preview-mode', dark }, location.origin);
-		}
 	}
 </script>
 
