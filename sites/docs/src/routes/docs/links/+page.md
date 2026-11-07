@@ -170,8 +170,8 @@ in the SvelteKit docs). Two things follow from it:
 
 An outside path says something else serves every URL under it, so a doc page
 there is a contradiction. If one exists, `vite build` fails, and `vite dev`
-shows the error as soon as a docs page loads, naming the page, its URL and the
-prefix. This holds even under `broken: 'ignore'`. Remove the prefix or move the
+prints the error at startup and shows it as soon as a docs page loads, naming
+the page, its URL and the prefix. This holds even under `broken: 'ignore'`. Remove the prefix or move the
 page.
 
 </Callout>
