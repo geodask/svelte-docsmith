@@ -179,9 +179,15 @@ describe('the theme plugin', () => {
 		const plugin = themePlugin();
 		expect(transform(plugin, '.a { color: red; }').result).toBeUndefined();
 		expect(transform(plugin, '--docsmith-theme: none;', '/app/src/main.ts').result).toBeUndefined();
+		for (const query of ['inline', 'raw', 'url']) {
+			expect(
+				transform(plugin, 'export default "--docsmith-theme: none;"', `/app/theme.css?${query}`)
+					.result
+			).toBeUndefined();
+		}
 		expect(
-			transform(plugin, '--docsmith-theme: none;', '/app/src/app.css?inline').result
-		).toBeUndefined();
+			transform(plugin, '--docsmith-theme: none;', '/app/app.css?direct').result
+		).toBeDefined();
 	});
 
 	it('warns once when the theme file has @import rules', () => {

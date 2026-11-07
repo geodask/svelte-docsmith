@@ -42,8 +42,9 @@ import { twoslashFailure, twoslashTransformer } from './twoslash.js';
  * rebuild. `theme.css` gives every token a fallback derived from the theme's
  * own colours.
  */
+const TOKENS_THEME_NAME = 'docsmith-tokens';
 const TOKENS_THEME = createCssVariablesTheme({
-	name: 'docsmith-tokens',
+	name: TOKENS_THEME_NAME,
 	variablePrefix: '--code-',
 	fontStyle: true
 });
@@ -134,7 +135,9 @@ const notation = (): ShikiTransformer[] => [
  */
 export function codeBlockRenderer(options: CodeBlockOptions = {}): RenderCodeBlock {
 	const pair = options.codeTheme;
-	const colours = pair ? { themes: pair } : { theme: TOKENS_THEME.name };
+	const colours: { themes: { light: string; dark: string } } | { theme: string } = pair
+		? { themes: pair }
+		: { theme: TOKENS_THEME_NAME };
 	const langs = [...new Set([...DEFAULT_LANGS, ...(options.langs ?? [])])];
 	const warn = options.warn ?? ((message: string) => console.warn(message));
 	let highlighter: Promise<Highlighter> | undefined;

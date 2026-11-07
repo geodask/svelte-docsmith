@@ -175,6 +175,13 @@ export function themePlugin(themeFile: string): Plugin {
 	};
 }
 
+/**
+ * Whether a module is a stylesheet Vite will serve as CSS. A `?raw`, `?inline`
+ * or `?url` import of a `.css` file is JavaScript by the time it reaches a
+ * transform, so it is left alone, the way a page reading `theme.css` as text
+ * expects.
+ */
 function isCssId(id: string): boolean {
-	return /\.css(?:$|\?)/.test(id) && !id.includes('?inline') && !id.includes('?url');
+	const [file, query = ''] = id.split('?', 2);
+	return file.endsWith('.css') && !/(?:^|&)(?:raw|inline|url)(?:&|=|$)/.test(query);
 }
