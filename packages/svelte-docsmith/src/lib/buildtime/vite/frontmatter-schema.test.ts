@@ -162,9 +162,25 @@ describe('checkFrontmatter', () => {
 					'    ordr: did you mean `order`? It is kept as a custom field.',
 					'  docs/b/+page.md',
 					'    Title: did you mean `title`? It is kept as a custom field.',
-					'  Rename the key, or pass a strict `schema` to docsmith() to declare your custom fields.'
+					'  Rename the key, or declare it in the `schema` you pass to docsmith().'
 				].join('\n')
 			);
+		});
+
+		it('is not reported once the schema declares it', async () => {
+			const schema = strict({ orders: optional });
+			await expect(
+				checkFrontmatter([page('docs/a', 'title: A\norders: [1]')], schema)
+			).resolves.toBeUndefined();
+		});
+
+		it('is still reported when a non-strict schema drops it', async () => {
+			const schema: StandardSchemaV1 = {
+				'~standard': { version: 1, vendor: 'test', validate: () => ({ value: { tags: [] } }) }
+			};
+			await expect(
+				checkFrontmatter([page('docs/a', 'title: A\nordr: 2\ntags: []')], schema)
+			).resolves.toMatch(/ordr: did you mean `order`/);
 		});
 
 		it('is not an error, so the build goes on', async () => {

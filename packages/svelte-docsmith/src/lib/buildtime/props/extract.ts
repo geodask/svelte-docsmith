@@ -64,7 +64,22 @@ export interface PropsExtractor {
 	extract(file: string): Promise<Extraction>;
 }
 
+/** TypeScript itself could not be set up (a broken tsconfig, say), as opposed to one read failing. */
+class SetupError extends Error {}
+
 type TypedResult = TypedComponent | undefined | Error | 'missing-peers';
+
+/**
+ * The tsconfig the type checker reads: the one named in the options, else the
+ * nearest `tsconfig.json` at or above the root, as `ts.findConfigFile` finds it.
+ */
+function tsconfigFile(options: PropsExtractorOptions): string {
+	if (options.tsconfig) return path.resolve(options.root, options.tsconfig);
+	for (let dir = path.resolve(options.root); ; dir = path.dirname(dir)) {
+		const file = path.join(dir, 'tsconfig.json');
+		if (fs.existsSync(file) || path.dirname(dir) === dir) return file;
+	}
+}
 
 export function createPropsExtractor(options: PropsExtractorOptions): PropsExtractor {
 	let checker: Promise<PropsTypeChecker | undefined> | undefined;
@@ -87,14 +102,16 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 		batch = [];
 		let results: TypedResult[];
 		try {
-			const tsChecker = await getChecker();
+			const tsChecker = await getChecker().catch((error: unknown) => {
+				throw new SetupError(error instanceof Error ? error.message : String(error));
+			});
 			results = tsChecker
 				? tsChecker.read(items.map((item) => item.file))
 				: items.map(() => 'missing-peers');
 		} catch (error) {
-			// Setting TypeScript up failed (a broken tsconfig, say). Report it on
-			// every waiting import rather than leaving them pending, and try again
-			// from scratch next time.
+			// Setting TypeScript up or reading failed. Report it on every waiting
+			// import rather than leaving them pending, and try again from scratch
+			// next time.
 			checker = undefined;
 			const failure = error instanceof Error ? error : new Error(String(error));
 			results = items.map(() => failure);
@@ -187,11 +204,16 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 		}
 
 		let typed: TypedComponent | undefined;
+		// When TypeScript could not be set up, the fix is usually in tsconfig.json:
+		// watch it too, so fixing it re-reads this component instead of serving
+		// the names-only table until the component itself changes.
+		let setupFiles: string[] = [];
 		if (parsed.typed) {
 			const result = await readTyped(file);
 			if (result === 'missing-peers') warn(MISSING_PEERS);
 			else if (result instanceof Error) {
 				warn(`could not read prop types (${result.message}). Showing names only.`);
+				if (result instanceof SetupError) setupFiles = [tsconfigFile(options)];
 			} else typed = result;
 		} else {
 			warn('`$props()` has no type annotation, so props show without types.');
@@ -229,7 +251,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 			}
 		}
 
-		return done([...new Set([file, ...(typed?.files ?? [])])]);
+		return done([...new Set([file, ...(typed?.files ?? []), ...setupFiles])]);
 	}
 }
 

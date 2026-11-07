@@ -32,7 +32,8 @@ options in your vite.config, so run it from your docs app.
 Options:
   --label <label>  switcher label for the archive (default: the current
                    version's label when <id> is the current version, else <id>)
-  --config <file>  vite config to read (default: the one Vite finds here)
+  --config <file>  vite config to read (default: the one Vite finds here).
+                   Paths in it resolve from here, as they do for vite build.
 `;
 
 /** Where the command writes, and what it resolves relative paths against. */

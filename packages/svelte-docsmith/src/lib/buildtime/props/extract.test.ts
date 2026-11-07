@@ -264,6 +264,45 @@ describe('createPropsExtractor when TypeScript itself fails', COLD, () => {
 			bindable: false
 		});
 	});
+
+	it('reads the types again once the broken tsconfig.json is fixed', async () => {
+		const project = fs.mkdtempSync(path.join(tmp, 'broken-tsconfig-'));
+		const tsconfig = path.join(project, 'tsconfig.json');
+		fs.writeFileSync(tsconfig, '{');
+		vi.resetModules();
+		vi.doMock('./typescript.js', async (importOriginal) => {
+			const original = await importOriginal<typeof import('./typescript.js')>();
+			return {
+				...original,
+				// Fails while the project's tsconfig is broken; once fixed, reads
+				// with the package's own config, where the fixture's types resolve.
+				createPropsTypeChecker: (
+					...[peers, opts]: Parameters<typeof original.createPropsTypeChecker>
+				) => {
+					JSON.parse(fs.readFileSync(tsconfig, 'utf-8'));
+					return original.createPropsTypeChecker(peers, { ...opts, root });
+				}
+			};
+		});
+		try {
+			const { createPropsExtractor: fresh } = await import('./extract.js');
+			const extractor = fresh({ root: project });
+
+			const broken = await extractor.extract(fixture('notice'));
+			expect(broken.warnings).toEqual([expect.stringContaining('could not read prop types')]);
+			expect(broken.watchFiles).toContain(tsconfig);
+			expect((await extractor.extract(fixture('notice'))).fresh).toBe(false);
+
+			fs.writeFileSync(tsconfig, '{}');
+			const later = new Date(Date.now() + 10_000);
+			fs.utimesSync(tsconfig, later, later);
+			const fixed = await extractor.extract(fixture('notice'));
+			expect(fixed).toMatchObject({ fresh: true, warnings: [] });
+			expect(fixed.props.props.find((p) => p.name === 'title')?.type).toBe('string');
+		} finally {
+			vi.doUnmock('./typescript.js');
+		}
+	});
 });
 
 describe('componentName', () => {

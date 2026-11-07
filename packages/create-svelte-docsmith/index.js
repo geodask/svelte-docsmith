@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
 import * as p from '@clack/prompts';
+import { applyOptions } from './apply-options.js';
 
 const templateDir = fileURLToPath(new URL('./template', import.meta.url));
 
@@ -59,26 +60,6 @@ function toTitle(name) {
 			.map((w) => w[0].toUpperCase() + w.slice(1))
 			.join(' ') || 'My Docs'
 	);
-}
-
-/** Fill the template placeholders, and wire the chosen theme preset into app.css. */
-function applyOptions(dest, { pkgName, title, preset }) {
-	const edit = (rel, fn) => {
-		const file = path.join(dest, rel);
-		fs.writeFileSync(file, fn(fs.readFileSync(file, 'utf-8')));
-	};
-	edit('package.json', (t) => t.replaceAll('{{PROJECT_NAME}}', pkgName));
-	edit('README.md', (t) => t.replaceAll('{{PROJECT_NAME}}', title));
-	edit('vite.config.ts', (t) => t.replaceAll('{{SITE_TITLE}}', title));
-	edit('src/routes/+page.svelte', (t) => t.replaceAll('{{SITE_TITLE}}', title));
-	if (preset && preset !== 'default') {
-		edit('src/app.css', (t) =>
-			t.replace(
-				"@import 'svelte-docsmith/theme.css';\n",
-				`@import 'svelte-docsmith/theme.css';\n@import 'svelte-docsmith/themes/${preset}.css';\n`
-			)
-		);
-	}
 }
 
 /** Run a command asynchronously so the event loop stays free (a synchronous

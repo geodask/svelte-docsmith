@@ -74,11 +74,17 @@ export function customFields(frontmatter: Record<string, unknown>): Record<strin
 /**
  * The built-in field a custom key was probably meant to be: one edit away
  * (`ordr`, `tilte`, `sections`) or the same key in another case (`Title`).
+ * A built-in with one letter in front is taken as its own word, so `border`
+ * is not read as `order`.
  */
 export function likelyTypoOf(key: string): BuiltinKey | undefined {
-	return (Object.keys(BUILTIN_FIELDS) as BuiltinKey[]).find(
-		(builtin) => builtin.toLowerCase() === key.toLowerCase() || withinOneEdit(builtin, key)
-	);
+	const lower = key.toLowerCase();
+	return (Object.keys(BUILTIN_FIELDS) as BuiltinKey[]).find((builtin) => {
+		if (builtin.toLowerCase() === lower) return true;
+		const prefixed =
+			lower.length === builtin.length + 1 && lower.slice(1) === builtin.toLowerCase();
+		return !prefixed && withinOneEdit(builtin, key);
+	});
 }
 
 /** Whether one insertion, deletion, substitution or adjacent swap turns `a` into `b`. */

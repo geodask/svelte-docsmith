@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { content } from 'svelte-docsmith/content';
 	import { DocsShell, Hero, FeatureGrid, Feature, CTA, Action } from 'svelte-docsmith';
+	import { site } from 'svelte-docsmith/site';
 </script>
 
 <!--
@@ -10,7 +11,7 @@
 -->
 <DocsShell {content} layout="page" pattern>
 	<Hero
-		title={{ SITE_TITLE }}
+		title={site.title}
 		description="A short line about what your project does and who it's for."
 	>
 		{#snippet actions()}

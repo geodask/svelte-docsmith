@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { docsmith } from 'svelte-docsmith/vite';
 
+const title = '{{SITE_TITLE}}';
+
 export default defineConfig({
 	plugins: [
 		// `docsmith()` is the one place your docs are configured. It compiles the
@@ -14,7 +16,7 @@ export default defineConfig({
 			// The site config: what the header, footer and SEO tags show. Every
 			// page and route reads it from here. See https://docsmith.geodask.com.
 			site: {
-				title: '{{SITE_TITLE}}',
+				title,
 				// github: 'https://github.com/you/your-library',
 				// description: 'A short tagline, used as the default meta description.',
 				// Set `url` to your deployed origin so the sitemap, llms.txt, and social
@@ -24,7 +26,7 @@ export default defineConfig({
 				// editUrl: 'https://github.com/you/your-library/edit/main',
 				nav: [{ label: 'Docs', href: '/docs/introduction' }],
 				footer: {
-					copyright: `© ${new Date().getFullYear()} {{SITE_TITLE}}`
+					copyright: `© ${new Date().getFullYear()} ${title}`
 				}
 			}
 		}),

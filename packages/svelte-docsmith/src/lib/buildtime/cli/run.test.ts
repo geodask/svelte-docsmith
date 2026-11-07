@@ -125,6 +125,14 @@ describe('archive-version', () => {
 		expect(output).toContain("{ id: 'v1', label: 'v1.x' }");
 	});
 
+	it('prints a label with quotes as a valid string literal', async () => {
+		const cwd = scratch();
+		const label = "Bob's \\ 1.x";
+		const output = await archive(cwd, ['archive-version', 'v1', '--label', label]);
+		const literal = output.match(/archived: \[(\{.*\})\]/)?.[1];
+		expect(new Function(`return ${literal}`)()).toEqual({ id: 'v1', label });
+	});
+
 	it('reads the content and routes directories from the docsmith() options', async () => {
 		const cwd = scratch({ content: 'app/docs', routes: 'app' });
 		fs.renameSync(path.join(cwd, 'src/routes'), path.join(cwd, 'app'));
