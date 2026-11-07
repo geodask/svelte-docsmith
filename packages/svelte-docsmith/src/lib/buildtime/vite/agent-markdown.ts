@@ -109,14 +109,18 @@ async function docImports(
 	page: Pick<SourcePage, 'file' | 'source'>,
 	resolve: ResolveImport
 ): Promise<Map<string, DocImport>> {
-	const imports = new Map<string, DocImport>();
-	for (const block of scriptBlocks(page.source)) {
-		for (const [, local, , base, kind] of block.matchAll(DOC_IMPORT)) {
-			const file = await resolve(base, page.file);
-			imports.set(local, { kind: kind as DocImportKind, specifier: `${base}?${kind}`, file });
-		}
-	}
-	return imports;
+	const matches = scriptBlocks(page.source).flatMap((block) => [...block.matchAll(DOC_IMPORT)]);
+	const resolved = await Promise.all(
+		matches.map(async ([, local, , base, kind]): Promise<[string, DocImport]> => [
+			local,
+			{
+				kind: kind as DocImportKind,
+				specifier: `${base}?${kind}`,
+				file: await resolve(base, page.file)
+			}
+		])
+	);
+	return new Map(resolved);
 }
 
 /**

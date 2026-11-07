@@ -32,7 +32,7 @@ export type IndexedPage = SourcePage & { url: string; title: string; version: st
 
 /**
  * Resolve every titled page against the site's layout, sorted by URL. Shared by
- * all three indexes so they can never disagree about which pages exist or where
+ * all three indexes (the llms index builds its entries in `./agent-markdown.js`) so they can never disagree about which pages exist or where
  * they live.
  */
 export function indexedPages(pages: SourcePage[], options: IndexOptions): IndexedPage[] {

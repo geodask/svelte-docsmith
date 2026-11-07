@@ -619,7 +619,7 @@ describe('agent markdown props through the plugin', { timeout: 60_000 }, () => {
 		);
 	});
 
-	it('watches each component and the files its types come from, so editing one rebuilds the index', async () => {
+	it('reads props as markdown, watching each component and the files its types come from', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
 		writePage(
 			'docs/notice',
@@ -627,8 +627,12 @@ describe('agent markdown props through the plugin', { timeout: 60_000 }, () => {
 			propsPage({ noticeProps: propsFixture('notice') }, '<PropsTable of={noticeProps} />')
 		);
 
-		const { ctx } = await agentMarkdown();
+		const { content, ctx } = await agentMarkdown();
 
+		// Descriptions arrive as markdown, links and code spans included.
+		expect(content['/docs/notice']).toContain(
+			"| `tone?` | `'neutral' \\| 'info' \\| 'danger'` | `'neutral'` | Visual intent. See [tones](/docs/tones) and `Tone`. |"
+		);
 		expect(ctx.addWatchFile).toHaveBeenCalledWith(propsFixture('notice'));
 		expect(ctx.addWatchFile).toHaveBeenCalledWith(
 			path.resolve(import.meta.dirname, '../props/_fixtures/types.ts')
