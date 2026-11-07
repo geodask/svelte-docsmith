@@ -5,11 +5,8 @@
  * same rows, descriptions as the JSDoc's own markdown. Both read through the
  * one props reader, so the two never extract a component twice.
  */
-import {
-	propsCaption,
-	type ExtractedProp,
-	type ExtractedProps
-} from '../../../core/extracted-props.js';
+import type { ExtractedProps } from '../../../core/extracted-props.js';
+import { propsReference, type PropRow } from '../../../core/props-reference.js';
 import type { DocImportKind } from './index.js';
 import { fenceFor, indented } from './markdown.js';
 
@@ -41,8 +38,8 @@ const TITLE_ATTRIBUTE =
 
 /**
  * A generated props table as agent markdown: the caption as a heading, then a
- * `Prop | Type | Default | Description` table with the rows the page renders,
- * then the inherited attributes summary.
+ * `Prop | Type | Default | Description` table of the page's rows, then the
+ * page's notes.
  */
 function propsTable(
 	props: ExtractedProps,
@@ -50,44 +47,33 @@ function propsTable(
 	level: number,
 	indent: string
 ): string {
-	const blocks = [`${'#'.repeat(level)} ${code(title ?? propsCaption(props))}`];
-	if (props.props.length) {
+	const { caption, rows, notes } = propsReference(props, title);
+	const blocks = [`${'#'.repeat(level)} ${code(caption)}`];
+	if (rows.length) {
 		blocks.push(
 			[
 				'| Prop | Type | Default | Description |',
 				'| --- | --- | --- | --- |',
-				...props.props.map((prop) => `| ${propCells(prop).join(' | ')} |`)
+				...rows.map((row) => `| ${rowCells(row).join(' | ')} |`)
 			].join('\n')
 		);
 	}
-	for (const group of props.inherited) {
-		blocks.push(
-			group.kind === 'element'
-				? `Also accepts every ${code(`<${group.label}>`)} attribute.`
-				: `Also accepts every prop of ${code(group.label)}.`
-		);
+	for (const note of notes) {
+		blocks.push(note.map((part) => (typeof part === 'string' ? part : code(part.code))).join(''));
 	}
-	if (props.props.length === 0 && props.inherited.length === 0) blocks.push('No props.');
 	return indented(blocks.join('\n\n'), indent);
 }
 
 /** One row's cells, marked as the rendered row is and escaped for a table. */
-function propCells(prop: ExtractedProp): string[] {
-	let name = code(prop.required ? prop.name : `${prop.name}?`);
-	if (prop.deprecated !== undefined) name = `~~${name}~~`;
-	const marks = [
-		prop.bindable && '*(bindable)*',
-		prop.deprecated !== undefined && '*(deprecated)*'
-	];
-	const description = [prop.deprecated && `Deprecated: ${prop.deprecated}`, prop.description]
-		.filter(Boolean)
-		.map((text) => inline(text as string))
-		.join('<br>');
+function rowCells(row: PropRow): string[] {
+	let name = code(row.required ? row.name : `${row.name}?`);
+	if (row.deprecated) name = `~~${name}~~`;
+	const marks = [row.bindable && '*(bindable)*', row.deprecated && '*(deprecated)*'];
 	return [
 		[name, ...marks.filter(Boolean)].join(' '),
-		prop.type === undefined ? '' : code(prop.type),
-		prop.default === undefined ? '' : code(prop.default),
-		description
+		row.type === undefined ? '' : code(row.type),
+		row.default === undefined ? '' : code(row.default),
+		row.description.map(inline).join('<br>')
 	].map((cell) => cell.replaceAll('|', '\\|'));
 }
 

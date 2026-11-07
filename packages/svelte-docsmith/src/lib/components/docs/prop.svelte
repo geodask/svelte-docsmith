@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { deprecationNote } from '../../core/props-reference.js';
 	import { unionMembers } from '../../utils/type-text.js';
 
 	const {
@@ -59,7 +60,7 @@
 	</div>
 
 	{#if typeof deprecated === 'string' && deprecated}
-		<div class="prop-desc prop-deprecated-note">Deprecated: {deprecated}</div>
+		<div class="prop-desc prop-deprecated-note">{deprecationNote(deprecated)}</div>
 	{/if}
 	{#if children}
 		<div class="prop-desc">{@render children()}</div>
