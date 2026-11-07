@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { brokenLinks } from './links.js';
+import { codeBlockRenderer } from './code-block.js';
+import { brokenLinks, brokenLinksReport } from './links.js';
+import { markdownCompiler } from './markdown.js';
 import { toPage, type SourcePage } from './vite/pages.js';
 import type { DocsVersions } from '#lib/core/version.js';
 
@@ -148,7 +150,7 @@ describe('brokenLinks', () => {
 	it('checks the page a link with a fragment or query points at', () => {
 		const body = '[a](/docs/theming#tokens) [b](/docs/nope#x) [c](/docs/theming?tab=svelte)';
 
-		const found = brokenLinks([page('intro', body), page('theming')], options);
+		const found = brokenLinks([page('intro', body), page('theming', '## Tokens')], options);
 
 		expect(found).toEqual([
 			expect.objectContaining({
@@ -199,5 +201,208 @@ describe('brokenLinks', () => {
 		const found = brokenLinks(pages, { contentDir: routesDir, routesDir });
 
 		expect(found.map(({ link }) => link)).toEqual(['/nope']);
+	});
+});
+
+describe('brokenLinks: anchors', () => {
+	/** The anchors the check says `target` has, read off a link to one it lacks. */
+	function anchorsOf(target: SourcePage): unknown {
+		const found = brokenLinks([page('intro', '[x](/docs/target#nope)'), target], options);
+		expect(found).toHaveLength(1);
+		return found[0].problem;
+	}
+
+	it('reports a fragment that is no anchor of the page it points at, with the anchors it has', () => {
+		const pages = [
+			page('intro', 'See [llms.txt](/docs/seo#llms-txt) and [sitemap](/docs/seo#sitemap).'),
+			page('seo', '## Sitemap\n\n## llms.txt')
+		];
+
+		expect(brokenLinks(pages, options)).toEqual([
+			{
+				file: fileOf('intro'),
+				line: 5,
+				link: '/docs/seo#llms-txt',
+				problem: {
+					type: 'no-anchor',
+					path: '/docs/seo',
+					anchor: 'llms-txt',
+					anchors: ['sitemap', 'llmstxt']
+				}
+			}
+		]);
+	});
+
+	it('checks a same-page fragment against the page it is written on', () => {
+		const body = '## Versions\n\nSee [versions](#versions) and [releases](#releases).';
+
+		const found = brokenLinks([page('intro', body), page('other', '## Releases')], options);
+
+		expect(found).toEqual([
+			expect.objectContaining({
+				link: '#releases',
+				problem: {
+					type: 'no-anchor',
+					path: '/docs/intro',
+					anchor: 'releases',
+					anchors: ['versions']
+				}
+			})
+		]);
+	});
+
+	it('counts headings of every level, not only the h2 and h3 of the table of contents', () => {
+		const target = [
+			'# One',
+			'',
+			'#### Four',
+			'',
+			'###### Six',
+			'',
+			'Setext',
+			'======',
+			'',
+			'> ## Quoted',
+			'',
+			'- ### Listed'
+		].join('\n');
+
+		expect(anchorsOf(page('target', target))).toMatchObject({
+			anchors: ['one', 'four', 'six', 'setext', 'quoted', 'listed']
+		});
+	});
+
+	it('gives duplicate headings the suffixed ids the page renders', () => {
+		const target = '## Options\n\n### Example\n\n## Example\n\n### Example';
+
+		expect(anchorsOf(page('target', target))).toMatchObject({
+			anchors: ['options', 'example', 'example-1', 'example-2']
+		});
+	});
+
+	it('counts an id written in the markdown, in an HTML block or inline', () => {
+		const target = [
+			'<div id="block">',
+			'',
+			"Text with an <span id='inline'>inline</span> anchor and <a id=bare></a>.",
+			'',
+			'</div>',
+			'',
+			'<Callout data-id="not-an-id" id={dynamic} />'
+		].join('\n');
+		const links = '[a](/docs/target#block) [b](/docs/target#inline) [c](/docs/target#bare)';
+
+		expect(brokenLinks([page('intro', links), page('target', target)], options)).toEqual([]);
+		expect(anchorsOf(page('target', target))).toMatchObject({
+			anchors: ['block', 'inline', 'bare']
+		});
+	});
+
+	it('ignores headings and ids written in code', () => {
+		const target = [
+			'```md',
+			'## Fenced',
+			'<div id="fenced"></div>',
+			'```',
+			'',
+			'Write `<a id="inline"></a>` for an anchor.',
+			'',
+			'## Real'
+		].join('\n');
+
+		expect(anchorsOf(page('target', target))).toMatchObject({ anchors: ['real'] });
+	});
+
+	it('accepts a percent-encoded fragment, an empty one and #top', () => {
+		const body = '## Café\n\n[a](#caf%C3%A9) [b](#café) [c](/docs/intro#) [d](#top)';
+
+		expect(brokenLinks([page('intro', body)], options)).toEqual([]);
+	});
+
+	it('reports a fragment on a page that does not exist as a missing page', () => {
+		const found = brokenLinks([page('intro', '[x](/docs/nope#x)')], options);
+
+		expect(found.map(({ problem }) => problem.type)).toEqual(['no-page']);
+	});
+
+	it('gives each anchor the id the compiled page renders, so the two cannot drift', async () => {
+		// Every id the compiled page puts on a heading or carries from a hand-written
+		// tag, in order, and no other, is an anchor of the page.
+		const target = [
+			'# Getting started',
+			'',
+			'## Install `svelte-docsmith`',
+			'',
+			'## What’s *new* in **v2**?',
+			'',
+			'## A [linked](/docs/intro) heading',
+			'',
+			'## <span>Inline HTML</span> & entities &amp; more',
+			'',
+			'### Escaped \\*stars\\* and under_scores',
+			'',
+			'#### Héllo wörld — ünïcode',
+			'',
+			'##### Example',
+			'',
+			'###### Example',
+			'',
+			'Setext heading',
+			'--------------',
+			'',
+			'## Trailing hashes ##',
+			'',
+			'## Dashes -- and --- and "quotes"... it\'s smart',
+			'',
+			'## Symbols &copy; &#169; &#x41;',
+			'',
+			'## An <code id="in-heading">id</code> inside',
+			'',
+			'<div id="hand-written"></div>',
+			'',
+			'```md',
+			'## Not a heading',
+			'```'
+		].join('\n');
+		const source = `---\ntitle: Target\n---\n\n${target}\n`;
+		const compiled = await markdownCompiler({}, codeBlockRenderer({}))(source, fileOf('target'));
+		// The id of every tag in the compiled markup, `<Components.h2>` included.
+		const rendered = [...compiled!.code.matchAll(/<[\w.]+(?:\s[^>]*?)?\sid="([^"]*)"/g)].map(
+			(match) => match[1]
+		);
+
+		expect(rendered).toHaveLength(16);
+		expect(anchorsOf(toPage(fileOf('target'), source))).toMatchObject({ anchors: rendered });
+	});
+});
+
+describe('brokenLinksReport', () => {
+	it('words a missing anchor with the anchors its page has', () => {
+		const file = path.join(process.cwd(), 'src/routes/docs/intro/+page.md');
+
+		const report = brokenLinksReport([
+			{
+				file,
+				line: 7,
+				link: '/docs/seo#llms-txt',
+				problem: {
+					type: 'no-anchor',
+					path: '/docs/seo',
+					anchor: 'llms-txt',
+					anchors: ['sitemap', 'llmstxt']
+				}
+			},
+			{
+				file,
+				line: 9,
+				link: '#x',
+				problem: { type: 'no-anchor', path: '/docs/intro', anchor: 'x', anchors: [] }
+			}
+		]);
+
+		expect(report.split('\n').slice(1)).toEqual([
+			'  src/routes/docs/intro/+page.md:7  /docs/seo#llms-txt  no anchor #llms-txt on /docs/seo (has: #sitemap, #llmstxt)',
+			'  src/routes/docs/intro/+page.md:9  #x  no anchor #x on /docs/intro (has: none)'
+		]);
 	});
 });
