@@ -8,6 +8,29 @@ import ModeToggle from './components/chrome/mode-toggle.svelte';
 export { default as DocsShell } from './components/layouts/docs-shell.svelte';
 export { default as ErrorPage } from './components/layouts/error-page.svelte';
 export { ModeProvider, ModeToggle };
+
+// The parts of DocsShell an override can replace, exported so an override can
+// wrap the built-in one: `{#snippet sidebar(props)}<Sidebar {...props} />{/snippet}`.
+// Each takes exactly the object its `DocsShell` snippet receives.
+export { default as Sidebar } from './components/layouts/docs-sidebar.svelte';
+export { default as TableOfContents } from './components/chrome/table-of-contents.svelte';
+export { default as PageHeader } from './components/layouts/page-header.svelte';
+export { default as Pager } from './components/layouts/pager.svelte';
+export type {
+	SidebarProps,
+	TableOfContentsProps,
+	PageHeaderProps,
+	PagerProps
+} from './components/layouts/parts.js';
+// What those objects carry: the sidebar tree, a breadcrumb, a TOC entry.
+export {
+	isNavGroup,
+	type NavGroup,
+	type NavItem,
+	type NavNode,
+	type Breadcrumb
+} from './core/index.js';
+export type { TocItem } from './toc/index.js';
 /** @deprecated Renamed to `ModeProvider`: it controls colour mode, not the theme. This alias goes in the next minor. */
 export const ThemeProvider = ModeProvider;
 /** @deprecated Renamed to `ModeToggle`: it switches colour mode, not the theme. This alias goes in the next minor. */

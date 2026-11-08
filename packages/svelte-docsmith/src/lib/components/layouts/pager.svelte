@@ -1,20 +1,15 @@
 <script lang="ts">
-	import type { NavItem } from '#lib/core/index.js';
+	import type { PagerProps } from './parts.js';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
-	const {
-		prev,
-		next,
-		bordered = true
-	}: { prev?: NavItem; next?: NavItem; bordered?: boolean } = $props();
+	// The previous and next links alone. The rule and spacing above them are the
+	// shell's frame, so a `pager` override sits in the same place.
+	const { prev, next }: PagerProps = $props();
 </script>
 
 {#if prev || next}
-	<nav
-		aria-label="Pagination"
-		class="flex justify-between gap-4 {bordered ? 'border-border mt-8 border-t pt-8' : 'mt-6'}"
-	>
+	<nav aria-label="Pagination" class="flex justify-between gap-4">
 		{#if prev}
 			<a
 				href={prev.url}

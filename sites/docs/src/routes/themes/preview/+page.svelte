@@ -5,13 +5,9 @@
 	// mode and posts the theme in; the root layout applies it. Nothing here
 	// navigates or saves: every click is swallowed, so a button in the preview
 	// can't dismiss the real site's announcement or switch its colour mode.
-	import { DocsShell } from 'svelte-docsmith';
-	// Not public exports: imported from the package source through the
-	// `$docsmith` alias, so the preview uses the real components without
-	// widening the package's API.
-	import DocsSidebar from '$docsmith/components/layouts/docs-sidebar.svelte';
-	import Breadcrumbs from '$docsmith/components/layouts/breadcrumbs.svelte';
-	import TableOfContents from '$docsmith/components/chrome/table-of-contents.svelte';
+	// The shell's own parts, the ones an override can wrap, placed in the same
+	// frames the docs layout gives them.
+	import { DocsShell, Sidebar, PageHeader, TableOfContents } from 'svelte-docsmith';
 	import Content from '#lib/theme-builder/preview-content.md';
 
 	const here = '/themes/preview';
@@ -70,16 +66,24 @@
 
 <DocsShell layout="page" pattern seo={{ title: 'Theme preview' }}>
 	<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
-		<DocsSidebar {nav} />
-		<div class="min-w-0 flex-1 py-6 lg:py-0">
-			<div class="flex items-start justify-between gap-4">
-				<Breadcrumbs items={[{ title: 'Getting started', url: '/' }, { title: 'Quick start' }]} />
-				<span class="text-muted-foreground text-sm whitespace-nowrap">3 min read</span>
+		<aside class="sticky top-24 hidden h-screen w-56 shrink-0 lg:block">
+			<div class="max-h-[calc(100vh-10rem)] overflow-y-auto px-4">
+				<Sidebar {nav} />
 			</div>
+		</aside>
+		<div class="min-w-0 flex-1 py-6 lg:py-0">
+			<PageHeader
+				path={here}
+				breadcrumbs={[{ title: 'Getting started', url: '/' }, { title: 'Quick start' }]}
+				readingMinutes={3}
+				copyPage={false}
+			/>
 			<Content />
 		</div>
 		<div class="hidden w-56 shrink-0 lg:block">
-			<TableOfContents items={toc} activeId="configure" />
+			<div class="sticky top-24">
+				<TableOfContents items={toc} activeId="configure" />
+			</div>
 		</div>
 	</div>
 </DocsShell>

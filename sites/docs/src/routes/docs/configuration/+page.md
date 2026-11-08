@@ -312,7 +312,9 @@ contents.
 </DocsShell>
 ```
 
-It reads the site config from `svelte-docsmith/site` itself.
+It reads the site config from `svelte-docsmith/site` itself. To replace its
+sidebar, table of contents, page header or pager, pass an
+[override](/docs/overrides).
 
 <PropsTable>
 	<Prop name="content" type="DocsContent" required>
@@ -368,6 +370,23 @@ It reads the site config from `svelte-docsmith/site` itself.
 	<Prop name="layout" type="'docs' | 'page'" default="'docs'">
 		<code>docs</code> is the three-column shell; <code>page</code> is full-bleed
 		content with the same header and footer but no sidebar or TOC.
+	</Prop>
+	<Prop name="sidebar" type="Snippet<[SidebarProps]>">
+		Override the sidebar, here and in the mobile menu. Receives
+		<code>{'{ nav }'}</code>. See <a href="/docs/overrides">Overrides</a>.
+	</Prop>
+	<Prop name="toc" type="Snippet<[TableOfContentsProps]>">
+		Override the table of contents, here and in the mobile popover. Receives
+		<code>{'{ items, activeId }'}</code>. See <a href="/docs/overrides">Overrides</a>.
+	</Prop>
+	<Prop name="pageHeader" type="Snippet<[PageHeaderProps]>">
+		Override the row above the page: breadcrumbs, reading time and Copy page.
+		Receives <code>{'{ path, breadcrumbs, readingMinutes, copyPage }'}</code>. See
+		<a href="/docs/overrides">Overrides</a>.
+	</Prop>
+	<Prop name="pager" type="Snippet<[PagerProps]>">
+		Override the previous and next links. Receives <code>{'{ prev, next }'}</code>.
+		See <a href="/docs/overrides">Overrides</a>.
 	</Prop>
 </PropsTable>
 
@@ -446,6 +465,11 @@ Like `DocsShell`, it reads the site config itself, so the chrome matches.
 - **`SitemapOptions`** / **`SitemapEntry`**: what `sitemap()` in
   `svelte-docsmith/server` takes.
 - **`CalloutVariant`** / **`BadgeVariant`**: the intent unions for `Callout` and `Badge`.
+- **`SidebarProps`** / **`TableOfContentsProps`** / **`PageHeaderProps`** /
+  **`PagerProps`**: what each [override](/docs/overrides) receives, and the props
+  of `Sidebar`, `TableOfContents`, `PageHeader` and `Pager`. **`NavGroup`**,
+  **`NavItem`**, **`NavNode`**, **`Breadcrumb`** and **`TocItem`** are what they
+  carry.
 
 The vendored shadcn primitives and internal helpers (the TOC engine, the
 clipboard utility, the markdown renderer map) are **not** part of the public API

@@ -18,16 +18,16 @@
 	import DocsHeader from './docs-header.svelte';
 	import DocsFooter from './docs-footer.svelte';
 	import DocsMobileHeader from './docs-mobile-header.svelte';
-	import DocsSidebar from './docs-sidebar.svelte';
-	import PrevNextNav from './prev-next-nav.svelte';
-	import Breadcrumbs from './breadcrumbs.svelte';
-	import CopyPageMenu from './copy-page-menu.svelte';
+	import Sidebar from './docs-sidebar.svelte';
+	import Pager from './pager.svelte';
+	import PageHeader from './page-header.svelte';
 	import PageFeedback from './page-feedback.svelte';
 	import SeoHead from './seo-head.svelte';
 	import VersionBanner from '../chrome/version-banner.svelte';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
 	import type { Snippet } from 'svelte';
+	import type { PageHeaderProps, PagerProps, SidebarProps, TableOfContentsProps } from './parts.js';
 
 	const {
 		content = [],
@@ -42,7 +42,11 @@
 		copyPage = false,
 		readingTime = true,
 		feedback,
-		layout = 'docs'
+		layout = 'docs',
+		sidebar,
+		toc: tocOverride,
+		pageHeader,
+		pager
 	}: {
 		/**
 		 * The `content` export of `svelte-docsmith/content`: every page and the
@@ -106,6 +110,32 @@
 		 * shares one chrome.
 		 */
 		layout?: 'docs' | 'page';
+		/**
+		 * Override the sidebar. Receives `{ nav }`; render `<Sidebar {...props} />`
+		 * inside to keep the built-in one. The shell keeps the sticky column, and
+		 * the override also fills the mobile menu. Ignored with `layout="page"`.
+		 */
+		sidebar?: Snippet<[SidebarProps]>;
+		/**
+		 * Override the table of contents. Receives `{ items, activeId }`; render
+		 * `<TableOfContents {...props} />` inside to keep the built-in one. The
+		 * shell keeps the sticky column, and the override also fills the mobile
+		 * "On this page" popover. Ignored with `layout="page"`.
+		 */
+		toc?: Snippet<[TableOfContentsProps]>;
+		/**
+		 * Override the page header, the row above the content (breadcrumbs,
+		 * reading time, Copy page). Receives `{ path, breadcrumbs, readingMinutes,
+		 * copyPage }`; render `<PageHeader {...props} />` inside to keep the
+		 * built-in one. Ignored with `layout="page"`.
+		 */
+		pageHeader?: Snippet<[PageHeaderProps]>;
+		/**
+		 * Override the pager, the previous and next links at the foot of the page.
+		 * Receives `{ prev, next }`; render `<Pager {...props} />` inside to keep
+		 * the built-in one. Ignored with `layout="page"`.
+		 */
+		pager?: Snippet<[PagerProps]>;
 	} = $props();
 
 	// Every rule about the page being read is resolved in one pure module
@@ -153,9 +183,16 @@
 	);
 	const showFooterMeta = $derived(Boolean(view.editHref || lastUpdatedLabel));
 
-	const readingTimeLabel = $derived(
-		readingTime && view.readingMinutes ? `${view.readingMinutes} min read` : undefined
-	);
+	// What each overridable part receives: the same object the built-in part
+	// takes as props, so an override can wrap the default.
+	const sidebarProps: SidebarProps = $derived({ nav: view.nav });
+	const pageHeaderProps: PageHeaderProps = $derived({
+		path: view.pathname,
+		breadcrumbs: view.breadcrumbs,
+		readingMinutes: readingTime ? view.readingMinutes : undefined,
+		copyPage: copyPage && Boolean(view.entry)
+	});
+	const pagerProps: PagerProps = $derived({ prev: view.prev, next: view.next });
 
 	// In-page TOC, scanned from the rendered content and re-scanned after every
 	// navigation (client-side included) so it never goes stale.
@@ -169,6 +206,7 @@
 	// the client engine has scanned the DOM, its items take over (scroll-spy +
 	// edge-case accuracy).
 	const tocItems = $derived(toc.items.length ? toc.items : view.toc);
+	const tocProps: TableOfContentsProps = $derived({ items: tocItems, activeId: toc.activeId });
 </script>
 
 <SeoHead title={seo?.title} description={seo?.description} />
@@ -210,10 +248,29 @@
 			{@render children()}
 		</main>
 	{:else}
-		<DocsMobileHeader sidebar {tocItems} tocActiveId={toc.activeId} {logo} {actions} />
+		<DocsMobileHeader
+			sidebar
+			{tocItems}
+			tocActiveId={toc.activeId}
+			sidebarOverride={sidebar}
+			{tocOverride}
+			{logo}
+			{actions}
+		/>
 
 		<div class="mx-auto flex w-full max-w-7xl flex-1 gap-12 px-4 md:px-6 lg:px-8 lg:pt-10">
-			<DocsSidebar nav={view.nav} />
+			<!-- Each overridable part sits in a frame the shell keeps (the sticky
+			     columns, the rule above the pager), so an override only decides
+			     what goes inside. -->
+			<aside class="sticky top-24 hidden h-screen w-56 shrink-0 bg-transparent lg:block">
+				<div class="max-h-[calc(100vh-10rem)] overflow-y-auto px-4">
+					{#if sidebar}
+						{@render sidebar(sidebarProps)}
+					{:else}
+						<Sidebar {...sidebarProps} />
+					{/if}
+				</div>
+			</aside>
 
 			<main
 				bind:this={contentEl}
@@ -225,24 +282,11 @@
 					<VersionBanner {...view.archivedBanner} />
 				{/if}
 
-				<div class="flex items-start justify-between gap-4">
-					<Breadcrumbs items={view.breadcrumbs} />
-					<div class="flex shrink-0 items-center gap-3">
-						{#if readingTimeLabel}
-							<span class="text-muted-foreground text-sm whitespace-nowrap">
-								{readingTimeLabel}
-							</span>
-						{/if}
-						{#if copyPage && view.entry}
-							<CopyPageMenu
-								path={view.pathname}
-								origin={site.url ?? ''}
-								title={site.title}
-								mcp={site.mcp}
-							/>
-						{/if}
-					</div>
-				</div>
+				{#if pageHeader}
+					{@render pageHeader(pageHeaderProps)}
+				{:else}
+					<PageHeader {...pageHeaderProps} />
+				{/if}
 				{@render children()}
 
 				{#if showFooterMeta}
@@ -279,13 +323,28 @@
 					{/key}
 				{/if}
 
-				<PrevNextNav prev={view.prev} next={view.next} bordered={!showFooterMeta} />
+				{#if pager || view.prev || view.next}
+					<!-- The edit/last-updated row already draws a rule; don't draw two. -->
+					<div class={showFooterMeta ? 'mt-6' : 'border-border mt-8 border-t pt-8'}>
+						{#if pager}
+							{@render pager(pagerProps)}
+						{:else}
+							<Pager {...pagerProps} />
+						{/if}
+					</div>
+				{/if}
 			</main>
 
 			<!-- Reserve the TOC column so its content filling in after hydration
 			     never shifts the page. -->
 			<div class="hidden w-56 shrink-0 lg:block">
-				<TableOfContents items={tocItems} activeId={toc.activeId} />
+				<div class="sticky top-24">
+					{#if tocOverride}
+						{@render tocOverride(tocProps)}
+					{:else}
+						<TableOfContents {...tocProps} />
+					{/if}
+				</div>
 			</div>
 		</div>
 	{/if}

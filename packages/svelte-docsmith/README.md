@@ -18,7 +18,7 @@ live table of contents. No per-page wiring, no content collection to configure.
 > **Status: pre-1.0.** Published to npm and usable today. Minor releases may still
 > include breaking changes until v1.0.
 >
-> **What 1.0 will lock.** Authoring components, `DocsShell`, `ErrorPage`,
+> **What 1.0 will lock.** Authoring components, `DocsShell` and its overrides, `ErrorPage`,
 > the `docsmith()` options, the sitemap / llms / feed
 > route handlers, the search engine, and the theming contract — ordinary semver,
 > breaking changes ride a major.
@@ -123,6 +123,22 @@ configure, and the shell reads your `site` options itself:
 </script>
 
 <DocsShell {content}>
+	{@render children()}
+</DocsShell>
+```
+
+To change a part of the shell, pass an override: a `sidebar`, `toc`,
+`pageHeader` or `pager` snippet. Each receives what its part shows, and the
+built-in parts (`Sidebar`, `TableOfContents`, `PageHeader`, `Pager`) are
+exported to wrap rather than rebuild:
+
+```svelte
+<DocsShell {content}>
+	{#snippet sidebar(props)}
+		<Sidebar {...props} />
+		<SponsorCard />
+	{/snippet}
+
 	{@render children()}
 </DocsShell>
 ```

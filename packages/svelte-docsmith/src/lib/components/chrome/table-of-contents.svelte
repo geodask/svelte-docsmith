@@ -1,17 +1,11 @@
 <script lang="ts">
 	import { cn } from '#lib/utils/cn.js';
-	import type { TocItem } from '#lib/toc/index.js';
+	import type { TableOfContentsProps } from '../layouts/parts.js';
 	import List from '@lucide/svelte/icons/list';
 
-	const {
-		items = [],
-		activeId = null,
-		class: className = ''
-	}: {
-		items?: TocItem[];
-		activeId?: string | null;
-		class?: string;
-	} = $props();
+	// The in-page list alone. Its sticky column (and the mobile popover) is the
+	// shell's frame, so a `toc` override sits in the same place.
+	const { items = [], activeId = null }: Partial<TableOfContentsProps> = $props();
 
 	// The single primary marker slides along the rail to the active entry. We
 	// measure the active anchor's box and animate the marker to it.
@@ -40,43 +34,41 @@
 </script>
 
 {#if items.length > 0}
-	<aside class={cn('sticky top-24 self-start', className)}>
-		<nav aria-label="On this page" class="pr-2">
-			<p class="text-foreground mb-3 flex items-center gap-2 text-sm font-semibold">
-				<List class="size-4" />
-				On this page
-			</p>
-			<div bind:this={railEl} class="toc-rail max-h-[calc(100vh-16rem)] overflow-y-auto text-sm">
-				<span
-					class="toc-marker"
-					class:toc-marker-animate={animate}
-					style="transform: translateY({markerTop}px); height: {markerHeight}px; opacity: {markerHeight >
-					0
-						? 1
-						: 0};"
-					aria-hidden="true"
-				></span>
-				<ul>
-					{#each items as item (item.id)}
-						<li>
-							<a
-								href="#{item.id}"
-								data-toc-id={item.id}
-								aria-current={activeId === item.id ? 'location' : undefined}
-								class={cn(
-									'text-muted-foreground hover:text-foreground block py-1.5 pl-4 leading-snug transition-colors duration-150',
-									item.depth === 3 && 'pl-8',
-									activeId === item.id && 'text-primary font-medium'
-								)}
-							>
-								{item.title}
-							</a>
-						</li>
-					{/each}
-				</ul>
-			</div>
-		</nav>
-	</aside>
+	<nav aria-label="On this page" class="pr-2">
+		<p class="text-foreground mb-3 flex items-center gap-2 text-sm font-semibold">
+			<List class="size-4" />
+			On this page
+		</p>
+		<div bind:this={railEl} class="toc-rail max-h-[calc(100vh-16rem)] overflow-y-auto text-sm">
+			<span
+				class="toc-marker"
+				class:toc-marker-animate={animate}
+				style="transform: translateY({markerTop}px); height: {markerHeight}px; opacity: {markerHeight >
+				0
+					? 1
+					: 0};"
+				aria-hidden="true"
+			></span>
+			<ul>
+				{#each items as item (item.id)}
+					<li>
+						<a
+							href="#{item.id}"
+							data-toc-id={item.id}
+							aria-current={activeId === item.id ? 'location' : undefined}
+							class={cn(
+								'text-muted-foreground hover:text-foreground block py-1.5 pl-4 leading-snug transition-colors duration-150',
+								item.depth === 3 && 'pl-8',
+								activeId === item.id && 'text-primary font-medium'
+							)}
+						>
+							{item.title}
+						</a>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	</nav>
 {/if}
 
 <style>
