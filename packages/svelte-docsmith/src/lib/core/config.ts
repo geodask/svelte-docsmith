@@ -76,7 +76,9 @@ export type DocsmithSite = {
 	 * Show the repo's star count beside the header GitHub link. Read from the
 	 * GitHub API once per build (and once per `dev` start) when `github` is a
 	 * `https://github.com/{owner}/{repo}` URL, using `GITHUB_TOKEN` when set.
-	 * Defaults to `true`; set `false` to skip the fetch and show the bare link.
+	 * When the build can't get it, readers' browsers fetch it instead, cached
+	 * for a day. Defaults to `true`; set `false` to skip both and show the bare
+	 * link.
 	 */
 	githubStars?: boolean;
 	/** Optional version string, shown in the header (e.g. your library version). */

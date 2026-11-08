@@ -5,62 +5,16 @@
  * Fetching here rather than in the reader's browser keeps the count off every
  * page view: no request per reader, no rate limit per reader IP, no number
  * popping in after the header renders. The trade is that the count is as old
- * as the build.
+ * as the build. When the build can't get it (most often a rate-limited shared
+ * build machine with no `GITHUB_TOKEN`), the header falls back to fetching it
+ * in the reader's browser: see `components/chrome/github-stars.svelte.ts`.
  *
  * Every failure is an `undefined` count and a reason handed to the caller,
  * never a thrown error: a missing number costs the header nothing but the
  * number. Reporting is the caller's to do, as for `commitDates` in `../git.js`.
  */
 import type { DocsmithSite } from '../core/config.js';
-
-export type GithubRepo = { owner: string; repo: string };
-
-// First path segments github.com serves its own pages under, so
-// `github.com/orgs/acme` names an org page, not a repo called `orgs/acme`.
-const RESERVED = new Set([
-	'about',
-	'apps',
-	'collections',
-	'enterprise',
-	'explore',
-	'features',
-	'issues',
-	'login',
-	'marketplace',
-	'new',
-	'notifications',
-	'organizations',
-	'orgs',
-	'pricing',
-	'pulls',
-	'search',
-	'settings',
-	'sponsors',
-	'topics',
-	'trending',
-	'users'
-]);
-
-/**
- * Read `https://github.com/{owner}/{repo}` off a URL, or `undefined` when it
- * names no repo. Deeper paths (`/tree/main/…`) still name the repo, and a
- * trailing `.git` is dropped. Anything else (another host, an org, user or
- * GitHub's own page, not a URL at all) names none, and gets no count.
- */
-export function githubRepo(url: string): GithubRepo | undefined {
-	let parsed: URL;
-	try {
-		parsed = new URL(url);
-	} catch {
-		return undefined;
-	}
-	if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return undefined;
-	if (parsed.hostname !== 'github.com' && parsed.hostname !== 'www.github.com') return undefined;
-	const [owner, rawRepo] = parsed.pathname.split('/').filter(Boolean);
-	const repo = rawRepo?.replace(/\.git$/, '');
-	if (!owner || !repo || RESERVED.has(owner.toLowerCase())) return undefined;
-	return { owner, repo };
-}
+import { githubRepo, type GithubRepo } from '../core/github-stars.js';
 
 export type FetchGithubStarsOptions = {
 	/** Swapped out in tests. */

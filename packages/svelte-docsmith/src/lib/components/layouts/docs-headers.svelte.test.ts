@@ -133,27 +133,58 @@ describe('DocsHeader and DocsMobileHeader', () => {
 	describe('GitHub link', () => {
 		afterEach(() => {
 			delete site.github;
+			delete site.githubStars;
 			stars.count = undefined;
+			vi.unstubAllGlobals();
 		});
 
 		it('both show the star count the build fetched, compact, with the exact count in the name', () => {
-			site.github = 'https://github.com/o/r';
+			const fetch = vi.fn();
+			vi.stubGlobal('fetch', fetch);
+			site.github = 'https://github.com/o/built';
 			stars.count = 1234;
 			render(Harness, { props: { view } });
 			const links = screen.getAllByRole('link', { name: 'GitHub, 1,234 stars' });
 			expect(links).toHaveLength(2);
 			for (const link of links) {
-				expect(link).toHaveAttribute('href', 'https://github.com/o/r');
+				expect(link).toHaveAttribute('href', 'https://github.com/o/built');
 				expect(link).toHaveTextContent('1.2k');
 			}
+			// A count from the build costs readers no request.
+			expect(fetch).not.toHaveBeenCalled();
 		});
 
-		it('fall back to the bare icon link when there is no count', () => {
-			site.github = 'https://github.com/o/r';
+		it('fetch the count in the browser, once, when the build had none', async () => {
+			const fetch = vi
+				.fn()
+				.mockResolvedValue(new Response(JSON.stringify({ stargazers_count: 56 }), { status: 200 }));
+			vi.stubGlobal('fetch', fetch);
+			site.github = 'https://github.com/o/fallback';
 			render(Harness, { props: { view } });
+			expect(screen.getAllByRole('link', { name: 'GitHub' })).toHaveLength(2);
+			expect(await screen.findAllByRole('link', { name: 'GitHub, 56 stars' })).toHaveLength(2);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		});
+
+		it('keep the bare icon link when the browser cannot get a count either', async () => {
+			const fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+			vi.stubGlobal('fetch', fetch);
+			site.github = 'https://github.com/o/offline';
+			render(Harness, { props: { view } });
+			await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
 			const links = screen.getAllByRole('link', { name: 'GitHub' });
 			expect(links).toHaveLength(2);
 			for (const link of links) expect(link).not.toHaveTextContent(/\d/);
+		});
+
+		it('ask nothing with githubStars: false', () => {
+			const fetch = vi.fn();
+			vi.stubGlobal('fetch', fetch);
+			site.github = 'https://github.com/o/off';
+			site.githubStars = false;
+			render(Harness, { props: { view } });
+			expect(screen.getAllByRole('link', { name: 'GitHub' })).toHaveLength(2);
+			expect(fetch).not.toHaveBeenCalled();
 		});
 
 		it('render nothing without site.github', () => {
