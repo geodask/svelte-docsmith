@@ -18,7 +18,7 @@
 	import DocsHeader from './docs-header.svelte';
 	import DocsFooter from './docs-footer.svelte';
 	import DocsMobileHeader from './docs-mobile-header.svelte';
-	import Sidebar from './docs-sidebar.svelte';
+	import Sidebar from './sidebar.svelte';
 	import Pager from './pager.svelte';
 	import PageHeader from './page-header.svelte';
 	import PageFeedback from './page-feedback.svelte';
@@ -44,7 +44,7 @@
 		feedback,
 		layout = 'docs',
 		sidebar,
-		toc: tocOverride,
+		toc,
 		pageHeader,
 		pager
 	}: {
@@ -197,16 +197,16 @@
 	// In-page TOC, scanned from the rendered content and re-scanned after every
 	// navigation (client-side included) so it never goes stale.
 	let contentEl = $state<HTMLElement | null>(null);
-	const toc = createToc(() => contentEl);
+	const liveToc = createToc(() => contentEl);
 	afterNavigate(() => {
-		toc.refresh();
+		liveToc.refresh();
 	});
 
 	// The build-time TOC from the content index is present on first paint; once
 	// the client engine has scanned the DOM, its items take over (scroll-spy +
 	// edge-case accuracy).
-	const tocItems = $derived(toc.items.length ? toc.items : view.toc);
-	const tocProps: TableOfContentsProps = $derived({ items: tocItems, activeId: toc.activeId });
+	const tocItems = $derived(liveToc.items.length ? liveToc.items : view.toc);
+	const tocProps: TableOfContentsProps = $derived({ items: tocItems, activeId: liveToc.activeId });
 </script>
 
 <SeoHead title={seo?.title} description={seo?.description} />
@@ -251,9 +251,9 @@
 		<DocsMobileHeader
 			sidebar
 			{tocItems}
-			tocActiveId={toc.activeId}
+			tocActiveId={liveToc.activeId}
 			sidebarOverride={sidebar}
-			{tocOverride}
+			tocOverride={toc}
 			{logo}
 			{actions}
 		/>
@@ -339,8 +339,8 @@
 			     never shifts the page. -->
 			<div class="hidden w-56 shrink-0 lg:block">
 				<div class="sticky top-24">
-					{#if tocOverride}
-						{@render tocOverride(tocProps)}
+					{#if toc}
+						{@render toc(tocProps)}
 					{:else}
 						<TableOfContents {...tocProps} />
 					{/if}

@@ -4,7 +4,13 @@
 	// from the package via `_fixtures`.
 	import type { DocsContentItem } from '#lib/core/index.js';
 	import DocsShell from '../docs-shell.svelte';
-	import Sidebar from '../docs-sidebar.svelte';
+	import Sidebar from '../sidebar.svelte';
+	import type {
+		PageHeaderProps,
+		PagerProps,
+		SidebarProps,
+		TableOfContentsProps
+	} from '../parts.js';
 
 	type Override = 'sidebar' | 'toc' | 'pageHeader' | 'pager' | 'wrapSidebar';
 
@@ -25,20 +31,20 @@
 	const has = (name: Override) => overrides.includes(name);
 </script>
 
-{#snippet sidebar({ nav }: { nav: { title: string }[] })}
+{#snippet sidebar({ nav }: SidebarProps)}
 	<p data-testid="sidebar-override">{nav.map((group) => group.title).join(',')}</p>
 {/snippet}
 
-{#snippet wrapSidebar(props: import('../parts.js').SidebarProps)}
+{#snippet wrapSidebar(props: SidebarProps)}
 	<p data-testid="sidebar-banner">Banner</p>
 	<Sidebar {...props} />
 {/snippet}
 
-{#snippet toc({ items, activeId }: import('../parts.js').TableOfContentsProps)}
+{#snippet toc({ items, activeId }: TableOfContentsProps)}
 	<p data-testid="toc-override">{items.map((item) => item.id).join(',')}|{activeId}</p>
 {/snippet}
 
-{#snippet pageHeader(props: import('../parts.js').PageHeaderProps)}
+{#snippet pageHeader(props: PageHeaderProps)}
 	<p data-testid="page-header-override">
 		{props.path}|{props.breadcrumbs
 			.map((crumb) => crumb.title)
@@ -46,7 +52,7 @@
 	</p>
 {/snippet}
 
-{#snippet pager({ prev, next }: import('../parts.js').PagerProps)}
+{#snippet pager({ prev, next }: PagerProps)}
 	<p data-testid="pager-override">{prev?.title}|{next?.title}</p>
 {/snippet}
 

@@ -5,7 +5,7 @@
 
 	// The in-page list alone. Its sticky column (and the mobile popover) is the
 	// shell's frame, so a `toc` override sits in the same place.
-	const { items = [], activeId = null }: Partial<TableOfContentsProps> = $props();
+	const { items, activeId }: TableOfContentsProps = $props();
 
 	// The single primary marker slides along the rail to the active entry. We
 	// measure the active anchor's box and animate the marker to it.

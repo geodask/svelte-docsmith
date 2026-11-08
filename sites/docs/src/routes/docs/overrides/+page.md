@@ -60,6 +60,36 @@ the props on and put your own markup around it:
 </DocsShell>
 ```
 
+## A table of contents and a page header
+
+The same pattern works for the other two. This keeps only the `h2` headings in
+the table of contents, and puts a "Report an issue" link beside the built-in
+page header:
+
+```svelte
+<script lang="ts">
+	import { content } from 'svelte-docsmith/content';
+	import { DocsShell, PageHeader, TableOfContents } from 'svelte-docsmith';
+
+	const { children } = $props();
+</script>
+
+<DocsShell {content}>
+	{#snippet toc({ items, activeId })}
+		<TableOfContents items={items.filter((item) => item.depth === 2)} {activeId} />
+	{/snippet}
+
+	{#snippet pageHeader(props)}
+		<PageHeader {...props} />
+		{#if props.breadcrumbs.length}
+			<a href="https://github.com/me/my-lib/issues/new?title={props.path}">Report an issue</a>
+		{/if}
+	{/snippet}
+
+	{@render children()}
+</DocsShell>
+```
+
 ## The four overrides
 
 <PropsTable>

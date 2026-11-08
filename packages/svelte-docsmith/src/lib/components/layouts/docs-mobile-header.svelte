@@ -3,7 +3,7 @@
 	import { outside, site } from 'svelte-docsmith/site';
 	import { siteLinkRel } from '#lib/core/outside-path.js';
 	import type { TocItem } from '#lib/toc/index.js';
-	import Sidebar from './docs-sidebar.svelte';
+	import Sidebar from './sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
 	import ModeToggle from '../chrome/mode-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';

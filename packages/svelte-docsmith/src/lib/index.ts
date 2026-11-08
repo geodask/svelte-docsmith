@@ -12,7 +12,7 @@ export { ModeProvider, ModeToggle };
 // The parts of DocsShell an override can replace, exported so an override can
 // wrap the built-in one: `{#snippet sidebar(props)}<Sidebar {...props} />{/snippet}`.
 // Each takes exactly the object its `DocsShell` snippet receives.
-export { default as Sidebar } from './components/layouts/docs-sidebar.svelte';
+export { default as Sidebar } from './components/layouts/sidebar.svelte';
 export { default as TableOfContents } from './components/chrome/table-of-contents.svelte';
 export { default as PageHeader } from './components/layouts/page-header.svelte';
 export { default as Pager } from './components/layouts/pager.svelte';
