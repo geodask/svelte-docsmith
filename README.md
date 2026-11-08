@@ -264,8 +264,14 @@ theme; set `codeTheme: { light, dark }` to use an exact Shiki pair instead.
 | `svelte-docsmith/theme.css`    | the base style contract                                                                                                                   |
 | `svelte-docsmith/themes/*.css` | the eleven presets, as theme files (choose one with `docsmith({ theme })`)                                                                |
 
-The package also ships a CLI binary: `npx svelte-docsmith archive-version <id>`
-freezes the current docs into a versioned archive.
+The package also ships a CLI binary with two commands:
+
+- `npx svelte-docsmith archive-version <id>` freezes the current docs into a
+  versioned archive.
+- `npx svelte-docsmith theme` opens the theme builder and writes the theme you
+  send from it to `src/theme.css`, setting `theme` in `docsmith()`. Pass
+  `--link <theme link>` to write a shared theme link without the browser. See
+  [Theming](https://docsmith.geodask.com/docs/theming#build-a-theme).
 
 The vendored shadcn primitives and internal helpers (the TOC engine, clipboard
 utility, markdown renderer map) are **not** part of the public API; they can

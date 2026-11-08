@@ -3,21 +3,25 @@
 	import Check from '@lucide/svelte/icons/check';
 	import type { Theme } from '#lib/themes-data.ts';
 
-	// Presentational theme chooser shared by the /themes page (applies site-wide)
-	// and the in-docs gallery (scoped preview). It owns no state — the parent
+	// Presentational preset chooser for the theming page (apply one
+	// site-wide). It owns no state — the parent
 	// passes the active slug and a select handler.
 	let {
 		themes,
 		active,
 		onselect
-	}: { themes: Theme[]; active: string; onselect: (slug: string) => void } = $props();
+	}: {
+		themes: Theme[];
+		active: string;
+		onselect: (slug: string) => void;
+	} = $props();
 
 	// The swatch dot shows the theme's own primary for the mode you're viewing, so
 	// dark-mode dots reflect dark-mode primaries rather than always the light one.
 	const dot = (t: Theme) => (mode.current === 'dark' ? t.dark.primary : t.light.primary);
 </script>
 
-<div class="flex flex-wrap gap-2" role="group" aria-label="Choose a theme">
+<div class="flex flex-wrap gap-2" role="group" aria-label="Choose a preset">
 	{#each themes as t (t.slug)}
 		{@const isActive = active === t.slug}
 		<button

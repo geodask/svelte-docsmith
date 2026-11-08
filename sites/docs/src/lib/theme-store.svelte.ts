@@ -1,42 +1,73 @@
 import { themes } from './themes-data';
 
-// Showcase-only: applies a preset's tokens to <html> at runtime so a viewer can
-// try a theme across the whole site. The library's shipped model (import one
-// theme CSS at build time) is unchanged — this just writes inline custom
-// properties, which win over theme.css and revert cleanly on reset.
+// Docs-site only: paints a theme's tokens on <html> at runtime so a reader can
+// try it across the whole site. The library's model (docsmith({ theme }) at
+// build time) is unchanged; this writes inline custom properties, which win
+// over the served theme and revert cleanly on reset.
 //
-// The tokens come straight from themes-data (generated from the shipped preset
-// CSS), so what the picker paints is exactly what a consumer would get: the full
-// set, including the sidebar/popover/ring the presets author by hand.
+// Two sources: a preset picked on /docs/theming (`active`), or a theme the
+// builder applied (`custom`). The builder's tokens win while set.
+
+export type AppliedTokens = { light: Record<string, string>; dark: Record<string, string> };
 
 const STORAGE_KEY = 'docsmith-showcase-theme';
-// The already-resolved `--token: value` map for the active theme+mode. The
-// blocking <head> script in app.html replays this before first paint to avoid a
-// theme flash on reload — no theme data is duplicated there, just this blob.
+const STORAGE_CUSTOM = 'docsmith-builder-theme';
+// The already-resolved `--token: value` map for the active theme and mode. The
+// blocking <head> script in app.html replays it before first paint, so a
+// reload doesn't flash the default theme.
 const STORAGE_VARS = 'docsmith-theme-vars';
 
-// Every custom property any preset can set, so a reset (or a switch to a preset
-// with fewer tokens) clears them all and never leaves a stale value behind.
-const ALL_KEYS = [
+// Every custom property a preset can set, so switching never leaves a stale one.
+const PRESET_KEYS = [
 	...new Set(themes.flatMap((t) => [...Object.keys(t.light), ...Object.keys(t.dark)]))
 ];
+let appliedKeys: string[] = [];
+
+function read<T>(key: string): T | null {
+	try {
+		const raw = localStorage.getItem(key);
+		return raw ? (JSON.parse(raw) as T) : null;
+	} catch {
+		return null;
+	}
+}
+
+function write(key: string, value: unknown) {
+	try {
+		if (value == null) localStorage.removeItem(key);
+		else localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+	} catch {
+		/* storage may be unavailable */
+	}
+}
 
 class ThemeStore {
-	/** Active preset slug, or null for the site's own theme (docsmith({ theme }), Darkmatter here). */
+	/** A preset slug picked on the theming page, or null for the site's own theme. */
 	active = $state<string | null>(null);
+
+	/** A theme applied from the builder, which wins over `active` while set. */
+	custom = $state<AppliedTokens | null>(null);
 
 	/** Read the persisted choice (client only). Call once on mount. */
 	init() {
 		if (typeof localStorage === 'undefined') return;
-		const stored = localStorage.getItem(STORAGE_KEY);
+		const stored = read<string>(STORAGE_KEY) ?? localStorage.getItem(STORAGE_KEY);
 		if (stored && themes.some((t) => t.slug === stored)) this.active = stored;
+		const custom = read<AppliedTokens>(STORAGE_CUSTOM);
+		if (custom?.light && custom?.dark) this.custom = custom;
 	}
 
 	set(slug: string | null) {
 		this.active = slug;
-		if (typeof localStorage === 'undefined') return;
-		if (slug) localStorage.setItem(STORAGE_KEY, slug);
-		else localStorage.removeItem(STORAGE_KEY);
+		this.custom = null;
+		write(STORAGE_KEY, slug);
+		write(STORAGE_CUSTOM, null);
+	}
+
+	/** Apply a theme from the builder across the site. */
+	apply(tokens: AppliedTokens) {
+		this.custom = tokens;
+		write(STORAGE_CUSTOM, tokens);
 	}
 
 	reset() {
@@ -46,40 +77,34 @@ class ThemeStore {
 
 export const themeStore = new ThemeStore();
 
-/** Write (or clear) the active theme's tokens on <html> for the current mode. */
-export function applyActiveTheme(active: string | null, dark: boolean) {
+/**
+ * Write (or clear) a theme's tokens on <html> for one colour mode: the
+ * builder's `custom` tokens if given, else the preset `active` names.
+ */
+export function applyActiveTheme(
+	active: string | null,
+	dark: boolean,
+	custom: AppliedTokens | null = null
+) {
 	if (typeof document === 'undefined') return;
 	const root = document.documentElement;
+	for (const key of PRESET_KEYS) root.style.removeProperty(`--${key}`);
+	for (const key of appliedKeys) root.style.removeProperty(`--${key}`);
+	appliedKeys = [];
 
-	// Clear any previously-applied preset first, so switching themes never leaves
-	// a stale property behind.
-	for (const key of ALL_KEYS) root.style.removeProperty(`--${key}`);
-
-	if (!active) {
-		try {
-			localStorage.removeItem(STORAGE_VARS);
-		} catch {
-			/* ignore */
-		}
+	const source = custom ?? themes.find((t) => t.slug === active) ?? null;
+	if (!source) {
+		write(STORAGE_VARS, null);
 		return;
 	}
 
-	const theme = themes.find((t) => t.slug === active);
-	if (!theme) return;
-
-	// `.dark` inherits whatever it doesn't set from `:root` (radius, shadows), as
-	// the preset's own CSS does.
-	const tokens = dark ? { ...theme.light, ...theme.dark } : theme.light;
+	// `.dark` inherits what it doesn't set from `:root`, as theme files do.
+	const tokens = dark ? { ...source.light, ...source.dark } : source.light;
 	const resolved: Record<string, string> = {};
 	for (const [key, value] of Object.entries(tokens)) {
 		root.style.setProperty(`--${key}`, value);
 		resolved[`--${key}`] = value;
 	}
-
-	// Persist the resolved map so the pre-paint head script can replay it on reload.
-	try {
-		localStorage.setItem(STORAGE_VARS, JSON.stringify(resolved));
-	} catch {
-		/* ignore */
-	}
+	appliedKeys = Object.keys(tokens);
+	write(STORAGE_VARS, resolved);
 }

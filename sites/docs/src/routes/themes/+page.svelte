@@ -1,105 +1,169 @@
 <script lang="ts">
 	import { DocsShell } from 'svelte-docsmith';
-	import { mode, toggleMode } from 'mode-watcher';
-	import { themes, defaultThemeSlug } from '#lib/themes-data.ts';
+	import { themes } from '#lib/themes-data.ts';
 	import { themeStore } from '#lib/theme-store.svelte.ts';
-	import ThemePicker from '#lib/components/theme-picker.svelte';
-	import ThemeShowcase from '#lib/components/theme-showcase.svelte';
+	import { mode } from 'mode-watcher';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import { Builder } from '#lib/theme-builder/builder.svelte.ts';
+	import GuidedPanel from '#lib/theme-builder/guided-panel.svelte';
+	import TokensPanel from '#lib/theme-builder/tokens-panel.svelte';
+	import ImportPanel from '#lib/theme-builder/import-panel.svelte';
+	import ExportPanel from '#lib/theme-builder/export-panel.svelte';
+	import PreviewFrame from '#lib/theme-builder/preview-frame.svelte';
+	import * as Tabs from '#lib/components/ui/tabs/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
-	import Sun from '@lucide/svelte/icons/sun';
-	import Moon from '@lucide/svelte/icons/moon';
 
-	// Picking a theme applies it to the whole site; the components below (and the
-	// chrome around them) re-skin live, so you see the theme in situ.
-	const activeSlug = $derived(themeStore.active ?? defaultThemeSlug);
-	const activeName = $derived(themes.find((t) => t.slug === activeSlug)?.name ?? '');
-	const isDefault = $derived(activeSlug === defaultThemeSlug);
+	// The theme builder (ADR-0012). The panel and the page around it keep the
+	// site's own theme, so a bad colour can't make the controls unreadable; the
+	// theme being built shows only in the preview frames, unless the author
+	// applies it to the site.
+	const builder = new Builder();
+	builder.start();
 
-	// The line that selects the current preset in a real site's vite.config.ts.
-	// Darkmatter is the default, so it needs none.
-	const configSnippet = $derived(
-		isDefault
-			? 'docsmith({ site }) // Darkmatter is the default'
-			: `docsmith({ site, theme: '${activeSlug}' })`
-	);
+	type Tab = 'guided' | 'tokens' | 'import' | 'export';
+	const tabs: [Tab, string][] = [
+		['guided', 'Guided'],
+		['tokens', 'Tokens'],
+		['import', 'Import'],
+		['export', 'Export']
+	];
+	let tab = $state<Tab>('guided');
+
+	const startedFrom = $derived(builder.origin.kind === 'preset' ? builder.origin.slug : '');
+	const startedTheme = $derived(themes.find((t) => t.slug === startedFrom));
+	// A preset's dot shows its primary in the colour mode the site is in.
+	const dot = (t: (typeof themes)[number]) =>
+		mode.current === 'dark' ? t.dark.primary : t.light.primary;
+	const dotClass =
+		'size-3 shrink-0 rounded-full ring-1 ring-black/10 ring-inset dark:ring-white/20';
+	const siteThemed = $derived(Boolean(themeStore.custom || themeStore.active));
+	const issueCount = $derived(builder.issues.length);
 </script>
 
 <DocsShell
 	search={() => import('svelte-docsmith/search').then((m) => m.docs)}
 	layout="page"
-	pattern
 	seo={{
-		title: 'Themes',
-		description: 'Preview and switch between the built-in Svelte DocSmith themes.'
+		title: 'Theme builder',
+		description:
+			'Build a Svelte DocSmith theme from a preset, your brand colour or a tweakcn export, preview it on a real docs page, and send it to your project.'
 	}}
 >
-	<section class="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8 lg:py-24">
-		<div class="max-w-2xl">
-			<h1 class="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">Themes</h1>
-			<p class="text-muted-foreground mt-4 text-lg leading-relaxed text-pretty">
-				Eleven presets ship in the box. Pick one and it applies across the whole site instantly, so
-				every component and the chrome around it show the theme exactly as it renders in a real
-				project. Toggle dark mode to see both sides.
-			</p>
-		</div>
-
-		<!-- Picker + controls -->
-		<div class="mt-8 flex flex-col gap-4">
-			<ThemePicker {themes} active={activeSlug} onselect={(slug) => themeStore.set(slug)} />
-
-			<div class="flex flex-wrap items-center gap-3 text-sm">
-				<button
-					type="button"
-					onclick={toggleMode}
-					aria-label="Toggle dark mode"
-					class="border-border text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors outline-none focus-visible:ring-2"
-				>
-					{#if mode.current === 'dark'}
-						<Sun class="size-3.5" aria-hidden="true" /> Light
-					{:else}
-						<Moon class="size-3.5" aria-hidden="true" /> Dark
-					{/if}
-				</button>
-
-				{#if themeStore.active}
-					<button
-						type="button"
-						onclick={() => themeStore.reset()}
-						class="border-border text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-medium transition-colors outline-none focus-visible:ring-2"
+	<!-- The panel and the preview share one height on large screens, the
+	     viewport less the header and the announcement bar, so the pinned
+	     button and the whole preview are in view without scrolling. -->
+	<div
+		class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 md:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:px-8"
+		style="--builder-h: max(34rem, calc(100dvh - 9rem))"
+	>
+		<aside
+			class="border-border bg-card text-card-foreground flex flex-col overflow-hidden rounded-xl border shadow-xs lg:sticky lg:top-20 lg:h-(--builder-h)"
+			aria-label="Theme builder controls"
+		>
+			<div class="border-border border-b p-4">
+				<h1 class="text-lg font-semibold tracking-tight">Theme builder</h1>
+				<p class="text-muted-foreground mt-1 text-xs leading-relaxed">
+					Start from a preset or your own colour, adjust, and take the theme file to your project.
+				</p>
+				<div class="mt-4 flex items-center gap-3">
+					<span id="start-from" class="text-muted-foreground shrink-0 text-xs font-medium"
+						>Start from</span
 					>
-						<RotateCcw class="size-3.5" aria-hidden="true" /> Reset to default
-					</button>
+					<Select.Root
+						type="single"
+						value={startedFrom}
+						onValueChange={(slug) => slug && builder.loadPreset(slug)}
+					>
+						<Select.Trigger class="w-full" aria-labelledby="start-from">
+							{#if startedTheme}
+								<span class="flex items-center gap-2">
+									<span class={dotClass} style="background: {dot(startedTheme)}"></span>
+									{startedTheme.name}
+								</span>
+							{:else}
+								<span class="text-muted-foreground"
+									>{builder.origin.kind === 'link' ? 'A theme link' : 'Your imported theme'}</span
+								>
+							{/if}
+						</Select.Trigger>
+						<Select.Content>
+							{#each themes as t (t.slug)}
+								<Select.Item value={t.slug} label={t.name}>
+									<span class="flex items-center gap-2">
+										<span class={dotClass} style="background: {dot(t)}"></span>
+										{t.name}
+									</span>
+								</Select.Item>
+							{/each}
+						</Select.Content>
+					</Select.Root>
+				</div>
+				{#if builder.notice}
+					<p class="text-muted-foreground mt-3 text-xs" role="status">{builder.notice}</p>
 				{/if}
-
-				<span class="text-muted-foreground">
-					Showing <span class="text-foreground font-medium">{activeName}</span>
-					{#if isDefault}<span class="text-muted-foreground/80">(default)</span>{/if}
-				</span>
 			</div>
-		</div>
 
-		<!-- Live components in the applied theme -->
-		<div class="mt-8">
-			<ThemeShowcase />
-		</div>
+			<Tabs.Root bind:value={tab} class="min-h-0 flex-1 gap-0">
+				<div class="border-border border-b px-4 py-2">
+					<Tabs.List class="w-full">
+						{#each tabs as [key, label] (key)}
+							<Tabs.Trigger
+								value={key}
+								class="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+							>
+								{label}
+								{#if key === 'tokens' && issueCount}
+									<span
+										class="bg-destructive size-1.5 shrink-0 rounded-full"
+										aria-label="{issueCount} contrast warnings"
+									></span>
+								{/if}
+							</Tabs.Trigger>
+						{/each}
+					</Tabs.List>
+				</div>
+				<Tabs.Content value="guided" class="min-h-0 overflow-y-auto p-4">
+					<GuidedPanel {builder} />
+				</Tabs.Content>
+				<Tabs.Content value="tokens" class="min-h-0 overflow-y-auto p-4">
+					<TokensPanel {builder} />
+				</Tabs.Content>
+				<Tabs.Content value="import" class="min-h-0 overflow-y-auto p-4">
+					<ImportPanel {builder} onimported={() => (tab = 'guided')} />
+				</Tabs.Content>
+				<Tabs.Content value="export" class="min-h-0 overflow-y-auto p-4">
+					<ExportPanel {builder} />
+				</Tabs.Content>
+			</Tabs.Root>
 
-		<!-- How to use -->
-		<div class="border-border mt-16 max-w-2xl border-t pt-10">
-			<h2 class="text-2xl font-semibold tracking-tight">Use this theme in your project</h2>
-			<p class="text-muted-foreground mt-3 leading-relaxed">
-				The picker applies themes at runtime for this demo. In your own site you choose one in
-				<code class="font-mono text-sm">vite.config.ts</code>:
-			</p>
-			<pre
-				class="bg-card text-foreground border-border mt-4 overflow-x-auto rounded-lg border p-4 font-mono text-sm leading-relaxed"><code
-					>{configSnippet}</code
-				></pre>
-			<p class="text-muted-foreground mt-4 text-sm">
-				See <a
-					href="/docs/theming"
-					class="text-primary font-medium underline-offset-4 hover:underline">Theming</a
-				> for theme files of your own, overriding individual tokens and how dark mode is wired.
-			</p>
-		</div>
-	</section>
+			{#if tab !== 'export'}
+				<div class="border-border border-t p-3">
+					<Button
+						size="lg"
+						class="w-full"
+						onclick={() => (builder.cli ? builder.sendToCli() : (tab = 'export'))}
+						>{builder.cli ? 'Send to my project' : 'Use this theme'}</Button
+					>
+				</div>
+			{/if}
+		</aside>
+
+		<section class="flex min-w-0 flex-col gap-3 lg:h-(--builder-h)" aria-label="Preview">
+			<div class="flex flex-wrap items-center gap-3 text-sm">
+				<p class="text-muted-foreground">Preview on a docs page, in light and dark.</p>
+				{#if siteThemed}
+					<Button variant="ghost" size="xs" onclick={() => themeStore.reset()}>
+						<RotateCcw aria-hidden="true" /> Reset site theme
+					</Button>
+				{/if}
+			</div>
+
+			<!-- Light and dark, always both, one above the other. -->
+			<div class="grid min-h-0 flex-1 gap-4 lg:grid-rows-2">
+				<PreviewFrame tokens={builder.tokens} dark={false} class="h-[70vh] lg:h-full" />
+				<PreviewFrame tokens={builder.tokens} dark={true} class="h-[70vh] lg:h-full" />
+			</div>
+		</section>
+	</div>
 </DocsShell>
