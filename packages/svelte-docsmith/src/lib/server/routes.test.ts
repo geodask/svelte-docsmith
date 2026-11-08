@@ -23,7 +23,14 @@ const versions: ResolvedVersion[] = [
 ];
 
 const docs: DocsContentItem[] = [
-	{ title: 'Intro', path: '/docs/intro', lastUpdated: '2026-10-01', version: 'v2' },
+	{
+		title: 'Intro',
+		path: '/docs/intro',
+		lastUpdated: '2026-10-01',
+		version: 'v2',
+		description: 'Start here.',
+		section: ['Guides', 'Basics']
+	},
 	{ title: 'Old intro', path: '/docs/v1/intro', version: 'v1' }
 ];
 
@@ -121,6 +128,29 @@ describe('agentMarkdown', () => {
 
 	it('answers 404 for a path that is not a page', () => {
 		expect(GET({ params: { slug: 'docs/nope' } }).status).toBe(404);
+	});
+});
+
+describe('ogImages', () => {
+	const { GET, entries } = handlers.ogImages();
+
+	it('lists every page of every version as a prerender entry', () => {
+		expect(entries()).toEqual([{ slug: 'docs/intro' }, { slug: 'docs/v1/intro' }]);
+	});
+
+	it('draws a page, archived ones included, as a 1200×630 PNG', async () => {
+		for (const slug of ['docs/intro', 'docs/v1/intro']) {
+			const response = await GET({ params: { slug } });
+			expect(response.headers.get('content-type')).toBe('image/png');
+			const png = new Uint8Array(await response.arrayBuffer());
+			expect([...png.slice(1, 4)].map((c) => String.fromCharCode(c)).join('')).toBe('PNG');
+			const view = new DataView(png.buffer);
+			expect([view.getUint32(16), view.getUint32(20)]).toEqual([1200, 630]);
+		}
+	});
+
+	it('answers 404 for a path that is not a page', async () => {
+		expect((await GET({ params: { slug: 'docs/nope' } })).status).toBe(404);
 	});
 });
 

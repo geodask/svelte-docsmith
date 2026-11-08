@@ -19,9 +19,13 @@
  * `githubStars` is the star count of the repo `site.github` points at, fetched
  * by the plugin at build time: `undefined` when there is no count to show
  * (no plugin, no github.com repo, `site.githubStars: false`, or a failed fetch).
+ *
+ * `ogColours` are the theme colours OG images are drawn in, read from the theme
+ * file by the plugin. Without it, the default preset's.
  */
 import type { DocsmithSite } from '#lib/core/config.js';
 import { missingPluginError } from './missing-plugin.js';
+import { DEFAULT_OG_COLOURS, type OgColours } from '#lib/server/og/colours.js';
 
 export const site: DocsmithSite = new Proxy({} as DocsmithSite, {
 	get(_, key) {
@@ -34,3 +38,5 @@ export const site: DocsmithSite = new Proxy({} as DocsmithSite, {
 export const outside: string[] = [];
 
 export const githubStars: number | undefined = undefined;
+
+export const ogColours: OgColours = DEFAULT_OG_COLOURS;

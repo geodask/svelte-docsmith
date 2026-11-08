@@ -80,3 +80,43 @@ describe('SeoHead canonical', () => {
 		expect(head('meta[property="og:url"]')).toBeNull();
 	});
 });
+
+describe('SeoHead image', () => {
+	afterEach(() => {
+		delete site.url;
+		delete site.ogImage;
+		delete site.ogImages;
+	});
+
+	const image = () => head('meta[property="og:image"]')?.getAttribute('content');
+	const card = () => head('meta[name="twitter:card"]')?.getAttribute('content');
+
+	it("uses the site's image, absolute against site.url", () => {
+		Object.assign(site, { url: 'https://x.dev', ogImage: '/og.png' });
+		render(Harness, { props: { view: view('/docs/intro') } });
+		expect(image()).toBe('https://x.dev/og.png');
+		expect(card()).toBe('summary_large_image');
+	});
+
+	it('points a doc page at its own OG image when the site serves them', () => {
+		Object.assign(site, { url: 'https://x.dev', ogImage: '/og.png', ogImages: '/og' });
+		render(Harness, { props: { view: view('/docs/v1/intro') } });
+		expect(image()).toBe('https://x.dev/og/docs/v1/intro.png');
+		expect(head('meta[name="twitter:image"]')).toHaveAttribute(
+			'content',
+			'https://x.dev/og/docs/v1/intro.png'
+		);
+	});
+
+	it("keeps the site's image off a doc page", () => {
+		Object.assign(site, { url: 'https://x.dev', ogImage: '/og.png', ogImages: '/og' });
+		render(Harness, { props: { view: view('/') } });
+		expect(image()).toBe('https://x.dev/og.png');
+	});
+
+	it('emits no image, and a small card, with neither', () => {
+		render(Harness, { props: { view: view('/docs/intro') } });
+		expect(image()).toBeUndefined();
+		expect(card()).toBe('summary');
+	});
+});

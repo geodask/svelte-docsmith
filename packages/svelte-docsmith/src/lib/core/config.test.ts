@@ -24,14 +24,20 @@ describe('checkSite', () => {
 		}
 	);
 
-	it.each(['github', 'version', 'description', 'url', 'ogImage', 'editUrl', 'mcp'] as const)(
-		'throws when %s is a non-string',
-		(key) => {
-			expect(() => checkSite({ title: 'Docs', [key]: 123 })).toThrow(
-				new RegExp(`site\\.${key} must be a string`)
-			);
-		}
-	);
+	it.each([
+		'github',
+		'version',
+		'description',
+		'url',
+		'ogImage',
+		'ogImages',
+		'editUrl',
+		'mcp'
+	] as const)('throws when %s is a non-string', (key) => {
+		expect(() => checkSite({ title: 'Docs', [key]: 123 })).toThrow(
+			new RegExp(`site\\.${key} must be a string`)
+		);
+	});
 
 	it('throws when githubStars is not a boolean', () => {
 		// @ts-expect-error — exercising the runtime guard for untyped callers

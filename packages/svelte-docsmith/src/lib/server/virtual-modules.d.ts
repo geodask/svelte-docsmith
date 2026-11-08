@@ -23,4 +23,5 @@ declare module 'svelte-docsmith/site' {
 	export const site: import('../core/config.js').DocsmithSite;
 	export const outside: string[];
 	export const githubStars: number | undefined;
+	export const ogColours: import('./og/colours.js').OgColours;
 }

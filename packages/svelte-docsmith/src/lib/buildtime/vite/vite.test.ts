@@ -581,6 +581,26 @@ describe('docsmith() site config', () => {
 		expect(siteModuleExports(out).site).toEqual(site);
 	});
 
+	it("serves the theme's OG image colours beside the site", async () => {
+		const plugin = pluginNamed('docsmith-content', { site: { title: 'T' }, theme: 'ocean' });
+		const out = siteModuleExports(
+			await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site')
+		);
+		expect(out.ogColours).toEqual({
+			background: expect.stringMatching(/^#[0-9a-f]{6}$/),
+			foreground: expect.stringMatching(/^#[0-9a-f]{6}$/),
+			muted: expect.stringMatching(/^#[0-9a-f]{6}$/),
+			primary: expect.stringMatching(/^#[0-9a-f]{6}$/),
+			border: expect.stringMatching(/^(#[0-9a-f]{6}|rgba\(.*\))$/)
+		});
+		const darkmatter = siteModuleExports(
+			await (
+				pluginNamed('docsmith-content', { site: { title: 'T' } }).load as unknown as Load
+			).call({}, '\0svelte-docsmith:site')
+		);
+		expect(out.ogColours).not.toEqual(darkmatter.ogColours);
+	});
+
 	describe('GitHub star count', () => {
 		const site = { title: 'Docs', github: 'https://github.com/o/r' };
 		const loadSite = (plugin: Plugin) =>
@@ -1095,7 +1115,7 @@ describe('docsmith() outside paths', () => {
 		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
 
 		// Resolved, so the browser matches them exactly as the compiler does.
-		expect(siteModuleExports(out)).toEqual({ site: SITE, outside: ['/relative', '/api'] });
+		expect(siteModuleExports(out)).toMatchObject({ site: SITE, outside: ['/relative', '/api'] });
 		const none = await (pluginNamed('docsmith-content').load as unknown as Load).call(
 			{},
 			'\0svelte-docsmith:site'
