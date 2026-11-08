@@ -51,6 +51,7 @@ import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } fr
 import { brokenLinksReporter } from './broken-links.js';
 import { checkOutsidePaths } from '../outside-paths.js';
 import { themePlugin } from './theme.js';
+import { siteGithubStars } from '../github-stars.js';
 
 export type {
 	DocsmithOptions,
@@ -197,9 +198,12 @@ function contentIndexPlugin(
 				// Checked as plain data when the options were resolved, so JSON is
 				// the whole of it. The outside paths ride along, resolved, so the
 				// shell's site config links match them exactly as the compiler does.
+				// The star count is fetched once per process and never fails the load.
+				const githubStars = await siteGithubStars(options.site);
 				return (
 					`export const site = ${JSON.stringify(options.site, null, 2)};\n` +
-					`export const outside = ${JSON.stringify(links.outside)};\n`
+					`export const outside = ${JSON.stringify(links.outside)};\n` +
+					`export const githubStars = ${githubStars ?? 'undefined'};\n`
 				);
 			}
 			if (id === VIRTUAL_CONTENT_ID) {

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { docsmith, type DocsmithOptions } from './index.js';
 import { ARCHIVE_MARKER, markerContents } from '../archives.js';
+import { clearGithubStarsCache } from '../github-stars.js';
 import type { Plugin } from 'vite';
 
 // Plugin hooks are typed as ObjectHook unions; in these plugins they are plain
@@ -558,7 +559,12 @@ describe('agent markdown props through the plugin', { timeout: 60_000 }, () => {
 /** The `svelte-docsmith/site` module's exports, each a JSON value. */
 function siteModuleExports(code: string | undefined): Record<string, unknown> {
 	const exports = String(code).matchAll(/^export const (\w+) = ([\s\S]*?);$/gm);
-	return Object.fromEntries([...exports].map(([, name, json]) => [name, JSON.parse(json)]));
+	return Object.fromEntries(
+		[...exports].map(([, name, json]) => [
+			name,
+			json === 'undefined' ? undefined : JSON.parse(json)
+		])
+	);
 }
 
 describe('docsmith() site config', () => {
@@ -574,6 +580,41 @@ describe('docsmith() site config', () => {
 
 		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
 		expect(siteModuleExports(out).site).toEqual(site);
+	});
+
+	it('serves the repo star count beside the site, fetched once', async () => {
+		clearGithubStarsCache();
+		const fetch = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify({ stargazers_count: 4321 }), { status: 200 }));
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const site = { title: 'Docs', github: 'https://github.com/o/r' };
+			const plugin = pluginNamed('docsmith-content', { site });
+			const load = plugin.load as unknown as Load;
+			const out = siteModuleExports(await load.call({}, '\0svelte-docsmith:site'));
+			expect(out.githubStars).toBe(4321);
+			expect(out.site).toEqual(site);
+			await load.call({}, '\0svelte-docsmith:site');
+			expect(fetch).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+			clearGithubStarsCache();
+		}
+	});
+
+	it('serves no star count, and fetches nothing, with githubStars: false', async () => {
+		const fetch = vi.fn();
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const site = { title: 'Docs', github: 'https://github.com/o/r', githubStars: false };
+			const plugin = pluginNamed('docsmith-content', { site });
+			const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
+			expect(out).toContain('export const githubStars = undefined;');
+			expect(fetch).not.toHaveBeenCalled();
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 
 	it('fails at startup without a site title, before anything is served', () => {
