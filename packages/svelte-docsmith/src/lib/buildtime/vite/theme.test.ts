@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { docsmith, type DocsmithOptions } from './index.js';
-import { hasThemeMarker, presetNames, resolveTheme, themeLayer } from './theme.js';
+import { hasThemeMarker, presetNames, resolveTheme, themeLayer, themeTokens } from './theme.js';
 import type { Plugin } from 'vite';
 
 type Transform = (
@@ -138,6 +138,30 @@ describe('themeLayer', () => {
 			'/* :root { --x: 1; } */\n:root { --font-sans: "A;B{"; }\n.dark { --y: 2; }'
 		);
 		expect(css).toBe('@layer base {\n:root { --font-sans: "A;B{"; }\n.dark { --y: 2; }\n}\n');
+	});
+});
+
+describe('themeTokens', () => {
+	it('reads each colour mode, the last declaration winning', () => {
+		const tokens = themeTokens(
+			':root { --primary: red; --radius: 0.5rem; }\n' +
+				'.dark { --primary: blue; }\n' +
+				':root { --primary: green; }'
+		);
+		expect(tokens).toEqual({
+			light: { primary: 'green', radius: '0.5rem' },
+			dark: { primary: 'blue' }
+		});
+	});
+
+	it('reads through @layer and skips other selectors and at-rules', () => {
+		const tokens = themeTokens(
+			'@layer base { :root, .light { --a: 1; } }\n' +
+				'.other { --b: 2; }\n' +
+				'@theme inline { --color-a: var(--a); }\n' +
+				'/* .dark { --c: 3; } */'
+		);
+		expect(tokens).toEqual({ light: { a: '1' }, dark: {} });
 	});
 });
 

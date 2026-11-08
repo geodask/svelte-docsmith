@@ -31,6 +31,7 @@
  * in `./broken-links.js`. This file owns the Vite plugins and, with that
  * reporter, is the only layer that reports to the console.
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 import { codeBlockRenderer } from '../code-block.js';
@@ -50,7 +51,8 @@ import { markdownExtensions } from '../markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
 import { brokenLinksReporter } from './broken-links.js';
 import { checkOutsidePaths } from '../outside-paths.js';
-import { themePlugin } from './theme.js';
+import { themePlugin, themeTokens } from './theme.js';
+import { ogColours } from '../../server/og/colours.js';
 import { siteGithubStars } from '../github-stars.js';
 
 export type {
@@ -214,10 +216,15 @@ function contentIndexPlugin(
 				// the shell's site config links match them exactly as the compiler
 				// does. The star count is a number, or `undefined` when there is none.
 				const githubStars = await trackedStars();
+				// The OG image colours, read from the theme file so a card matches
+				// the site's theme. Server code alone reads them, so they tree-shake
+				// out of the browser's bundle.
+				const colours = ogColours(themeTokens(fs.readFileSync(options.themeFile, 'utf8')));
 				return (
 					`export const site = ${JSON.stringify(options.site, null, 2)};\n` +
 					`export const outside = ${JSON.stringify(links.outside)};\n` +
-					`export const githubStars = ${githubStars ?? 'undefined'};\n`
+					`export const githubStars = ${githubStars ?? 'undefined'};\n` +
+					`export const ogColours = ${JSON.stringify(colours)};\n`
 				);
 			}
 			if (id === VIRTUAL_CONTENT_ID) {

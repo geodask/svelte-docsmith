@@ -92,8 +92,10 @@
 	},
 	"license": "MIT",
 	"peerDependencies": {
+		"@resvg/resvg-js": "^2.6.0",
 		"@sveltejs/kit": "^2.16.0 || ^3.0.0",
 		"mermaid": "^10.0.0 || ^11.0.0 || ^12.0.0",
+		"satori": ">=0.12.0 <1",
 		"svelte": "^5.0.0",
 		"svelte2tsx": "^0.7.0",
 		"tailwindcss": "^4.0.0",
@@ -101,7 +103,13 @@
 		"vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
 	},
 	"peerDependenciesMeta": {
+		"@resvg/resvg-js": {
+			"optional": true
+		},
 		"mermaid": {
+			"optional": true
+		},
+		"satori": {
 			"optional": true
 		},
 		"svelte2tsx": {
@@ -113,6 +121,7 @@
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.12.4",
+		"@resvg/resvg-js": "2.6.2",
 		"@shikijs/twoslash": "4.6.0",
 		"@sveltejs/adapter-auto": "^8.0.0",
 		"@sveltejs/adapter-vercel": "^7.0.0",
@@ -126,6 +135,7 @@
 		"jsdom": "^31.0.0",
 		"mermaid": "^12.3.0",
 		"publint": "^0.3.25",
+		"satori": "0.63.2",
 		"shadcn-svelte": "^1.8.0",
 		"svelte": "^5.57.3",
 		"svelte-check": "^4.7.8",

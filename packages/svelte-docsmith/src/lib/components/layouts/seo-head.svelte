@@ -31,8 +31,10 @@
 		descriptionOverride ?? docsPage.view.entry?.description ?? site.description
 	);
 
+	// A doc page's own OG image when the site serves them, else the site's one.
 	const image = $derived.by(() => {
-		const src = site.ogImage;
+		const entry = docsPage.view.entry;
+		const src = site.ogImages && entry ? `${join(site.ogImages, entry.path)}.png` : site.ogImage;
 		if (!src) return undefined;
 		if (/^https?:\/\//.test(src)) return src;
 		return site.url ? join(site.url, src) : src;

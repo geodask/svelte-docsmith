@@ -1,6 +1,6 @@
 ---
 title: SEO
-description: Titles, meta descriptions, and social cards from your frontmatter.
+description: Titles, meta descriptions, and an OG image for every page, from your frontmatter.
 section: Core Concepts
 order: 10
 ---
@@ -50,12 +50,63 @@ docsmith({
 | `description` | Default meta description for pages without their own                 |
 | `url`         | Canonical origin; enables `<link rel="canonical">` and absolute URLs |
 | `ogImage`     | Default social-share image                                           |
+| `ogImages`    | Where each doc page's own [OG image](#og-images) is served           |
 
 <Callout variant="note" title="A canonical URL needs an origin">
 
 Without `url`, DocSmith can't build an absolute address, so it omits the
 canonical and `og:url` tags rather than emit a wrong one. Set `url` to your
 deployed origin to turn them on.
+
+</Callout>
+
+## OG images
+
+Every doc page can have its own OG image: the picture X, Slack, Discord and
+LinkedIn show when someone shares a link. Each one is a 1200×630 PNG of the
+page's title, description and section, with your site title and host, drawn in
+your [theme](/docs/theming)'s colours. They're built with the rest of the site,
+so they work on static hosts too.
+
+The images are drawn with [satori](https://github.com/vercel/satori) and
+[resvg](https://github.com/thx/resvg-js). Install both in your docs app:
+
+```bash
+npm i -D satori @resvg/resvg-js
+```
+
+Add a `src/routes/og/[...slug].png/+server.ts`. Export both: `entries` lists
+every page, archived versions included, because nothing links to an image but a
+meta tag.
+
+```ts title="src/routes/og/[...slug].png/+server.ts"
+import { ogImages } from 'svelte-docsmith/server';
+
+export const prerender = true;
+export const { GET, entries } = ogImages();
+```
+
+Then tell the head where the images live with `ogImages` in your `site`
+options. Each doc page's `og:image` becomes `/og/<page path>.png`, absolute
+against `url`:
+
+```ts title="vite.config.ts"
+docsmith({
+	site: {
+		title: 'My Library',
+		url: 'https://my-library.dev',
+		ogImage: '/og.png', // still used by pages that aren't doc pages
+		ogImages: '/og'
+	}
+});
+```
+
+On a versioned site, an archived page's image names its version above the
+title. The text is Inter, built into the package, and covers Latin scripts.
+
+<Callout variant="tip">
+
+This page has one: open [/og/docs/seo.png](/og/docs/seo.png).
 
 </Callout>
 

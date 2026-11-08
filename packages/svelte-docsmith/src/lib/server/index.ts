@@ -18,13 +18,21 @@ import { content } from 'svelte-docsmith/content';
 import { docs as llms } from 'svelte-docsmith/llms';
 import { docs as search } from 'svelte-docsmith/search';
 import { releases, changelogPath } from 'svelte-docsmith/changelog';
-import { site } from 'svelte-docsmith/site';
+import { site, ogColours } from 'svelte-docsmith/site';
 import { routeHandlers, type FileHandler, type SitemapOptions } from '#lib/server/routes.js';
 
 export type { FileHandler, SitemapOptions } from '#lib/server/routes.js';
 export type { SitemapEntry } from '#lib/generate/sitemap.js';
 
-const handlers = routeHandlers({ site, content, llms, search, releases, changelogPath });
+const handlers = routeHandlers({
+	site,
+	content,
+	llms,
+	search,
+	releases,
+	changelogPath,
+	ogColours
+});
 
 /**
  * `sitemap.xml`: every docs page of the current version, with its last-updated
@@ -68,6 +76,24 @@ export function llmsFullTxt(): FileHandler {
  */
 export function agentMarkdown() {
 	return handlers.agentMarkdown();
+}
+
+/**
+ * Every doc page's OG image, at `<site.ogImages>/<path>.png`, for
+ * `src/routes/og/[...slug].png/+server.ts` (with `site.ogImages: '/og'`). Each
+ * is a 1200×630 PNG of the page's title, description and section in the site's
+ * theme, drawn at build time. Export both: `entries` lists every page so the
+ * images prerender.
+ *
+ * ```ts
+ * export const prerender = true;
+ * export const { GET, entries } = ogImages();
+ * ```
+ *
+ * Needs `satori` and `@resvg/resvg-js` installed in the docs app.
+ */
+export function ogImages() {
+	return handlers.ogImages();
 }
 
 /**

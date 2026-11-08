@@ -147,10 +147,17 @@ author writes)
 **Route handler**:
 A ready request handler from `svelte-docsmith/server` for one file a docs site
 serves besides its pages: the sitemap, the changelog feed, `llms.txt`,
-`llms-full.txt`, a page's agent markdown at `<path>.md`, or the MCP server. It
-reads the site config and the generated indexes itself and keeps to the current
-version where that applies, so the author's route is one line.
+`llms-full.txt`, a page's agent markdown at `<path>.md`, the OG images, or the
+MCP server. It reads the site config and the generated indexes itself and keeps
+to the current version where that applies, so the author's route is one line.
 _Avoid_: generator, endpoint helper, server route
+
+**OG image**:
+The 1200×630 picture a link preview shows for one doc page, drawn at build time
+from the page's title, description and section in the site's theme colours.
+Served by the `ogImages()` route handler under `site.ogImages`; pages that
+aren't doc pages fall back to `site.ogImage`.
+_Avoid_: social card, share image, preview image
 
 **MCP server**:
 An endpoint the author adds to their docs site that lets a reader's coding agent

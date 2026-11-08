@@ -12,6 +12,9 @@ import { generateFeed } from '#lib/generate/feed.js';
 import { generateLlmsFullTxt, generateLlmsTxt, type LlmsSite } from '#lib/generate/llms.js';
 import { generateSitemap, type SitemapEntry } from '#lib/generate/sitemap.js';
 import { mcpHandler } from '#lib/mcp/handler.js';
+import { ogCard } from './og/card.js';
+import { DEFAULT_OG_COLOURS, type OgColours } from './og/colours.js';
+import { renderOgImage } from './og/render.js';
 
 /** The site config and generated indexes the handlers answer from. */
 export type SiteIndexes = {
@@ -27,6 +30,8 @@ export type SiteIndexes = {
 	releases: ChangelogRelease[];
 	/** `svelte-docsmith/changelog`'s `changelogPath`. */
 	changelogPath: string;
+	/** `svelte-docsmith/site`'s `ogColours`: the theme colours OG images use. */
+	ogColours?: OgColours;
 };
 
 /** The parts of the site config the handlers read. */
@@ -55,6 +60,7 @@ function llmsSite(site: RouteSite): LlmsSite {
 /** Build every route handler over one set of indexes. */
 export function routeHandlers(indexes: SiteIndexes) {
 	const { site, content, llms, search, releases, changelogPath } = indexes;
+	const ogColours = indexes.ogColours ?? DEFAULT_OG_COLOURS;
 	const current = <T extends { version?: string }>(items: T[]) =>
 		currentOnly(items, content.versions);
 
@@ -104,6 +110,39 @@ export function routeHandlers(indexes: SiteIndexes) {
 					const doc = byPath.get(`/${params.slug ?? ''}`);
 					if (!doc) return new Response('Not found', { status: 404 });
 					return respond(doc.content, 'text/markdown; charset=utf-8');
+				}
+			};
+		},
+
+		ogImages() {
+			// Every version's pages, like the `.md` twins: an archived page links its
+			// own image from its head too.
+			const byPath = new Map(content.docs.map((doc) => [doc.path, doc]));
+			const archived = new Map(
+				content.versions.filter((v) => !v.current).map((v) => [v.id, v.label])
+			);
+			const host = site.url ? new URL(site.url).host : undefined;
+			return {
+				/** Every page, so the images prerender: nothing links to them but a meta tag. */
+				entries: () => content.docs.map((doc) => ({ slug: doc.path.replace(/^\//, '') })),
+				GET: async ({ params }: { params: { slug?: string } }): Promise<Response> => {
+					const doc = byPath.get(`/${params.slug ?? ''}`);
+					if (!doc) return new Response('Not found', { status: 404 });
+					const section = Array.isArray(doc.section) ? doc.section.join(' / ') : doc.section;
+					const version = doc.version ? archived.get(doc.version) : undefined;
+					const png = await renderOgImage(
+						ogCard({
+							site: site.title,
+							title: doc.title,
+							description: doc.description,
+							eyebrow: [version, section].filter(Boolean).join(' · ') || undefined,
+							host,
+							colours: ogColours
+						})
+					);
+					return new Response(png as BodyInit, {
+						headers: { 'content-type': 'image/png' }
+					});
 				}
 			};
 		},

@@ -206,6 +206,10 @@ outside the 1.0 promise for now.
   `search={() => import('svelte-docsmith/search').then((m) => m.docs)}`.
 - **SEO.** `DocsShell` writes `<title>`, meta description, canonical, and Open
   Graph / Twitter tags for every page from its frontmatter, no per-page wiring.
+- **OG images.** `ogImages()` draws every doc page its own 1200×630 share image
+  at build time (title, description and section in your theme's colours), and
+  `site.ogImages` points each page's head at it. Needs the optional `satori` and
+  `@resvg/resvg-js` peer dependencies.
 - **Error pages.** `ErrorPage` gives a styled 404 that keeps the site chrome;
   drop it into a SvelteKit `+error.svelte`.
 - **Broken-link check.** `vite build` fails when a doc page links to a docs path
@@ -225,8 +229,8 @@ outside the 1.0 promise for now.
 - **Landing sections.** `Hero`, `FeatureGrid`, `Feature`, `CTA`, and `Action`
   for the marketing page in front of your docs.
 - **Route handlers.** `svelte-docsmith/server` serves `sitemap.xml`, `llms.txt`
-  / `llms-full.txt`, the `.md` page twins, the changelog Atom feed and the MCP
-  server, each one line in a `+server.ts` that reads your site config itself.
+  / `llms-full.txt`, the `.md` page twins, OG images, the changelog Atom feed
+  and the MCP server, each one line in a `+server.ts` that reads your site config itself.
 - **Components.** `Callout`, `Tabs`, `Steps`, `Card`, `Accordion`, `Badge`,
   `Kbd`, `FileTree`, `PropsTable`, and more, authored right inside markdown.
 - Heading anchors, a scroll-spy table of contents, and one-click copy on every
@@ -252,7 +256,7 @@ theme; set `codeTheme: { light, dark }` to use an exact Shiki pair instead.
 | Entry point                    | What it is                                                                                                                                |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `svelte-docsmith`              | Components (`DocsShell`, `Changelog`, landing sections, `LiveExample`, `Callout`, …), `defineConfig`, `createSearchEngine`, and the types |
-| `svelte-docsmith/server`       | route handlers: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown`, `mcpServer` (server-only)                          |
+| `svelte-docsmith/server`       | route handlers: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown`, `ogImages`, `mcpServer` (server-only)              |
 | `svelte-docsmith/preprocess`   | `docsmith()`, the mdsvex/Shiki pipeline (Node, config time)                                                                               |
 | `svelte-docsmith/vite`         | `docsmith()`, the content / search / llms / changelog indexes and `?source` / `?props` transforms (Node, build)                           |
 | `svelte-docsmith/content`      | `content` (`{ docs, versions }`) for `DocsShell`, the generated sidebar content index and version manifest                                |

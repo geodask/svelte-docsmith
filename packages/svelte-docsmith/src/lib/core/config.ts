@@ -51,8 +51,18 @@ export type DocsmithSite = {
 	 * emits `<link rel="canonical">` and absolute Open Graph URLs.
 	 */
 	url?: string;
-	/** Default social-share image (absolute URL, or a path resolved against `url`). */
+	/**
+	 * Default social-share image (absolute URL, or a path resolved against
+	 * `url`). With `ogImages` set, only pages that aren't doc pages use it.
+	 */
 	ogImage?: string;
+	/**
+	 * Path the site's OG images are served under, e.g. `/og`. When set, every doc
+	 * page's social-share image is its own generated one, at
+	 * `<ogImages>/<page path>.png`. The route itself is yours to add, with
+	 * `ogImages()` from `svelte-docsmith/server`.
+	 */
+	ogImages?: string;
 	/**
 	 * Base URL for the "Edit this page" link, pointing at the directory that maps
 	 * to your app's working directory in the repo, e.g.
@@ -127,6 +137,7 @@ export function checkSite(site: DocsmithSite): DocsmithSite {
 		'description',
 		'url',
 		'ogImage',
+		'ogImages',
 		'editUrl',
 		'mcp'
 	] as const) {

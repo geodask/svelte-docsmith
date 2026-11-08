@@ -33,6 +33,8 @@ export default defineConfig({
 				version: pkg.version,
 				// Served by src/routes/mcp/+server.ts.
 				mcp: '/mcp',
+				// Every doc page's own OG image, served by src/routes/og/[...slug].png.
+				ogImages: '/og',
 				// Dogfood: the id tracks the library version, so the bar returns after each
 				// release (readers who dismissed the last one see the new one) and stays out
 				// of the way in between.

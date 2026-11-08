@@ -93,6 +93,42 @@ export function themeLayer(source: string): ThemeLayer {
 	};
 }
 
+/** A theme file's custom properties, per colour mode, without their `--`. */
+export interface ThemeTokens {
+	/** What `:root` declares. */
+	light: Record<string, string>;
+	/** What `.dark` declares. */
+	dark: Record<string, string>;
+}
+
+/**
+ * Read a theme file's tokens: the custom properties its `:root` and `.dark`
+ * rules declare, last one winning, the way the cascade reads them. Rules for
+ * other selectors are ignored. What the OG images are coloured from.
+ */
+export function themeTokens(source: string): ThemeTokens {
+	const rules: string[] = [];
+	collectRules(stripComments(source), rules, []);
+	const tokens: ThemeTokens = { light: {}, dark: {} };
+	for (const rule of rules) {
+		const open = rule.indexOf('{');
+		const selectors = rule
+			.slice(0, open)
+			.split(',')
+			.map((s) => s.trim());
+		const body = rule.slice(open + 1, -1);
+		const targets = [
+			...(selectors.includes(':root') ? [tokens.light] : []),
+			...(selectors.includes('.dark') ? [tokens.dark] : [])
+		];
+		if (targets.length === 0) continue;
+		for (const match of body.matchAll(/--([\w-]+)\s*:\s*([^;]+)/g)) {
+			for (const target of targets) target[match[1]] = match[2].trim();
+		}
+	}
+	return tokens;
+}
+
 function stripComments(css: string): string {
 	return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
