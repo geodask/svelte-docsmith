@@ -5,6 +5,7 @@
 	import { githubStars, site } from 'svelte-docsmith/site';
 	import { formatStars } from '#lib/core/github-stars.js';
 	import { cn } from '#lib/utils/cn.js';
+	import { browserStars, loadBrowserStars } from './github-stars.svelte.js';
 
 	const {
 		countClass
@@ -13,8 +14,17 @@
 		countClass?: string;
 	} = $props();
 
-	// Fetched once at build time by the plugin, so this is a constant per build.
-	const stars = githubStars === undefined ? undefined : formatStars(githubStars);
+	// The build bakes the count in when it can. When it couldn't, the reader's
+	// browser asks GitHub itself, unless the author turned the count off.
+	const fallback =
+		githubStars === undefined && site.githubStars !== false ? site.github : undefined;
+
+	$effect(() => {
+		if (fallback) loadBrowserStars(fallback);
+	});
+
+	const count = $derived(githubStars ?? (fallback ? browserStars(fallback) : undefined));
+	const stars = $derived(count === undefined ? undefined : formatStars(count));
 </script>
 
 {#if site.github}

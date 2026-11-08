@@ -173,9 +173,9 @@ function contentIndexPlugin(
 	const trackedStars = () =>
 		(stars ??= siteGithubStars(options.site, (reason) => {
 			console.warn(
-				`[svelte-docsmith] skipping the GitHub star count for ${options.site.github}\n` +
+				`[svelte-docsmith] could not fetch the GitHub star count for ${options.site.github} at build time\n` +
 					`  ${reason}\n` +
-					`  The header shows the GitHub link without a count. Set \`site.githubStars: false\` to stop fetching it.`
+					`  Readers' browsers will fetch the count instead. Set GITHUB_TOKEN to bake it in, or \`site.githubStars: false\` to turn it off.`
 			);
 		}));
 

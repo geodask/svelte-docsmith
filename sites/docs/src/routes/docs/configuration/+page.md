@@ -152,7 +152,7 @@ and plain objects.
 	</Prop>
 	<Prop name="githubStars" type="boolean" default="true">
 		Show the star count beside the header GitHub link. Set <code>false</code> to
-		skip the build-time fetch and show the bare link.
+		skip both the build-time fetch and the browser fallback, and show the bare link.
 	</Prop>
 	<Prop name="version" type="string">
 		Version string shown in the header.
@@ -197,19 +197,26 @@ shows the repo's star count, like this site's. Readers star the repo by
 clicking through to GitHub.
 
 The plugin asks the GitHub API for the count once per build, and once each time
-`vite dev` starts, then serves it with the site config. The number is as fresh
-as your last deploy, and readers' browsers never call GitHub. Other hosts, and
-GitHub URLs that name no repo, get the plain link with no count.
+`vite dev` starts, then serves it with the site config, so readers get it with
+the page and their browsers never call GitHub. Other hosts, and GitHub URLs that
+name no repo, get the plain link with no count.
 
 GitHub allows 60 unauthenticated requests an hour per IP address, and CI and
-hosting build machines often share one, so the count can come and go between
-deploys. Set a `GITHUB_TOKEN` environment variable in your build and the plugin
-sends it, which raises the limit to 5,000. A failed fetch (offline,
-rate-limited, a private repo) logs a warning and leaves the count off. It never
-fails the build. Set `githubStars: false` to turn the fetch off.
+hosting build machines (Vercel, Netlify, GitHub Actions) often share one that
+has already used them up. When the build can't get the count, it logs a warning
+and the header falls back to asking GitHub from each reader's browser instead:
+one request per reader, cached in their browser for a day, so it stays well
+inside each reader's own allowance. The count then appears just after the page
+loads. A failure there leaves the plain link, and never fails the build.
 
-A page of your own can show the count too. `githubStars` is `undefined` whenever
-there is none to show:
+To bake the count in and skip the browser request, set a `GITHUB_TOKEN`
+environment variable in your build; the plugin sends it, which raises the limit
+to 5,000 an hour. A fine-grained token with no permissions is enough for a
+public repo. Set `githubStars: false` to turn the count off entirely, build and
+browser both.
+
+A page of your own can show the build-time count too. `githubStars` is
+`undefined` whenever the build had none to show:
 
 ```svelte
 <script lang="ts">

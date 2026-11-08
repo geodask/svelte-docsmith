@@ -615,7 +615,7 @@ describe('docsmith() site config', () => {
 				siteModuleExports(await loadSite(pluginNamed('docsmith-content', { site }))).githubStars
 			).toBeUndefined();
 			expect(warn.mock.calls[0][0]).toMatch(
-				/skipping the GitHub star count for https:\/\/github\.com\/o\/r\n {2}Could not reach/
+				/could not fetch the GitHub star count for https:\/\/github\.com\/o\/r at build time\n {2}Could not reach/
 			);
 			expect(
 				siteModuleExports(await loadSite(pluginNamed('docsmith-content', { site }))).githubStars
