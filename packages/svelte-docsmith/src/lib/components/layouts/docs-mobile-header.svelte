@@ -14,7 +14,7 @@
 	import * as Sheet from '#lib/components/shadcn/sheet/index.js';
 	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import { useDocsPage } from '../docs-page-context.js';
-	import GithubIcon from '#lib/components/icons/github.svelte';
+	import GithubLink from '../chrome/github-link.svelte';
 	import SiteMark from './site-mark.svelte';
 	import List from '@lucide/svelte/icons/list';
 	import Menu from '@lucide/svelte/icons/menu';
@@ -127,19 +127,7 @@
 				</Button>
 			{/if}
 
-			{#if site.github}
-				<Button
-					size="icon"
-					variant="ghost"
-					target="_blank"
-					rel="noopener noreferrer"
-					href={site.github}
-					class="text-muted-foreground hover:text-foreground size-8"
-				>
-					<GithubIcon class="size-4" />
-					<span class="sr-only">GitHub</span>
-				</Button>
-			{/if}
+			<GithubLink countClass="max-sm:hidden" />
 
 			<ModeToggle />
 

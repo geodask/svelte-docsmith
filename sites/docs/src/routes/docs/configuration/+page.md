@@ -20,7 +20,7 @@ their own pages in the [Components](/docs/components/callout) section.
 - **`svelte-docsmith`**: every component, plus `createSearchEngine` and the types. Components are documented in [Components](/docs/components/callout); the rest is below.
 - **`svelte-docsmith/server`**: ready route handlers for the files a site serves besides its pages: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown` (the `.md` page twins) and `mcpServer`. Each is one line in a `+server.ts` that reads your site config itself (see [SEO](/docs/seo), [Changelog](/docs/changelog) and [MCP server](/docs/mcp-server)). Server-only.
 - **`svelte-docsmith/vite`**: the `docsmith()` Vite plugin, the one place a site is configured. It compiles markdown pages, builds the content, search, llms and changelog indexes, and serves the `?source` and `?props` imports.
-- **`svelte-docsmith/site`**: your site config, the `site` options of `docsmith()`, exported as `site`, with the resolved [outside paths](/docs/links#outside-paths) as `outside`. `DocsShell`, `ErrorPage` and the route handlers read it themselves; import it when a page of your own needs the title or links.
+- **`svelte-docsmith/site`**: your site config, the `site` options of `docsmith()`, exported as `site`, with the resolved [outside paths](/docs/links#outside-paths) as `outside` and the repo's [star count](#github-stars) as `githubStars`. `DocsShell`, `ErrorPage` and the route handlers read it themselves; import it when a page of your own needs the title or links.
 - **`svelte-docsmith/content`**: the generated sidebar index. Its `content` export (the pages as `docs` plus the version manifest as `versions`) is what `DocsShell` and `ErrorPage` take.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
 - **`svelte-docsmith/llms`**: the generated per-page agent markdown index, with props tables and example code written out, exported as `docs` (see [SEO](/docs/seo)).
@@ -146,7 +146,13 @@ and plain objects.
 		full URL. Adds “Connect to your editor” to the copy-page menu. Experimental.
 	</Prop>
 	<Prop name="github" type="string">
-		GitHub URL; renders a link in the header when set.
+		GitHub URL; renders a link in the header when set. A
+		<code>https://github.com/owner/repo</code> URL also shows the repo's
+		<a href="#github-stars">star count</a>.
+	</Prop>
+	<Prop name="githubStars" type="boolean" default="true">
+		Show the star count beside the header GitHub link. Set <code>false</code> to
+		skip the build-time fetch and show the bare link.
 	</Prop>
 	<Prop name="version" type="string">
 		Version string shown in the header.
@@ -182,6 +188,37 @@ shows the site title:
 </script>
 
 <h1>{site.title}</h1>
+```
+
+#### GitHub stars
+
+When `github` is a `https://github.com/owner/repo` URL, the header GitHub link
+shows the repo's star count, like this site's. Readers star the repo by
+clicking through to GitHub.
+
+The plugin asks the GitHub API for the count once per build, and once each time
+`vite dev` starts, then serves it with the site config. The number is as fresh
+as your last deploy, and readers' browsers never call GitHub. Other hosts, and
+GitHub URLs that name no repo, get the plain link with no count.
+
+GitHub allows 60 unauthenticated requests an hour per IP address, and CI and
+hosting build machines often share one, so the count can come and go between
+deploys. Set a `GITHUB_TOKEN` environment variable in your build and the plugin
+sends it, which raises the limit to 5,000. A failed fetch (offline,
+rate-limited, a private repo) logs a warning and leaves the count off. It never
+fails the build. Set `githubStars: false` to turn the fetch off.
+
+A page of your own can show the count too. `githubStars` is `undefined` whenever
+there is none to show:
+
+```svelte
+<script lang="ts">
+	import { githubStars, site } from 'svelte-docsmith/site';
+</script>
+
+{#if githubStars !== undefined}
+	<a href={site.github}>★ {githubStars.toLocaleString('en')} on GitHub</a>
+{/if}
 ```
 
 ### markdown

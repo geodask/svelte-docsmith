@@ -72,6 +72,13 @@ export type DocsmithSite = {
 	mcp?: string;
 	/** Optional GitHub URL; renders a link in the header when set. */
 	github?: string;
+	/**
+	 * Show the repo's star count beside the header GitHub link. Read from the
+	 * GitHub API once per build (and once per `dev` start) when `github` is a
+	 * `https://github.com/{owner}/{repo}` URL, using `GITHUB_TOKEN` when set.
+	 * Defaults to `true`; set `false` to skip the fetch and show the bare link.
+	 */
+	githubStars?: boolean;
 	/** Optional version string, shown in the header (e.g. your library version). */
 	version?: string;
 	/** Optional logo image src; falls back to the built-in book mark. */
@@ -124,6 +131,9 @@ export function checkSite(site: DocsmithSite): DocsmithSite {
 		if (site[key] !== undefined && typeof site[key] !== 'string') {
 			throw new Error(`[svelte-docsmith] site.${key} must be a string when set.`);
 		}
+	}
+	if (site.githubStars !== undefined && typeof site.githubStars !== 'boolean') {
+		throw new Error('[svelte-docsmith] site.githubStars must be a boolean when set.');
 	}
 	if (site.announcement !== undefined) {
 		const a = site.announcement;

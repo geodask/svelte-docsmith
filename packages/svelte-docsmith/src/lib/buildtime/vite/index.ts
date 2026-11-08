@@ -51,6 +51,7 @@ import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } fr
 import { brokenLinksReporter } from './broken-links.js';
 import { checkOutsidePaths } from '../outside-paths.js';
 import { themePlugin } from './theme.js';
+import { siteGithubStars } from '../github-stars.js';
 
 export type {
 	DocsmithOptions,
@@ -164,6 +165,20 @@ function contentIndexPlugin(
 			);
 		}));
 
+	// One star-count fetch for the life of the plugin. SvelteKit builds its
+	// server and client with shared plugins, so both halves get one count;
+	// a `dev` restart loads `vite.config` again, so it makes a new plugin and
+	// fetches afresh, failures included.
+	let stars: Promise<number | undefined> | undefined;
+	const trackedStars = () =>
+		(stars ??= siteGithubStars(options.site, (reason) => {
+			console.warn(
+				`[svelte-docsmith] skipping the GitHub star count for ${options.site.github}\n` +
+					`  ${reason}\n` +
+					`  The header shows the GitHub link without a count. Set \`site.githubStars: false\` to stop fetching it.`
+			);
+		}));
+
 	return {
 		name: 'docsmith-content',
 		enforce: 'pre',
@@ -195,11 +210,14 @@ function contentIndexPlugin(
 
 			if (id === VIRTUAL_SITE_ID) {
 				// Checked as plain data when the options were resolved, so JSON is
-				// the whole of it. The outside paths ride along, resolved, so the
-				// shell's site config links match them exactly as the compiler does.
+				// the whole of the site. The outside paths ride along, resolved, so
+				// the shell's site config links match them exactly as the compiler
+				// does. The star count is a number, or `undefined` when there is none.
+				const githubStars = await trackedStars();
 				return (
 					`export const site = ${JSON.stringify(options.site, null, 2)};\n` +
-					`export const outside = ${JSON.stringify(links.outside)};\n`
+					`export const outside = ${JSON.stringify(links.outside)};\n` +
+					`export const githubStars = ${githubStars ?? 'undefined'};\n`
 				);
 			}
 			if (id === VIRTUAL_CONTENT_ID) {

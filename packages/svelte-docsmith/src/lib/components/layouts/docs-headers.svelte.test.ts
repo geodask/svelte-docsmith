@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { resolveDocsPage, type DocsmithSite } from '#lib/core/index.js';
 
@@ -10,8 +10,16 @@ const site: DocsmithSite = vi.hoisted(() => ({
 		{ label: 'Blog', href: '/blog' }
 	]
 }));
+// The count the plugin fetched at build time; each test sets it before rendering.
+const stars = vi.hoisted(() => ({ count: undefined as number | undefined }));
 // `/relative` is an outside path: served by something other than this app.
-vi.mock('svelte-docsmith/site', () => ({ site, outside: ['/relative'] }));
+vi.mock('svelte-docsmith/site', () => ({
+	site,
+	outside: ['/relative'],
+	get githubStars() {
+		return stars.count;
+	}
+}));
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/docs/guide') } }));
 // The mobile menu's scroll area measures itself; jsdom has no ResizeObserver.
 vi.stubGlobal(
@@ -120,5 +128,38 @@ describe('DocsHeader and DocsMobileHeader', () => {
 				'external noopener noreferrer'
 			);
 		}
+	});
+
+	describe('GitHub link', () => {
+		afterEach(() => {
+			delete site.github;
+			stars.count = undefined;
+		});
+
+		it('both show the star count the build fetched, compact, with the exact count in the name', () => {
+			site.github = 'https://github.com/o/r';
+			stars.count = 1234;
+			render(Harness, { props: { view } });
+			const links = screen.getAllByRole('link', { name: 'GitHub, 1,234 stars' });
+			expect(links).toHaveLength(2);
+			for (const link of links) {
+				expect(link).toHaveAttribute('href', 'https://github.com/o/r');
+				expect(link).toHaveTextContent('1.2k');
+			}
+		});
+
+		it('fall back to the bare icon link when there is no count', () => {
+			site.github = 'https://github.com/o/r';
+			render(Harness, { props: { view } });
+			const links = screen.getAllByRole('link', { name: 'GitHub' });
+			expect(links).toHaveLength(2);
+			for (const link of links) expect(link).not.toHaveTextContent(/\d/);
+		});
+
+		it('render nothing without site.github', () => {
+			stars.count = 1234;
+			render(Harness, { props: { view } });
+			expect(screen.queryByRole('link', { name: /GitHub/ })).toBeNull();
+		});
 	});
 });

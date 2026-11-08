@@ -33,6 +33,14 @@ describe('checkSite', () => {
 		}
 	);
 
+	it('throws when githubStars is not a boolean', () => {
+		// @ts-expect-error — exercising the runtime guard for untyped callers
+		expect(() => checkSite({ title: 'Docs', githubStars: 'no' })).toThrow(
+			/site\.githubStars must be a boolean/
+		);
+		expect(checkSite({ title: 'Docs', githubStars: false }).githubStars).toBe(false);
+	});
+
 	it('throws when nav is not an array', () => {
 		// @ts-expect-error — exercising the runtime guard for untyped callers
 		expect(() => checkSite({ title: 'Docs', nav: 'links' })).toThrow(/site\.nav must be an array/);

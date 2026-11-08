@@ -555,10 +555,15 @@ describe('agent markdown props through the plugin', { timeout: 60_000 }, () => {
 
 // --- site config, options, markdown ---------------------------------------
 
-/** The `svelte-docsmith/site` module's exports, each a JSON value. */
+/** The `svelte-docsmith/site` module's exports, each a JSON value or `undefined`. */
 function siteModuleExports(code: string | undefined): Record<string, unknown> {
 	const exports = String(code).matchAll(/^export const (\w+) = ([\s\S]*?);$/gm);
-	return Object.fromEntries([...exports].map(([, name, json]) => [name, JSON.parse(json)]));
+	return Object.fromEntries(
+		[...exports].map(([, name, json]) => [
+			name,
+			json === 'undefined' ? undefined : JSON.parse(json)
+		])
+	);
 }
 
 describe('docsmith() site config', () => {
@@ -574,6 +579,62 @@ describe('docsmith() site config', () => {
 
 		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
 		expect(siteModuleExports(out).site).toEqual(site);
+	});
+
+	describe('GitHub star count', () => {
+		const site = { title: 'Docs', github: 'https://github.com/o/r' };
+		const loadSite = (plugin: Plugin) =>
+			(plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
+		const stars = (count: number) =>
+			new Response(JSON.stringify({ stargazers_count: count }), { status: 200 });
+		afterEach(() => {
+			vi.unstubAllGlobals();
+			vi.restoreAllMocks();
+		});
+
+		it('serves it beside the site, fetched once per plugin', async () => {
+			const fetch = vi.fn().mockResolvedValue(stars(4321));
+			vi.stubGlobal('fetch', fetch);
+			const plugin = pluginNamed('docsmith-content', { site });
+			const out = siteModuleExports(await loadSite(plugin));
+			expect(out.githubStars).toBe(4321);
+			expect(out.site).toEqual(site);
+			await loadSite(plugin);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		});
+
+		// A `dev` restart loads `vite.config` again, which calls `docsmith()` again.
+		it('fetches afresh for a new plugin, so a restart recovers from a failed fetch', async () => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const fetch = vi
+				.fn()
+				.mockRejectedValueOnce(new TypeError('fetch failed'))
+				.mockResolvedValueOnce(stars(5));
+			vi.stubGlobal('fetch', fetch);
+			expect(
+				siteModuleExports(await loadSite(pluginNamed('docsmith-content', { site }))).githubStars
+			).toBeUndefined();
+			expect(warn.mock.calls[0][0]).toMatch(
+				/skipping the GitHub star count for https:\/\/github\.com\/o\/r\n {2}Could not reach/
+			);
+			expect(
+				siteModuleExports(await loadSite(pluginNamed('docsmith-content', { site }))).githubStars
+			).toBe(5);
+		});
+	});
+
+	it('serves no star count, and fetches nothing, with githubStars: false', async () => {
+		const fetch = vi.fn();
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const site = { title: 'Docs', github: 'https://github.com/o/r', githubStars: false };
+			const plugin = pluginNamed('docsmith-content', { site });
+			const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
+			expect(out).toContain('export const githubStars = undefined;');
+			expect(fetch).not.toHaveBeenCalled();
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 
 	it('fails at startup without a site title, before anything is served', () => {

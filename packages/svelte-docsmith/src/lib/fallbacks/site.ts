@@ -15,6 +15,10 @@
  * the shell marks its site config links `rel="external"` under. Without the
  * plugin nothing is declared, so it is empty rather than a thrower, and a
  * component that only reads it (`AnnouncementBar`) still renders.
+ *
+ * `githubStars` is the star count of the repo `site.github` points at, fetched
+ * by the plugin at build time: `undefined` when there is no count to show
+ * (no plugin, no github.com repo, `site.githubStars: false`, or a failed fetch).
  */
 import type { DocsmithSite } from '#lib/core/config.js';
 import { missingPluginError } from './missing-plugin.js';
@@ -28,3 +32,5 @@ export const site: DocsmithSite = new Proxy({} as DocsmithSite, {
 });
 
 export const outside: string[] = [];
+
+export const githubStars: number | undefined = undefined;

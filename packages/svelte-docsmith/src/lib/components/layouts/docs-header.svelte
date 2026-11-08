@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { Badge } from '#lib/components/shadcn/badge/index.js';
-	import { Button } from '#lib/components/shadcn/button/index.js';
 	import { Separator } from '#lib/components/shadcn/separator/index.js';
-	import GithubIcon from '#lib/components/icons/github.svelte';
+	import GithubLink from '../chrome/github-link.svelte';
 	import SearchTrigger from '../chrome/search-trigger.svelte';
 	import { useSearchSession } from '#lib/search/session.svelte.js';
 	import ModeToggle from '../chrome/mode-toggle.svelte';
@@ -100,19 +99,7 @@
 					{@render actions()}
 				{/if}
 
-				{#if site.github}
-					<Button
-						size="icon"
-						variant="ghost"
-						target="_blank"
-						rel="noopener noreferrer"
-						href={site.github}
-						class="text-muted-foreground hover:text-foreground size-8"
-					>
-						<GithubIcon class="size-4" />
-						<span class="sr-only">GitHub</span>
-					</Button>
-				{/if}
+				<GithubLink />
 
 				<ModeToggle />
 			</div>
