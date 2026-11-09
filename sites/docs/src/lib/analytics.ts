@@ -17,7 +17,12 @@ export function startAnalytics() {
 		api_host: PUBLIC_POSTHOG_HOST,
 		ui_host: 'https://eu.posthog.com',
 		// Captures pageviews on client-side navigation too, not only full loads.
-		defaults: '2026-08-30'
+		defaults: '2026-08-30',
+		// No cookies, localStorage or sessionStorage, so no consent banner:
+		// PostHog derives an anonymous daily ID server-side and drops the IP.
+		// Needs "Cookieless tracking" on in the project, or events are dropped.
+		cookieless_mode: 'always',
+		disable_session_recording: true
 	});
 }
 
