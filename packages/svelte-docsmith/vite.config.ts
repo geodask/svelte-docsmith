@@ -20,11 +20,17 @@ export default defineConfig({
 	],
 	test: {
 		passWithNoTests: true,
-		// The docsmith() plugin serves this module in a real site. Under test it
-		// resolves to the checked-in fallback (not `dist`, which may not be
-		// built yet); a test that renders the shell mocks it with a site.
+		// The docsmith() plugin serves these modules in a real site. Under test
+		// they resolve to the checked-in fallbacks (not `dist`, which may not be
+		// built yet); a test that renders the shell mocks the site, and one that
+		// checks reader events mocks the handler.
 		alias: {
-			'svelte-docsmith/site': fileURLToPath(new URL('./src/lib/fallbacks/site.ts', import.meta.url))
+			'svelte-docsmith/site': fileURLToPath(
+				new URL('./src/lib/fallbacks/site.ts', import.meta.url)
+			),
+			'svelte-docsmith/reader-events': fileURLToPath(
+				new URL('./src/lib/fallbacks/reader-events.ts', import.meta.url)
+			)
 		},
 		coverage: {
 			provider: 'v8',

@@ -11,6 +11,7 @@
 	import { createToc } from '#lib/toc/index.js';
 	import { createSearchSession, type SearchLoader } from '#lib/search/session.svelte.js';
 	import { setDocsPage } from '../docs-page-context.js';
+	import { report } from '../reader-events.js';
 	import Search from '../chrome/search.svelte';
 	import BackgroundPattern from '../chrome/background-pattern.svelte';
 	import ModeProvider from '../chrome/mode-provider.svelte';
@@ -98,9 +99,13 @@
 		 */
 		readingTime?: boolean;
 		/**
-		 * Show the "Was this page helpful?" widget at the foot of doc pages. Pass
-		 * `true` for the UI alone, or a callback `(vote, path) => void` to also
-		 * record votes (wire it to your analytics). Omit to hide it.
+		 * Show the "Was this page helpful?" widget at the foot of doc pages. Omit
+		 * to hide it. Votes reach your reader event handler (`docsmith({
+		 * readerEvents })`) as `feedback` events.
+		 *
+		 * Passing a callback `(vote, path) => void` is deprecated: it still
+		 * receives each vote until the next minor, but handle the `feedback`
+		 * reader event instead.
 		 */
 		feedback?: boolean | ((vote: 'up' | 'down', path: string) => void);
 		/**
@@ -165,7 +170,13 @@
 	// version being read off the same view. The `search` loader is static for the
 	// shell's lifetime, so reading it once at init is intentional.
 	// svelte-ignore state_referenced_locally
-	if (search) createSearchSession({ load: search, version: () => view.activeVersionId });
+	if (search) {
+		createSearchSession({
+			load: search,
+			version: () => view.activeVersionId,
+			onsearch: (finished) => report({ type: 'search', path: view.pathname, ...finished })
+		});
+	}
 
 	// `timeZone: 'UTC'` is not cosmetic. `lastUpdated` is a calendar day, which
 	// parses to UTC midnight, so formatting in the ambient zone shifts it a day

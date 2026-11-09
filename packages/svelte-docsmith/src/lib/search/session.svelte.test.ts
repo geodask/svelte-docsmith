@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync } from 'svelte';
 import type { SearchDoc } from '#lib/core/index.js';
-import { SearchSession, type SearchLoader } from './session.svelte.js';
+import { SearchSession, type SearchLoader, type SearchSessionOptions } from './session.svelte.js';
 
 const doc = (path: string, title: string, version?: string, text = ''): SearchDoc => ({
 	path,
@@ -50,12 +50,16 @@ afterEach(() => {
  * state the test can switch. Built inside an effect root, since the session
  * watches `open` and the version with an effect.
  */
-function setup(load: SearchLoader, initialVersion?: string) {
+function setup(
+	load: SearchLoader,
+	initialVersion?: string,
+	onsearch?: SearchSessionOptions['onsearch']
+) {
 	const reader = $state({ version: initialVersion });
 	let session!: SearchSession;
 	cleanups.push(
 		$effect.root(() => {
-			session = new SearchSession({ load, version: () => reader.version });
+			session = new SearchSession({ load, version: () => reader.version, onsearch });
 		})
 	);
 	return {
@@ -152,6 +156,64 @@ describe('SearchSession results', () => {
 		s.session.select();
 		expect(s.session.open).toBe(false);
 		expect(s.session.query).toBe('');
+	});
+});
+
+// What the shell reports as a `search` reader event.
+describe('SearchSession finished searches', () => {
+	async function ready() {
+		const onsearch = vi.fn();
+		const s = setup(perVersion(), 'v2', onsearch);
+		s.open();
+		await s.settled();
+		return { ...s, onsearch };
+	}
+
+	it('finishes with the picked page, once', async () => {
+		const s = await ready();
+		s.session.query = '  routing ';
+		s.session.select('/docs/routing');
+		expect(s.onsearch).toHaveBeenCalledTimes(1);
+		expect(s.onsearch).toHaveBeenCalledWith({
+			query: 'routing',
+			results: 1,
+			picked: '/docs/routing'
+		});
+	});
+
+	it('finishes without a pick when the palette closes, counting no results as 0', async () => {
+		const s = await ready();
+		s.session.query = 'zzzz';
+		s.close();
+		expect(s.onsearch).toHaveBeenCalledWith({ query: 'zzzz', results: 0, picked: null });
+	});
+
+	it('finishes once per time the palette is open', async () => {
+		const s = await ready();
+		s.session.query = 'routing';
+		s.close();
+		s.close();
+		s.open();
+		s.close();
+		expect(s.onsearch).toHaveBeenCalledTimes(2);
+	});
+
+	it('reports nothing for an empty query', async () => {
+		const s = await ready();
+		s.session.query = '   ';
+		s.close();
+		s.open();
+		s.session.select('/docs/introduction');
+		expect(s.onsearch).not.toHaveBeenCalled();
+	});
+
+	it('reports nothing while the index is still loading', () => {
+		const onsearch = vi.fn();
+		const s = setup(() => new Promise(() => {}), undefined, onsearch);
+		s.open();
+		s.session.query = 'routing';
+		s.close();
+		expect(onsearch).not.toHaveBeenCalled();
 	});
 });
 

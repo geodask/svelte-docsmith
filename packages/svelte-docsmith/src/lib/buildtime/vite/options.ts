@@ -4,6 +4,7 @@
  * archive CLI (which loads `vite.config` to read them) all resolve their
  * settings here, so a setting means the same thing to each of them.
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import { normalizePath } from '../../utils/url.js';
 import { checkSite, type DocsmithSite } from '../../core/config.js';
@@ -142,6 +143,15 @@ export interface DocsmithOptions {
 	 * beside `content` and `routes`, not under `markdown`.
 	 */
 	links?: DocsmithLinksOptions;
+	/**
+	 * Path to your reader event handler, relative to the Vite root, e.g.
+	 * `'./src/lib/reader-events.ts'`. Its default export receives every reader
+	 * event on every page (a feedback vote, a search, a 404, a copied code
+	 * block and the rest of `ReaderEvent`), in the browser only, to forward to
+	 * whatever analytics you use. svelte-docsmith sends them nowhere itself.
+	 * Default: none, so reader events go nowhere.
+	 */
+	readerEvents?: string;
 }
 
 /** The options with every default applied and every path made absolute. */
@@ -164,6 +174,8 @@ export interface ResolvedDocsmithOptions {
 	tsconfig?: string;
 	schema?: StandardSchemaV1;
 	links: ResolvedLinksOptions;
+	/** Absolute path of the reader event handler module, when one is named. */
+	readerEventsFile?: string;
 }
 
 /** Options from an older release that now live elsewhere, and where. */
@@ -221,8 +233,29 @@ export function resolveOptions(
 		markdown: options.markdown ?? {},
 		tsconfig: options.tsconfig,
 		schema: options.schema,
-		links: resolveLinks(options.links)
+		links: resolveLinks(options.links),
+		readerEventsFile: resolveReaderEvents(options.readerEvents, cwd)
 	};
+}
+
+/**
+ * Resolve `readerEvents` to the handler module's absolute path. A missing file
+ * fails at startup: reader events quietly going nowhere would look like a site
+ * nobody uses.
+ */
+function resolveReaderEvents(readerEvents: unknown, cwd: string): string | undefined {
+	if (readerEvents === undefined) return undefined;
+	if (typeof readerEvents !== 'string' || readerEvents.trim() === '') {
+		throw new Error(
+			"[svelte-docsmith] docsmith({ readerEvents }) takes a path to your handler module, e.g. readerEvents: './src/lib/reader-events.ts', " +
+				`got ${JSON.stringify(readerEvents)}.`
+		);
+	}
+	const file = path.resolve(cwd, readerEvents);
+	if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+		throw new Error(`[svelte-docsmith] reader event handler not found: ${file}`);
+	}
+	return file;
 }
 
 /**

@@ -29,6 +29,19 @@ export type SearchSessionOptions = {
 	 * the session follows the reader across a version switch.
 	 */
 	version?: () => string | undefined;
+	/**
+	 * Called once each time the palette closes after the reader typed a query:
+	 * with the page they picked, or `null` when they closed without one. Never
+	 * for a query left empty, or before the index was ready to answer it.
+	 */
+	onsearch?: (search: FinishedSearch) => void;
+};
+
+/** One search the reader finished: what they last typed, and how it ended. */
+export type FinishedSearch = {
+	query: string;
+	results: number;
+	picked: string | null;
 };
 
 /** One version's records and the engine over them. */
@@ -40,8 +53,10 @@ const SUGGESTION_COUNT = 4;
 const STARTER_PAGES = [/introduction/i, /quick[- ]?start/i, /install/i, /getting started/i];
 
 export class SearchSession {
-	open = $state(false);
 	query = $state('');
+
+	#open = $state(false);
+	readonly #onsearch: ((search: FinishedSearch) => void) | undefined;
 
 	#status = $state<SearchStatus>('idle');
 	// One index per version the reader has searched, so switching back to a
@@ -55,9 +70,10 @@ export class SearchSession {
 	readonly #load: SearchLoader;
 	readonly #version: () => string | undefined;
 
-	constructor({ load, version = () => undefined }: SearchSessionOptions) {
+	constructor({ load, version = () => undefined, onsearch }: SearchSessionOptions) {
 		this.#load = load;
 		this.#version = version;
+		this.#onsearch = onsearch;
 
 		// Build the index the first time the palette opens, keep it across opens,
 		// and build the next version's when the reader switches while open. Only
@@ -68,6 +84,19 @@ export class SearchSession {
 			const active = this.#version();
 			untrack(() => this.#loadIndexFor(active));
 		});
+	}
+
+	/**
+	 * Whether the palette is open. Closing it here (the dialog's binding, the
+	 * keyboard shortcut) finishes the search without a pick.
+	 */
+	get open(): boolean {
+		return this.#open;
+	}
+
+	set open(value: boolean) {
+		if (this.#open && !value) this.#finish(null);
+		this.#open = value;
 	}
 
 	/** Whether the index is loading, failed to load, or ready (`idle`). */
@@ -114,10 +143,24 @@ export class SearchSession {
 		return picked.slice(0, SUGGESTION_COUNT);
 	});
 
-	/** Close after the reader picks a page, clearing the query for next time. */
-	select(): void {
-		this.open = false;
+	/**
+	 * Close after the reader picks a page, clearing the query for next time.
+	 * `path` is the page they picked, which finishes the search with it.
+	 */
+	select(path?: string): void {
+		if (this.#open) this.#finish(path ?? null);
+		this.#open = false;
 		this.query = '';
+	}
+
+	// Report the search the palette is closing on. A results count from an
+	// index that isn't built yet would read as "nothing found", so a search
+	// closed while loading (or after a failed load) goes unreported.
+	#finish(picked: string | null): void {
+		const query = untrack(() => this.trimmedQuery);
+		if (!query || !this.#onsearch || !untrack(() => this.#current)) return;
+		const results = untrack(() => this.results.length);
+		this.#onsearch({ query, results, picked });
 	}
 
 	async #loadIndexFor(version: string | undefined): Promise<void> {

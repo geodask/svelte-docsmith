@@ -12,6 +12,8 @@
 	import Plug from '@lucide/svelte/icons/plug';
 	import { join } from '#lib/utils/url.js';
 	import { editorSetups, mcpUrl } from '#lib/mcp/connect.js';
+	import type { PageAction } from '#lib/core/reader-events.js';
+	import { report } from '../reader-events.js';
 
 	const {
 		path,
@@ -64,10 +66,17 @@
 		};
 	}
 
+	// Each menu item is a `page_action` reader event, reported as the reader
+	// uses it, whether or not the clipboard then cooperates.
+	function act(action: Exclude<PageAction, 'copy_mcp_setup'>) {
+		report({ type: 'page_action', path, action });
+	}
+
 	let copied = $state(false);
 	const copyPageText = clipboardCopy('copy page failed');
 
 	function copyPage() {
+		act('copy_markdown');
 		return copyPageText(
 			async () => {
 				const res = await fetch(mdHref);
@@ -126,7 +135,7 @@
 				<Copy />
 				Copy page
 			</DropdownMenu.Item>
-			<DropdownMenu.Item>
+			<DropdownMenu.Item onSelect={() => act('view_markdown')}>
 				{#snippet child({ props })}
 					<a href={mdHref} target="_blank" rel="noopener" {...props}>
 						<FileText />
@@ -135,7 +144,7 @@
 				{/snippet}
 			</DropdownMenu.Item>
 			<DropdownMenu.Separator />
-			<DropdownMenu.Item>
+			<DropdownMenu.Item onSelect={() => act('open_chatgpt')}>
 				{#snippet child({ props })}
 					<a href={chatgptHref} target="_blank" rel="noopener" {...props}>
 						<ArrowUpRight />
@@ -143,7 +152,7 @@
 					</a>
 				{/snippet}
 			</DropdownMenu.Item>
-			<DropdownMenu.Item>
+			<DropdownMenu.Item onSelect={() => act('open_claude')}>
 				{#snippet child({ props })}
 					<a href={claudeHref} target="_blank" rel="noopener" {...props}>
 						<ArrowUpRight />
@@ -179,7 +188,10 @@
 						<CopyButton
 							label="Copy server URL"
 							copied={copiedSnippet === 'url'}
-							onclick={() => copySnippet('url', serverUrl)}
+							onclick={() => {
+								act('copy_mcp_url');
+								copySnippet('url', serverUrl);
+							}}
 						/>
 					</div>
 				</div>
@@ -196,7 +208,10 @@
 							<CopyButton
 								label="Copy {editor} setup"
 								copied={copiedSnippet === editor}
-								onclick={() => copySnippet(editor, code)}
+								onclick={() => {
+									report({ type: 'page_action', path, action: 'copy_mcp_setup', editor });
+									copySnippet(editor, code);
+								}}
 								class="absolute top-1 right-1"
 							/>
 						</div>

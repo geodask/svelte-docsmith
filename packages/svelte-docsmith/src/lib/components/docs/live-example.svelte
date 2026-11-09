@@ -7,6 +7,8 @@
 	import { untrack, type Snippet } from 'svelte';
 	import type { ExtractedProps } from '../../core/extracted-props.js';
 	import { Playground, type PlaygroundValues } from './playground.svelte.js';
+	import { page } from '$app/state';
+	import { report } from '../reader-events.js';
 
 	const {
 		source,
@@ -46,6 +48,17 @@
 
 	let showSource = $state(false);
 	const clipboard = useClipboard();
+
+	// A `?source` import is always a Svelte component's source.
+	function copy() {
+		report({
+			type: 'copy_code',
+			path: page.url.pathname,
+			language: 'svelte',
+			source: 'live_example'
+		});
+		clipboard.copy();
+	}
 </script>
 
 <div class="not-prose my-6 overflow-hidden rounded-lg border border-border">
@@ -64,7 +77,7 @@
 				{showSource ? 'Hide' : 'Show'} source
 			</Button>
 			{#if showSource}
-				<CopyButton copied={clipboard.copied} onclick={() => clipboard.copy()} class="ml-auto" />
+				<CopyButton copied={clipboard.copied} onclick={copy} class="ml-auto" />
 			{/if}
 		</div>
 

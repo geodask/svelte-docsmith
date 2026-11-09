@@ -22,7 +22,7 @@
 	}
 
 	function select(path: string) {
-		search?.select();
+		search?.select(path);
 		goto(path);
 	}
 </script>

@@ -3,15 +3,20 @@
 	import type { Snippet } from 'svelte';
 	import { ScrollArea } from '../shadcn/scroll-area/index.js';
 	import CopyButton from '../chrome/copy-button.svelte';
+	import { page } from '$app/state';
+	import { report } from '../reader-events.js';
 
 	const clipboard = useClipboard();
 
 	const {
+		language,
 		title,
 		lineNumbers = false,
 		startLine = 1,
 		children
 	}: {
+		/** The fence's language as written, e.g. `ts`. Absent when it names none. */
+		language?: string;
 		/** Filename or caption, from the fence's `title=` metadata. */
 		title?: string;
 		/** Number the lines, from `showLineNumbers`. */
@@ -20,6 +25,16 @@
 		startLine?: number;
 		children: Snippet;
 	} = $props();
+
+	function copy() {
+		report({
+			type: 'copy_code',
+			path: page.url.pathname,
+			language: language ?? null,
+			source: 'fence'
+		});
+		clipboard.copy();
+	}
 
 	/**
 	 * Twoslash popups are absolutely positioned inside the code block, which is a
@@ -84,7 +99,7 @@
 		     floating over the first line of code when a title is present. -->
 		<div class="docsmith-code-title">
 			<span class="docsmith-code-title-text">{title}</span>
-			<CopyButton copied={clipboard.copied} onclick={() => clipboard.copy()} class="bg-muted" />
+			<CopyButton copied={clipboard.copied} onclick={copy} class="bg-muted" />
 		</div>
 	{/if}
 
@@ -92,7 +107,7 @@
 		{#if !title}
 			<CopyButton
 				copied={clipboard.copied}
-				onclick={() => clipboard.copy()}
+				onclick={copy}
 				class="bg-muted absolute top-2 right-2 z-10"
 			/>
 		{/if}

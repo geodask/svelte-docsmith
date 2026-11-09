@@ -96,6 +96,8 @@ export type CodeBlock =
 			kind: 'code';
 			/** Shiki's whole `<pre>` element, theme surface included. */
 			html: string;
+			/** The fence's language as written, when it names one. */
+			language?: string;
 			/** Filename or caption shown above the block. */
 			title?: string;
 			/** Whether to number the lines, with the site default applied. */
@@ -189,6 +191,7 @@ export function codeBlockRenderer(options: CodeBlockOptions = {}): RenderCodeBlo
 		return {
 			kind: 'code',
 			html,
+			...(lang ? { language: lang } : {}),
 			...(fence.title ? { title: fence.title } : {}),
 			lineNumbers,
 			...(lineNumbers && fence.startLine !== undefined ? { startLine: fence.startLine } : {})
@@ -229,6 +232,7 @@ export function codeBlockMarkup(block: CodeBlock, { layout }: { layout: boolean 
 	}
 	if (!layout) return `{@html ${literal(block.html)}}`;
 	const attrs = [
+		block.language !== undefined ? `language={${literal(block.language)}}` : '',
 		block.title !== undefined ? `title={${literal(block.title)}}` : '',
 		block.lineNumbers ? 'lineNumbers' : '',
 		block.startLine !== undefined ? `startLine={${block.startLine}}` : ''

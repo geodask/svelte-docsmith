@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { afterNavigate } from '$app/navigation';
+	import { report } from '../reader-events.js';
 	import type { DocsContent, DocsContentItem, ResolvedVersion } from '#lib/core/index.js';
 	import type { SearchLoader } from '#lib/search/session.svelte.js';
 	import DocsShell from './docs-shell.svelte';
@@ -45,6 +47,19 @@
 
 	const resolvedStatus = $derived(status ?? page.status);
 	const isNotFound = $derived(resolvedStatus === 404);
+
+	// Once per missing path: on landing (from the page that linked here, if the
+	// browser says) and on each client-side navigation to another missing path
+	// while the error page stays mounted (from the page the reader was on).
+	afterNavigate(({ from }) => {
+		if (!isNotFound) return;
+		report({
+			type: 'not_found',
+			path: page.url.pathname,
+			referrer: from?.url.href ?? (document.referrer || null)
+		});
+	});
+
 	const resolvedTitle = $derived(title ?? (isNotFound ? 'Page not found' : 'Something went wrong'));
 	const resolvedMessage = $derived(
 		message ??

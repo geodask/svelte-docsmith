@@ -141,7 +141,7 @@ describe('codeBlockMarkup', () => {
 	it.each(titles)('carries the title %j through to the pre component unchanged', async (title) => {
 		const block = code(await render('const a = 1;', 'ts'));
 		const markup = codeBlockMarkup({ ...block, title }, { layout: true });
-		expect(readBack(markup).attrs).toEqual({ title });
+		expect(readBack(markup).attrs).toEqual({ language: 'ts', title });
 		// And Svelte compiles it, rather than failing the build over a quote.
 		expect(() => compile(markup, { generate: 'server' })).not.toThrow();
 	});
@@ -158,9 +158,20 @@ describe('codeBlockMarkup', () => {
 	it('marks numbering and the start line as attributes', async () => {
 		const block = code(await render('x', 'ts', 'showLineNumbers startLine=12'));
 		expect(readBack(codeBlockMarkup(block, { layout: true })).attrs).toEqual({
+			language: 'ts',
 			lineNumbers: true,
 			startLine: 12
 		});
+	});
+
+	// The pre component reports it when a reader copies the block.
+	it('passes the fence language as written, and none when the fence names none', async () => {
+		const unknown = code(await render('x', 'made-up-lang'));
+		expect(readBack(codeBlockMarkup(unknown, { layout: true })).attrs).toEqual({
+			language: 'made-up-lang'
+		});
+		const bare = code(await render('x'));
+		expect(readBack(codeBlockMarkup(bare, { layout: true })).attrs).toEqual({});
 	});
 
 	it('keeps Shiki’s own <pre> when there is no layout', async () => {
