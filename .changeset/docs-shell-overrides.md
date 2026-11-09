@@ -1,5 +1,0 @@
----
-'svelte-docsmith': minor
----
-
-Replace parts of `DocsShell` with overrides. Pass a `sidebar`, `toc`, `pageHeader` or `pager` snippet and it renders in place of the built-in part: the sidebar receives `{ nav }`, the table of contents `{ items, activeId }`, the page header (breadcrumbs, reading time and Copy page) `{ path, breadcrumbs, readingMinutes, copyPage }`, and the pager `{ prev, next }`. The built-in parts are now exported as `Sidebar`, `TableOfContents`, `PageHeader` and `Pager`, each taking exactly what its snippet receives, so an override can wrap the default (`{#snippet sidebar(props)}<Sidebar {...props} /><SponsorCard />{/snippet}`). The shell keeps each part's place: the sticky columns stay, and the sidebar and table-of-contents overrides also fill the mobile menu and "On this page" popover. The prop types (`SidebarProps`, `TableOfContentsProps`, `PageHeaderProps`, `PagerProps`) and what they carry (`NavGroup`, `NavItem`, `NavNode`, `Breadcrumb`, `TocItem`, `isNavGroup`) are exported too. Overrides are inside the 1.0 promise. See the new Overrides page.
