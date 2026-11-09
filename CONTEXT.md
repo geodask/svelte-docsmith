@@ -182,6 +182,22 @@ list, search and read the docs' pages as agent markdown. Optional, and only
 possible where the site has a server runtime.
 _Avoid_: MCP endpoint, MCP route, docs API
 
+### Reader events
+
+**Reader event**:
+Something a reader did on a docs site that only svelte-docsmith can see, such
+as a feedback vote, a search, a 404 or a copied code block, passed to the
+author's reader event handler. Pageviews and generic clicks are the analytics
+provider's own business, so they are never reader events. svelte-docsmith
+sends reader events nowhere itself.
+_Avoid_: analytics event, tracking event, telemetry
+
+**Reader event handler**:
+The one function, named once in the site options, that receives every reader
+event on every page of the site. The author forwards events from it to
+whatever analytics they use.
+_Avoid_: analytics adapter, tracker, feedback callback
+
 ### Theming
 
 **Theme**:
