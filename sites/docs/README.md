@@ -55,8 +55,8 @@ PUBLIC_POSTHOG_KEY=phc_...                       # the project's API key
 PUBLIC_POSTHOG_HOST=https://...  # optional: a managed reverse proxy host; defaults to the EU host
 ```
 
-See `.env.example`. Events: `$pageview`, `$pageleave` and
-`docs_page_feedback` (`vote`, `path`).
+See `.env.example`. Events: `$pageview`, `$pageleave`, autocaptured clicks,
+`docs_page_feedback` (`vote`, `path`) and `docs_404` (`path`).
 
 ## Build
 
