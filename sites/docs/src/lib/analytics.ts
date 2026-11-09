@@ -1,8 +1,11 @@
 import posthog from 'posthog-js';
+import type { ReaderEventHandler } from 'svelte-docsmith';
 import { PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_KEY } from '$app/env/public';
 
-// PostHog for this docs site only (the library itself ships no analytics).
-// Off unless PUBLIC_POSTHOG_KEY is set (see src/env.ts).
+// PostHog for this docs site only (the library itself sends nothing). Off
+// unless PUBLIC_POSTHOG_KEY is set (see src/env.ts). The root layout starts it
+// for pageviews; `docsmith({ readerEvents })` in vite.config.ts names this
+// module, so its default export receives the library's reader events.
 let started = false;
 
 /** Start PostHog in the browser. Safe to call more than once. */
@@ -26,19 +29,12 @@ export function startAnalytics() {
 	});
 }
 
-// A child's onMount runs before the root layout's, so each event starts
-// PostHog itself rather than relying on the layout having done it.
-function capture(event: string, properties: Record<string, unknown>) {
+// The error page reports a 404 as it mounts, before the root layout's onMount
+// has run, so the handler starts PostHog itself rather than relying on the
+// layout having done it. Event names are the reader event types as they come.
+const readerEvents: ReaderEventHandler = (event) => {
 	startAnalytics();
-	if (started) posthog.capture(event, properties);
-}
+	if (started) posthog.capture(event.type, event);
+};
 
-/** A reader's thumbs vote at the foot of a doc page. */
-export function trackFeedback(vote: 'up' | 'down', path: string) {
-	capture('docs_page_feedback', { vote, path });
-}
-
-/** A reader landed on a page that doesn't exist; `$referrer` says from where. */
-export function trackNotFound(path: string) {
-	capture('docs_404', { path });
-}
+export default readerEvents;

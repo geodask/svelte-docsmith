@@ -21,6 +21,7 @@ their own pages in the [Components](/docs/components/callout) section.
 - **`svelte-docsmith/server`**: ready route handlers for the files a site serves besides its pages: `sitemap`, `changelogFeed`, `llmsTxt`, `llmsFullTxt`, `agentMarkdown` (the `.md` page twins), `ogImages` and `mcpServer`. Each is one line in a `+server.ts` that reads your site config itself (see [SEO](/docs/seo), [Changelog](/docs/changelog) and [MCP server](/docs/mcp-server)). Server-only.
 - **`svelte-docsmith/vite`**: the `docsmith()` Vite plugin, the one place a site is configured. It compiles markdown pages, builds the content, search, llms and changelog indexes, and serves the `?source` and `?props` imports.
 - **`svelte-docsmith/site`**: your site config, the `site` options of `docsmith()`, exported as `site`, with the resolved [outside paths](/docs/links#outside-paths) as `outside` and the repo's [star count](#github-stars) as `githubStars`. `DocsShell`, `ErrorPage` and the route handlers read it themselves; import it when a page of your own needs the title or links.
+- **`svelte-docsmith/reader-events`**: your [reader event handler](/docs/reader-events), the default export of the module `readerEvents` names, which the components report to. You never import it directly.
 - **`svelte-docsmith/content`**: the generated sidebar index. Its `content` export (the pages as `docs` plus the version manifest as `versions`) is what `DocsShell` and `ErrorPage` take.
 - **`svelte-docsmith/search`**: the generated full-text search index, exported as `docs` (lazy-load it; see [Search](/docs/search)).
 - **`svelte-docsmith/llms`**: the generated per-page agent markdown index, with props tables and example code written out, exported as `docs` (see [SEO](/docs/seo)).
@@ -112,6 +113,12 @@ editing them restarts the dev server.
 	<Prop name="links" type="DocsmithLinksOptions">
 		How the links doc pages write are checked, and which paths something other than
 		this app serves. See <a href="#links">links</a> below.
+	</Prop>
+	<Prop name="readerEvents" type="string">
+		Path to your reader event handler module, relative to the Vite root. Its default
+		export receives every reader event (feedback votes, searches, 404s, copies) in the
+		browser, to forward to your analytics. A missing file fails at startup. See
+		<a href="/docs/reader-events">Reader events</a>.
 	</Prop>
 </PropsTable>
 
@@ -362,10 +369,12 @@ sidebar, table of contents, page header or pager, pass an
 		Show the estimated reading time on doc pages (computed at build time from
 		the page's word count). Set <code>false</code> to hide it.
 	</Prop>
-	<Prop name="feedback" type={"boolean | ((vote: 'up' | 'down', path: string) => void)"}>
-		Show the "Was this page helpful?" widget at the foot of doc pages. Pass
-		<code>true</code> for the UI alone, or a callback to record votes (wire it to
-		your analytics). Omit to hide it.
+	<Prop name="feedback" type="boolean">
+		Show the "Was this page helpful?" widget at the foot of doc pages. Omit to hide
+		it. Votes reach your handler as <code>feedback</code>
+		<a href="/docs/reader-events">reader events</a>. Passing a callback
+		<code>(vote, path) => void</code> still works but is deprecated, and stops working
+		in the next minor.
 	</Prop>
 	<Prop name="layout" type="'docs' | 'page'" default="'docs'">
 		<code>docs</code> is the three-column shell; <code>page</code> is full-bleed
@@ -465,6 +474,10 @@ Like `DocsShell`, it reads the site config itself, so the chrome matches.
 - **`SitemapOptions`** / **`SitemapEntry`**: what `sitemap()` in
   `svelte-docsmith/server` takes.
 - **`CalloutVariant`** / **`BadgeVariant`**: the intent unions for `Callout` and `Badge`.
+- **`ReaderEvent`** / **`ReaderEventHandler`**: a [reader event](/docs/reader-events)
+  and the handler's type. Each event type is exported too (`FeedbackEvent`,
+  `FeedbackLinkEvent`, `SearchEvent`, `NotFoundEvent`, `PageActionEvent`,
+  `CopyCodeEvent`), with `PageAction` for the Copy page menu's actions.
 - **`SidebarProps`** / **`TableOfContentsProps`** / **`PageHeaderProps`** /
   **`PagerProps`**: what each [override](/docs/overrides) receives, and the props
   of `Sidebar`, `TableOfContents`, `PageHeader` and `Pager`. **`NavGroup`**,
