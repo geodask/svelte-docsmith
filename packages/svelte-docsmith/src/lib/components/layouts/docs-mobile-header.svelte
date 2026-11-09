@@ -3,7 +3,7 @@
 	import { outside, site } from 'svelte-docsmith/site';
 	import { siteLinkRel } from '#lib/core/outside-path.js';
 	import type { TocItem } from '#lib/toc/index.js';
-	import DocsSidebar from './docs-sidebar.svelte';
+	import Sidebar from './sidebar.svelte';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
 	import ModeToggle from '../chrome/mode-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
@@ -20,12 +20,15 @@
 	import Menu from '@lucide/svelte/icons/menu';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import type { Snippet } from 'svelte';
+	import type { SidebarProps, TableOfContentsProps } from './parts.js';
 	import { cn } from '#lib/utils/cn.js';
 
 	const {
 		sidebar = false,
 		tocItems = [],
 		tocActiveId = null,
+		sidebarOverride,
+		tocOverride,
 		logo,
 		actions
 	}: {
@@ -35,6 +38,10 @@
 		tocItems?: TocItem[];
 		/** Id of the heading currently in view. */
 		tocActiveId?: string | null;
+		/** `DocsShell`'s `sidebar` override, rendered in the menu in place of the built-in sidebar. */
+		sidebarOverride?: Snippet<[SidebarProps]>;
+		/** `DocsShell`'s `toc` override, rendered in the popover in place of the built-in TOC. */
+		tocOverride?: Snippet<[TableOfContentsProps]>;
 		logo?: Snippet;
 		actions?: Snippet;
 	} = $props();
@@ -44,6 +51,9 @@
 	// resolved view, the same one the desktop header reads.
 	const docsPage = useDocsPage();
 	const nav = $derived(sidebar ? docsPage.view.nav : []);
+	// An override decides for itself what an empty tree shows, so it always gets
+	// its place on the docs layout.
+	const showSidebar = $derived(sidebar && (Boolean(sidebarOverride) || nav.length > 0));
 	// Off the docs layout the bar names the site, as the menu does.
 	const title = $derived(sidebar ? docsPage.view.title : site.title);
 
@@ -102,12 +112,18 @@
 								</a>
 							{/each}
 						</nav>
-						{#if nav.length}
+						{#if showSidebar}
 							<Separator class="bg-border/60 mx-5 my-2" />
 						{/if}
 					{/if}
-					{#if nav.length}
-						<DocsSidebar {nav} class="static block h-auto w-full" />
+					{#if showSidebar}
+						<div class="px-4">
+							{#if sidebarOverride}
+								{@render sidebarOverride({ nav })}
+							{:else}
+								<Sidebar {nav} />
+							{/if}
+						</div>
 					{/if}
 				</ScrollArea>
 			</Sheet.Content>
@@ -145,7 +161,11 @@
 						{/snippet}
 					</Popover.Trigger>
 					<Popover.Content class="max-h-[60vh] w-64 overflow-y-auto p-4" align="end">
-						<TableOfContents items={tocItems} activeId={tocActiveId} class="static block w-full" />
+						{#if tocOverride}
+							{@render tocOverride({ items: tocItems, activeId: tocActiveId })}
+						{:else}
+							<TableOfContents items={tocItems} activeId={tocActiveId} />
+						{/if}
 					</Popover.Content>
 				</Popover.Root>
 			{/if}

@@ -24,9 +24,26 @@ _Avoid_: siteConfig, DocsmithConfig, defineConfig
 **Reading order**:
 The order a reader meets pages in the sidebar: each page placed by its
 `section` path, then sorted by `order` and title, with a group sorted by the
-smallest `order` below it. The sidebar, the prev/next pager, `llms.txt`,
+smallest `order` below it. The sidebar, the pager, `llms.txt`,
 `llms-full.txt` and the MCP server's `list_pages` all follow it.
 _Avoid_: sidebar order, nav order, sort order
+
+### Shell
+
+**Override**:
+A snippet passed to `DocsShell` that replaces one part of the shell (the
+sidebar, the TOC, the page header or the pager) inside the frame the shell
+keeps. It receives the same object the built-in part takes as props, so it can
+wrap that part.
+_Avoid_: slot, component override, custom component
+
+**Page header**:
+The row above a doc page's content: breadcrumbs, reading time and Copy page.
+_Avoid_: header (that is the site header across the top), page toolbar
+
+**Pager**:
+The previous and next links at the foot of a doc page, in reading order.
+_Avoid_: prev/next nav, pagination
 
 ### Component API reference
 

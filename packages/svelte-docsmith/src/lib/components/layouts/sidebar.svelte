@@ -3,9 +3,12 @@
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { cn } from '#lib/utils/cn.js';
 	import { normalizePath } from '#lib/utils/url.js';
-	import { isNavGroup, type NavGroup, type NavNode } from '#lib/core/index.js';
+	import { isNavGroup, type NavNode } from '#lib/core/index.js';
+	import type { SidebarProps } from './parts.js';
 
-	const { nav, class: className = '' }: { nav: NavGroup[]; class?: string } = $props();
+	// The sidebar tree alone. Its sticky column (and the mobile menu's scroll
+	// area) is the shell's frame, so a `sidebar` override sits in the same place.
+	const { nav }: SidebarProps = $props();
 
 	const current = $derived(normalizePath(page.url.pathname));
 
@@ -57,15 +60,11 @@
 	</ul>
 {/snippet}
 
-<aside class={cn('sticky top-24 hidden h-screen w-56 shrink-0 bg-transparent lg:block', className)}>
-	<div class="max-h-[calc(100vh-10rem)] overflow-y-auto px-4">
-		<nav aria-label="Documentation" class="space-y-6">
-			{#each nav as group (group.title)}
-				<div class="space-y-3">
-					<h4 class="text-foreground px-2 text-sm font-semibold">{group.title}</h4>
-					{@render tree(group.items)}
-				</div>
-			{/each}
-		</nav>
-	</div>
-</aside>
+<nav aria-label="Documentation" class="space-y-6">
+	{#each nav as group (group.title)}
+		<div class="space-y-3">
+			<h4 class="text-foreground px-2 text-sm font-semibold">{group.title}</h4>
+			{@render tree(group.items)}
+		</div>
+	{/each}
+</nav>
