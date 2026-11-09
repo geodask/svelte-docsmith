@@ -44,6 +44,20 @@ pnpm dev --filter=docs
 > source, rebuild it (`pnpm build --filter=svelte-docsmith`) or the dev server
 > shows stale behavior.
 
+## Analytics
+
+The site sends pageviews and doc-page feedback votes to PostHog
+(`src/lib/analytics.ts`). It stays off unless the key is set, so local dev,
+forks and previews send nothing:
+
+```bash
+PUBLIC_POSTHOG_KEY=phc_...                       # the project's API key
+PUBLIC_POSTHOG_HOST=https://...  # optional: a managed reverse proxy host; defaults to the EU host
+```
+
+See `.env.example`. Events: `$pageview`, `$pageleave` and
+`docs_page_feedback` (`vote`, `path`).
+
 ## Build
 
 ```bash
