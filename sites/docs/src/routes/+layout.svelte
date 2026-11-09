@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { mode } from 'mode-watcher';
 	import { themeStore, applyActiveTheme, type AppliedTokens } from '#lib/theme-store.svelte.ts';
+	import { startAnalytics } from '#lib/analytics.ts';
 	import type { Snippet } from 'svelte';
 
 	// No <ModeWatcher /> here on purpose: DocsShell provides it for every page
@@ -18,6 +19,7 @@
 
 	onMount(() => {
 		themeStore.init();
+		startAnalytics();
 		if (window.parent === window) return;
 		const root = document.documentElement;
 		const onmessage = (e: MessageEvent) => {

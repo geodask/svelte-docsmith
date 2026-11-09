@@ -74,7 +74,8 @@ export default defineConfig({
 									label: 'GitHub',
 									href: 'https://github.com/geodask/svelte-docsmith',
 									external: true
-								}
+								},
+								{ label: 'Privacy', href: '/privacy' }
 							]
 						},
 						{
