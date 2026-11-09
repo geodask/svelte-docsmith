@@ -93,7 +93,9 @@ export default defineConfig({
 			// keeps its unprefixed URL and nothing renders differently. The first
 			// archive lands when 1.0 ships (`svelte-docsmith archive-version v0`).
 			versions: { current: { id: 'v0', label: 'v0.x' } },
-			markdown: { twoslash: true }
+			markdown: { twoslash: true },
+			// Reader events (feedback votes, searches, 404s, copies) go to PostHog.
+			readerEvents: './src/lib/analytics.ts'
 		}),
 		tailwindcss(),
 		sveltekit({

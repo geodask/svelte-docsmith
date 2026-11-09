@@ -4,6 +4,7 @@
 	import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
+	import { report } from '../reader-events.js';
 
 	const {
 		path,
@@ -13,7 +14,10 @@
 	}: {
 		/** The current page path, passed to the callback so it can attribute votes. */
 		path: string;
-		/** Called once per page when the reader votes; wire it to your analytics. */
+		/**
+		 * Called once per page when the reader votes, beside the `feedback` reader
+		 * event. Only `DocsShell`'s deprecated callback form passes it.
+		 */
 		onfeedback?: (vote: 'up' | 'down', path: string) => void;
 		/** "Edit this page" target — offered after a "No" vote when present. */
 		editHref?: string;
@@ -28,7 +32,12 @@
 	function cast(value: 'up' | 'down') {
 		if (vote) return;
 		vote = value;
+		report({ type: 'feedback', path, vote: value });
 		onfeedback?.(value, path);
+	}
+
+	function followed(link: 'edit' | 'issue') {
+		report({ type: 'feedback_link', path, link });
 	}
 </script>
 
@@ -48,6 +57,7 @@
 						href={editHref}
 						target="_blank"
 						rel="noopener noreferrer"
+						onclick={() => followed('edit')}
 					>
 						<SquarePen />
 						Edit this page
@@ -60,6 +70,7 @@
 						href={issueHref}
 						target="_blank"
 						rel="noopener noreferrer"
+						onclick={() => followed('issue')}
 					>
 						<ExternalLink />
 						Open an issue

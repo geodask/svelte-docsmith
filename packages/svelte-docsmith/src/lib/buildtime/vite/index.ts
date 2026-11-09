@@ -18,7 +18,10 @@
  *     index of full markdown bodies is wired the same way.)
  *  5. The **theme**, appended to the stylesheet `svelte-docsmith/theme.css`
  *     compiles into (see `./theme.js`).
- *  6. The **doc imports** a page makes for its examples and props tables:
+ *  6. The author's **reader event handler** served as the virtual module
+ *     `svelte-docsmith/reader-events`, which the shell, error page and search
+ *     report reader events to (`undefined` when `readerEvents` names none).
+ *  7. The **doc imports** a page makes for its examples and props tables:
  *     `Component.svelte?source` yields that file's highlighted source for
  *     `LiveExample`, and `Component.svelte?props` its extracted props for
  *     `<PropsTable of={…}>`. Each kind lives in `./doc-imports/`, with the page
@@ -113,6 +116,8 @@ const CHANGELOG_SPECIFIER = 'svelte-docsmith/changelog';
 const VIRTUAL_CHANGELOG_ID = '\0svelte-docsmith:changelog';
 const SITE_SPECIFIER = 'svelte-docsmith/site';
 const VIRTUAL_SITE_ID = '\0svelte-docsmith:site';
+const READER_EVENTS_SPECIFIER = 'svelte-docsmith/reader-events';
+const VIRTUAL_READER_EVENTS_ID = '\0svelte-docsmith:reader-events';
 
 /**
  * Tell the author when their docs root produced nothing, and why. An empty
@@ -199,6 +204,7 @@ function contentIndexPlugin(
 			if (id === LLMS_SPECIFIER) return VIRTUAL_LLMS_ID;
 			if (id === CHANGELOG_SPECIFIER) return VIRTUAL_CHANGELOG_ID;
 			if (id === SITE_SPECIFIER) return VIRTUAL_SITE_ID;
+			if (id === READER_EVENTS_SPECIFIER) return VIRTUAL_READER_EVENTS_ID;
 		},
 
 		async load(id) {
@@ -226,6 +232,14 @@ function contentIndexPlugin(
 					`export const githubStars = ${githubStars ?? 'undefined'};\n` +
 					`export const ogColours = ${JSON.stringify(colours)};\n`
 				);
+			}
+			if (id === VIRTUAL_READER_EVENTS_ID) {
+				// The author's module, imported by its real path so editing it is an
+				// ordinary hot update. A module without a default export fails the
+				// import, which is the error the author needs.
+				const file = options.readerEventsFile;
+				if (!file) return `export const handler = undefined;\n`;
+				return `export { default as handler } from ${JSON.stringify(file.replaceAll('\\', '/'))};\n`;
 			}
 			if (id === VIRTUAL_CONTENT_ID) {
 				// Before anything is read: a config that disagrees with the docs root

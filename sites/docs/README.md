@@ -46,9 +46,9 @@ pnpm dev --filter=docs
 
 ## Analytics
 
-The site sends pageviews and doc-page feedback votes to PostHog
-(`src/lib/analytics.ts`). It stays off unless the key is set, so local dev,
-forks and previews send nothing:
+The site sends pageviews and the library's reader events to PostHog
+(`src/lib/analytics.ts`, named by `readerEvents` in `vite.config.ts`). It stays
+off unless the key is set, so local dev, forks and previews send nothing:
 
 ```bash
 PUBLIC_POSTHOG_KEY=phc_...                       # the project's API key
@@ -61,7 +61,9 @@ project's Web analytics settings: without it PostHog drops every event. What's
 collected is listed on `/privacy`; keep that page in step with any new event.
 
 See `.env.example`. Events: `$pageview`, `$pageleave`, autocaptured clicks,
-`docs_page_feedback` (`vote`, `path`) and `docs_404` (`path`).
+and each reader event under its `type` with its fields as properties:
+`feedback`, `feedback_link`, `search`, `not_found`, `page_action` and
+`copy_code` (see the Reader events docs page).
 
 ## Build
 

@@ -25,3 +25,7 @@ declare module 'svelte-docsmith/site' {
 	export const githubStars: number | undefined;
 	export const ogColours: import('./og/colours.js').OgColours;
 }
+
+declare module 'svelte-docsmith/reader-events' {
+	export const handler: import('../core/reader-events.js').ReaderEventHandler | undefined;
+}

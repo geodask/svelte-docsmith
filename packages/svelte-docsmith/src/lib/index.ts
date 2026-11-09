@@ -101,3 +101,18 @@ export {
 // are route handlers in `svelte-docsmith/server`.
 export { default as Changelog } from './components/changelog/changelog.svelte';
 export type { ChangelogRelease, ChangelogGroup } from './core/changelog.js';
+
+// Reader events: what the library reports to the handler named by
+// `docsmith({ readerEvents })`. Type the handler's default export with
+// `ReaderEventHandler`.
+export type {
+	ReaderEvent,
+	ReaderEventHandler,
+	FeedbackEvent,
+	FeedbackLinkEvent,
+	SearchEvent,
+	NotFoundEvent,
+	PageAction,
+	PageActionEvent,
+	CopyCodeEvent
+} from './core/reader-events.js';

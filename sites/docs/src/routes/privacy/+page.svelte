@@ -27,8 +27,17 @@
 		</p>
 		<ul>
 			<li>the pages you view and how long you stay on them;</li>
-			<li>clicks on buttons and links, such as copying code or a page;</li>
-			<li>your “Was this page helpful?” vote, if you give one;</li>
+			<li>
+				clicks on buttons and links, such as copying code or a page, opening a page in an AI
+				assistant, or copying the setup for connecting your editor;
+			</li>
+			<li>
+				what you type into search, how many results it found and which one you opened, if any;
+			</li>
+			<li>
+				your “Was this page helpful?” vote, if you give one, and whether you then chose to edit the
+				page or open an issue;
+			</li>
 			<li>
 				visits to pages that don’t exist, with the page that linked there, so we can fix broken
 				links;

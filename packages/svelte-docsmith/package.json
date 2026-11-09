@@ -71,6 +71,10 @@
 			"types": "./dist/fallbacks/site.d.ts",
 			"default": "./dist/fallbacks/site.js"
 		},
+		"./reader-events": {
+			"types": "./dist/fallbacks/reader-events.d.ts",
+			"default": "./dist/fallbacks/reader-events.js"
+		},
 		"./mermaid": {
 			"types": "./dist/components/docs/mermaid.svelte.d.ts",
 			"svelte": "./dist/components/docs/mermaid.svelte",

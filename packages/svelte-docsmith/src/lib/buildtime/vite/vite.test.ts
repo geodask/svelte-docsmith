@@ -695,6 +695,56 @@ describe('docsmith() site config', () => {
 	});
 });
 
+describe('docsmith() reader events', () => {
+	const loadHandler = (options: TestOptions = {}) =>
+		(pluginNamed('docsmith-content', options).load as unknown as Load).call(
+			{},
+			'\0svelte-docsmith:reader-events'
+		);
+
+	it('resolves svelte-docsmith/reader-events to a virtual module', () => {
+		const resolveId = pluginNamed('docsmith-content').resolveId as unknown as (
+			id: string
+		) => string | undefined;
+		expect(resolveId.call({}, 'svelte-docsmith/reader-events')).toBe(
+			'\0svelte-docsmith:reader-events'
+		);
+	});
+
+	it('serves no handler when readerEvents names none', async () => {
+		expect(await loadHandler()).toBe('export const handler = undefined;\n');
+	});
+
+	it("re-exports the named module's default export as the handler", async () => {
+		const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-reader-events-'));
+		try {
+			const file = path.join(dir, 'reader-events.ts');
+			fs.writeFileSync(file, 'export default () => {};\n');
+			const cwd = vi.spyOn(process, 'cwd').mockReturnValue(dir);
+			const out = await loadHandler({ readerEvents: './reader-events.ts' });
+			cwd.mockRestore();
+			expect(out).toBe(
+				`export { default as handler } from ${JSON.stringify(file.replaceAll('\\', '/'))};\n`
+			);
+		} finally {
+			fs.rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('fails at startup on a handler file that does not exist, naming it', () => {
+		expect(() => docsmith({ site: SITE, readerEvents: './src/lib/nope.ts' })).toThrow(
+			/reader event handler not found: .*src[\\/]lib[\\/]nope\.ts/
+		);
+	});
+
+	it('fails at startup on a readerEvents that is not a path', () => {
+		// @ts-expect-error — exercising the runtime guard for untyped callers
+		expect(() => docsmith({ site: SITE, readerEvents: () => {} })).toThrow(
+			/readerEvents \}\) takes a path to your handler module/
+		);
+	});
+});
+
 describe('docsmith() markdown pages', () => {
 	type Transform = { handler: (code: string, id: string) => Promise<{ code: string } | undefined> };
 	const transform = (options: TestOptions = {}) =>
@@ -705,7 +755,7 @@ describe('docsmith() markdown pages', () => {
 		expect(order).toBe('pre');
 		const out = await handler('## Hello\n\n```js\nconst a = 1;\n```', '/app/src/routes/x/+page.md');
 		expect(out?.code).toContain('id="hello"');
-		expect(out?.code).toContain('<Components.pre>');
+		expect(out?.code).toContain('<Components.pre language={"js"}>');
 	});
 
 	it('leaves other files and non-page requests of a markdown file alone', async () => {
