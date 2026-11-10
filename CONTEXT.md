@@ -160,8 +160,9 @@ writes it into Svelte markup. Fences and `?source` imports both use it.
 _Avoid_: highlighter, Shiki wrapper
 
 **Install block**:
-A code fence marked `pkg` holding npm commands, which readers see as one tab
-per package manager (pnpm, npm, yarn, bun) and agents read as all four.
+A code fence with a `pkg` flag after its language holding npm commands, which
+readers see as one tab per package manager (pnpm, npm, yarn, bun) and agents
+read as all four.
 _Avoid_: package manager tabs, npm2yarn, install tabs
 
 ### Agent access
