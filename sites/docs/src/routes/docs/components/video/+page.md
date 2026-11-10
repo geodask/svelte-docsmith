@@ -72,7 +72,10 @@ start time in the link (`?t=90`) is kept. Shorts are shown upright.
 <Video src="https://www.youtube.com/watch?v=rv3Yq-B8qp4" title="Svelte in 100 Seconds, by Fireship" />
 
 ```svelte
-<Video src="https://www.youtube.com/watch?v=rv3Yq-B8qp4" title="Svelte in 100 Seconds, by Fireship" />
+<Video
+	src="https://www.youtube.com/watch?v=rv3Yq-B8qp4"
+	title="Svelte in 100 Seconds, by Fireship"
+/>
 ```
 
 `poster` replaces the thumbnail with a picture of your own, which also means
