@@ -45,6 +45,14 @@ _Avoid_: header (that is the site header across the top), page toolbar
 The previous and next links at the foot of a doc page, in reading order.
 _Avoid_: prev/next nav, pagination
 
+### Docs components
+
+**Docs component**:
+A component from the package that an author places in a doc page's markdown,
+such as Callout, Tabs or Image. Imported in the page's script block like any
+Svelte component.
+_Avoid_: shortcode, widget, MDX component, built-in component
+
 ### Component API reference
 
 **Prop**:
@@ -150,6 +158,11 @@ The build-time module that decides how every code block is drawn (language
 fallback, fence meta, line numbers, Twoslash, diagrams) and the only place that
 writes it into Svelte markup. Fences and `?source` imports both use it.
 _Avoid_: highlighter, Shiki wrapper
+
+**Install block**:
+A code fence marked `pkg` holding npm commands, which readers see as one tab
+per package manager (pnpm, npm, yarn, bun) and agents read as all four.
+_Avoid_: package manager tabs, npm2yarn, install tabs
 
 ### Agent access
 
