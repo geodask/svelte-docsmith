@@ -52,6 +52,11 @@ export { default as Kbd } from './components/docs/kbd.svelte';
 export { default as FileTree } from './components/docs/file-tree.svelte';
 export { default as FileTreeItem } from './components/docs/file-tree-item.svelte';
 export { default as Image } from './components/docs/image.svelte';
+export { default as Columns } from './components/docs/columns.svelte';
+export { default as Do } from './components/docs/do.svelte';
+export { default as Dont } from './components/docs/dont.svelte';
+export { default as ColorSwatch } from './components/docs/color-swatch.svelte';
+export { default as ColorSwatches } from './components/docs/color-swatches.svelte';
 export { default as PropsTable } from './components/docs/props-table.svelte';
 export { default as Prop } from './components/docs/prop.svelte';
 
