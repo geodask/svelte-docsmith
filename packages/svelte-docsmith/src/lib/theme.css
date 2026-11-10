@@ -240,3 +240,21 @@ html.dark .shiki {
 		animation: none;
 	}
 }
+
+/*
+ * Math (`markdown.math`). Global because the markdown pipeline writes the
+ * MathML into the page at build time. A display formula wider than the column
+ * scrolls on its own rather than widening the page; one Temml couldn't read
+ * shows its source as code.
+ */
+.docsmith-math-display {
+	margin: 1.25em 0;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+.docsmith-math-display math {
+	margin: 0;
+}
+.docsmith-math-error {
+	color: var(--destructive);
+}

@@ -563,3 +563,27 @@ describe('agent markdown props tables', () => {
 		expect(host.props).toHaveBeenCalledWith(broken);
 	});
 });
+
+describe('agent markdown install blocks', () => {
+	it('writes an install block out for every package manager', async () => {
+		const pages = [page('install', 'title: Install', 'Add it:\n\n```sh pkg\nnpm i -D a\n```')];
+		expect(await agentMarkdown(pages, literalHost())).toEqual({
+			'/docs/install':
+				'# Install\n\nAdd it:\n\n```sh\n# pnpm\npnpm add -D a\n# npm\nnpm i -D a\n# yarn\nyarn add -D a\n# bun\nbun add --dev a\n```'
+		});
+	});
+
+	it('writes install blocks out on a page with doc imports too', async () => {
+		const pages = [
+			page(
+				'button',
+				'title: Button',
+				"<script>\n\timport source from './demo.svelte?source';\n</script>\n\n```sh pkg\nnpx sv create\n```\n\n<LiveExample {source} />"
+			)
+		];
+		const host = literalHost({ sources: { [docsFile('button/demo.svelte')]: '<button />' } });
+		const markdown = (await agentMarkdown(pages, host))['/docs/button'];
+		expect(markdown).toContain('# bun\nbunx sv create');
+		expect(markdown).toContain('```svelte\n<button />\n```');
+	});
+});

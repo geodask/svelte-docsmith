@@ -24,6 +24,8 @@ export type IndexOptions = {
 	routesDir: string;
 	/** Declared versions, when the site has them. */
 	versions?: DocsVersions;
+	/** Whether pages are read with math (`markdown.math`), so search leaves formulas out. */
+	math?: boolean;
 };
 
 /** A page resolved against the site's layout: its URL, title and owning version. */
@@ -103,7 +105,7 @@ export function contentIndex(pages: SourcePage[], options: IndexOptions): DocsCo
 		order: readField(page.frontmatter, 'order'),
 		sourcePath: relativeToCwd(page.file),
 		lastUpdated: page.lastUpdated,
-		readingTime: readingMinutes(extractSearchText(page.source)),
+		readingTime: readingMinutes(extractSearchText(page.source, options)),
 		toc: extractToc(page.source),
 		version: page.version,
 		data: dataOf(page.frontmatter)
@@ -122,7 +124,7 @@ export function searchIndex(pages: SourcePage[], options: IndexOptions): SearchD
 		section: sectionLabel(page.frontmatter),
 		description: readField(page.frontmatter, 'description'),
 		headings: extractToc(page.source).map((entry) => entry.title),
-		text: extractSearchText(page.source),
+		text: extractSearchText(page.source, options),
 		version: page.version
 	}));
 }

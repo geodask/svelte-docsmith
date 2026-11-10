@@ -51,6 +51,7 @@ export { default as Badge, type BadgeVariant } from './components/docs/badge.sve
 export { default as Kbd } from './components/docs/kbd.svelte';
 export { default as FileTree } from './components/docs/file-tree.svelte';
 export { default as FileTreeItem } from './components/docs/file-tree-item.svelte';
+export { default as Image } from './components/docs/image.svelte';
 export { default as PropsTable } from './components/docs/props-table.svelte';
 export { default as Prop } from './components/docs/prop.svelte';
 

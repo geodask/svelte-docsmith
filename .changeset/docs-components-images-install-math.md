@@ -1,0 +1,5 @@
+---
+'svelte-docsmith': minor
+---
+
+Three new things for doc pages. **Images:** a markdown image on its own line is now drawn as a figure with its title as the caption, and any image shown smaller than its real size zooms to full size on click. A path starting `./` or `../` is a file next to the page: DocSmith imports it so Vite serves it, and a missing file fails the build naming the page and the path. The new `Image` component takes a second picture for dark mode (`<Image src={light} dark={dark} alt="…" caption="…" />`). **Install blocks:** add `pkg` after a fence's language (```` ```bash pkg ````) and write npm commands; readers get pnpm, npm, yarn and bun tabs synced with every `syncKey="pkg"` group, and agent markdown carries all four. **Math:** with `docsmith({ markdown: { math: true } })`, `$…$` and `$$…$$` become MathML at build time, with no client script or fonts; it needs the new optional peer dependency `temml`, and search leaves formulas out. Under a custom mdsvex layout, images stay plain and an install block shows its npm commands. See the new Image and Math pages, and Install commands on Code blocks.

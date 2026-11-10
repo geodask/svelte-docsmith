@@ -1,6 +1,6 @@
 ---
 title: Code blocks
-description: Highlight lines, mark diffs, focus, flag errors, and highlight words.
+description: Highlight lines, mark diffs, focus, flag errors, highlight words, and show install commands for every package manager.
 section: Core Concepts
 order: 6
 ---
@@ -171,6 +171,41 @@ renders as:
 ```
 
 Ranges and lists use the same syntax: `{2-4}`, `{1,5}`, or both together.
+
+## Install commands
+
+Add `pkg` after the language and write the commands for npm. Readers get a tab
+for pnpm, npm, yarn and bun, and the choice they make is shared with every other
+install block (and every `<Tabs syncKey="pkg">`) on the site.
+
+````md
+```bash pkg
+npm install -D svelte-docsmith
+npx sv create my-app
+```
+````
+
+renders as:
+
+```bash pkg
+npm install -D svelte-docsmith
+npx sv create my-app
+```
+
+Each line is converted on its own:
+
+| You write                           | pnpm                       | yarn                       | bun                       |
+| ----------------------------------- | -------------------------- | -------------------------- | ------------------------- |
+| `npm install` / `npm i`             | `pnpm install`             | `yarn install`             | `bun install`             |
+| `npm install a` (with `-D` or `-E`) | `pnpm add a`               | `yarn add a`               | `bun add a`               |
+| `npx a`                             | `pnpm dlx a`               | `yarn dlx a`               | `bunx a`                  |
+| `npm create a@latest app -- --flag` | `pnpm create a app --flag` | `yarn create a app --flag` | `bun create a app --flag` |
+| `npm run dev -- --open`             | `pnpm run dev --open`      | `yarn run dev --open`      | `bun run dev --open`      |
+
+A line with anything else, such as `npm ci` or a flag without a clear
+equivalent, is shown as written in every tab rather than guessed at. Lines that
+aren't npm commands, like `cd my-app` or a comment, are kept as they are. Coding
+agents reading the page get all four versions.
 
 ## Filenames and line numbers
 

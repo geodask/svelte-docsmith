@@ -33,6 +33,12 @@ import {
 } from 'shiki';
 import { hasTwoslash, parseFenceMeta } from './fence-meta.js';
 import { twoslashFailure, twoslashTransformer } from './twoslash.js';
+import {
+	installCommands,
+	isInstallBlock,
+	withoutInstallFlag,
+	type PackageManager
+} from './install-block.js';
 
 /**
  * The theme a block is coloured with when the site names no `codeTheme`:
@@ -104,6 +110,11 @@ export type CodeBlock =
 			lineNumbers: boolean;
 			/** First line's number. Only set when the lines are numbered. */
 			startLine?: number;
+	  }
+	| {
+			kind: 'install';
+			/** Each manager's commands as a code block, in tab order. */
+			blocks: { manager: PackageManager; block: Extract<CodeBlock, { kind: 'code' }> }[];
 	  };
 
 /** Render one block: the code, its fence language, and the fence's raw meta. */
@@ -144,9 +155,9 @@ export function codeBlockRenderer(options: CodeBlockOptions = {}): RenderCodeBlo
 	const warn = options.warn ?? ((message: string) => console.warn(message));
 	let highlighter: Promise<Highlighter> | undefined;
 
-	return async (code, lang, meta) => {
+	const renderBlock = async (code: string, lang?: string | null, meta?: string | null) => {
 		// A ```mermaid fence renders as a diagram, not highlighted code.
-		if (lang === 'mermaid') return { kind: 'diagram', code };
+		if (lang === 'mermaid') return { kind: 'diagram', code } as const;
 
 		const shiki = await (highlighter ??= createHighlighter({
 			themes: pair ? [pair.light, pair.dark] : [TOKENS_THEME],
@@ -195,7 +206,22 @@ export function codeBlockRenderer(options: CodeBlockOptions = {}): RenderCodeBlo
 			...(fence.title ? { title: fence.title } : {}),
 			lineNumbers,
 			...(lineNumbers && fence.startLine !== undefined ? { startLine: fence.startLine } : {})
-		};
+		} as const;
+	};
+
+	return async (code, lang, meta) => {
+		// ```sh pkg: npm commands, drawn as one tab per package manager.
+		if (lang !== 'mermaid' && isInstallBlock(meta)) {
+			const rest = withoutInstallFlag(meta);
+			const blocks = await Promise.all(
+				installCommands(code).map(async ({ manager, code }) => ({
+					manager,
+					block: (await renderBlock(code, lang, rest)) as Extract<CodeBlock, { kind: 'code' }>
+				}))
+			);
+			return { kind: 'install', blocks };
+		}
+		return renderBlock(code, lang, meta);
 	};
 }
 
@@ -230,8 +256,28 @@ export function codeBlockMarkup(block: CodeBlock, { layout }: { layout: boolean 
 			`{/await}`
 		);
 	}
+	if (block.kind === 'install') {
+		const npm = block.blocks.find((entry) => entry.manager === 'npm')!.block;
+		if (!layout) return codeBlockMarkup(npm, { layout });
+		// A custom layout may not export `install`; it still gets the npm block.
+		const tabs = block.blocks.map(({ manager, block: code }) => ({
+			manager,
+			html: innerHtml(code.html)
+		}));
+		return (
+			`{#if Components.install}` +
+			`<Components.install tabs={${literal(tabs)}} ${preAttributes(npm)} />` +
+			`{:else}${codeBlockMarkup(npm, { layout })}{/if}`
+		);
+	}
 	if (!layout) return `{@html ${literal(block.html)}}`;
-	const attrs = [
+	const attrs = preAttributes(block);
+	return `<Components.pre${attrs ? ' ' + attrs : ''}>{@html ${literal(innerHtml(block.html))}}</Components.pre>`;
+}
+
+/** The attributes a code block passes to the layout's `pre`. */
+function preAttributes(block: Extract<CodeBlock, { kind: 'code' }>): string {
+	return [
 		block.language !== undefined ? `language={${literal(block.language)}}` : '',
 		block.title !== undefined ? `title={${literal(block.title)}}` : '',
 		block.lineNumbers ? 'lineNumbers' : '',
@@ -239,7 +285,6 @@ export function codeBlockMarkup(block: CodeBlock, { layout }: { layout: boolean 
 	]
 		.filter(Boolean)
 		.join(' ');
-	return `<Components.pre${attrs ? ' ' + attrs : ''}>{@html ${literal(innerHtml(block.html))}}</Components.pre>`;
 }
 
 /**
@@ -257,12 +302,12 @@ export function sourcePanelHtml(block: CodeBlock): string {
 }
 
 /**
- * A string as a JavaScript literal for a Svelte `{expression}`. JSON is valid
+ * A value (a string, or plain data) as a JavaScript literal for a Svelte `{expression}`. JSON is valid
  * JavaScript, and the Svelte parser reads an expression with a JavaScript
  * parser, so quotes, braces and backticks inside the value stay text. `<` is
  * escaped too, so the markdown pipeline can never mistake a `</script>` or a
  * tag inside a string for markup of its own.
  */
-function literal(value: string): string {
+function literal(value: unknown): string {
 	return JSON.stringify(value).replace(/</g, '\\u003c');
 }

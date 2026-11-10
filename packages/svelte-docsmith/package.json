@@ -103,6 +103,7 @@
 		"svelte": "^5.0.0",
 		"svelte2tsx": "^0.7.0",
 		"tailwindcss": "^4.0.0",
+		"temml": ">=0.13.0 <1",
 		"typescript": "^5.0.0 || ^6.0.0",
 		"vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
 	},
@@ -117,6 +118,9 @@
 			"optional": true
 		},
 		"svelte2tsx": {
+			"optional": true
+		},
+		"temml": {
 			"optional": true
 		},
 		"typescript": {
@@ -145,6 +149,7 @@
 		"svelte-check": "^4.7.8",
 		"svelte2tsx": "^0.7.63",
 		"tailwindcss": "^4.3.4",
+		"temml": "0.14.0",
 		"twoslash-svelte": "0.3.9",
 		"typescript": "^6.0.3",
 		"vite": "^8.3.6",
@@ -168,6 +173,7 @@
 		"mdsvex": "^0.12.8",
 		"mode-watcher": "^1.1.0",
 		"rehype-slug": "^6.0.0",
+		"remark-math": "3.0.1",
 		"shiki": "^4.6.0",
 		"tailwind-merge": "^3.7.0",
 		"tailwind-variants": "^4.0.1",

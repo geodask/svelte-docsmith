@@ -8,6 +8,9 @@
 	export const h2 = markdown.h2;
 	export const h3 = markdown.h3;
 	export const table = markdown.table;
+	export const img = markdown.img;
+	// Not a tag: install blocks (```sh pkg) render through it by name.
+	export const install = markdown.install;
 </script>
 
 <script lang="ts">

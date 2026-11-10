@@ -18,6 +18,18 @@ function withoutSetupBlocks(body: string): string {
 	);
 }
 
+/**
+ * Drop formulas, as search drops code: `$$…$$` blocks and `$…$` by the same
+ * rules `remark-math` reads them with (see `../math.ts`), so "$5 or $10" stays.
+ */
+function withoutFormulas(body: string): string {
+	return outsideCodeFenceRuns(body, (prose) =>
+		prose
+			.replace(/\$\$[\s\S]+?\$\$/g, ' ')
+			.replace(/(^|[^\\$])\$(?=[^\s$])(?:\\.|[^$\\\n])*?[^\s\\]\$(?!\d)/g, '$1 ')
+	);
+}
+
 /** Strip inline markdown so a heading's TOC label is plain text. */
 function stripInlineMarkdown(text: string): string {
 	return text
@@ -36,8 +48,12 @@ function stripInlineMarkdown(text: string): string {
  * and markdown punctuation removed. Feeds the generated search index. Code
  * samples are intentionally dropped to keep the index small and prose-focused.
  */
-export function extractSearchText(source: string): string {
-	const body = withoutSetupBlocks(splitFrontmatter(source).body);
+export function extractSearchText(
+	source: string,
+	{ math = false }: { math?: boolean } = {}
+): string {
+	const page = withoutSetupBlocks(splitFrontmatter(source).body);
+	const body = math ? withoutFormulas(page) : page;
 	const out: string[] = [];
 
 	for (const line of proseLines(body)) {

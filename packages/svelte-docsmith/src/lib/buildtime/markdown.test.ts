@@ -1,3 +1,5 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { compile } from 'svelte/compiler';
 import { describe, expect, it, vi } from 'vitest';
@@ -269,5 +271,134 @@ describe('markdown compiler with outside paths', () => {
 		// It has no URL of its own, so there is nothing to resolve them against.
 		const code = await renderPage('[a](../relative)', {}, path.resolve('/app/src/lib/notes.md'));
 		expect(code).not.toContain('external');
+	});
+});
+
+/** A page file in a fresh temp folder, with `files` written next to it. */
+function pageWith(files: string[]): string {
+	const dir = mkdtempSync(path.join(tmpdir(), 'docsmith-images-'));
+	for (const file of files) {
+		mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+		writeFileSync(path.join(dir, file), '');
+	}
+	return path.join(dir, 'guide', '+page.md');
+}
+
+async function compilePage(content: string, file: string, options: DocsmithMarkdownOptions = {}) {
+	const result = await markdownCompiler(options, codeBlockRenderer())(content, file);
+	if (!result) throw new Error('compiler returned nothing');
+	return result.code;
+}
+
+describe('markdown images', () => {
+	it('draws an image standing alone as a figure through the layout, its title the caption', async () => {
+		const code = await render('![A chart](/chart.png "Sales by month")');
+		expect(code).toContain('<Components.img');
+		expect(code).toContain('title="Sales by month"');
+		expect(code).toContain('standalone="{true}"');
+		// Lifted out of its paragraph: a <figure> can't sit inside a <p>.
+		expect(code).not.toMatch(/<p>\s*<Components\.img/);
+		expect(compile(code, { generate: 'server' }).warnings).toEqual([]);
+	});
+
+	it('keeps an image inside a sentence inline, in its paragraph', async () => {
+		const code = await render('Press ![the key](/key.png) to start.');
+		expect(code).toMatch(
+			/<p>Press <Components\.img src="\/key\.png" alt="the key"><\/Components\.img>/
+		);
+		expect(code).not.toContain('standalone');
+	});
+
+	it('leaves images to a custom layout as they are', async () => {
+		const code = await render('![A chart](/chart.png)', { layout: false });
+		expect(code).toContain('<p><img src="/chart.png" alt="A chart"></p>');
+	});
+
+	it('imports an image next to the page, so Vite serves it', async () => {
+		const file = pageWith(['guide/shot.png', 'shared/logo.svg']);
+		const code = await compilePage('![Shot](./shot.png)\n\n![Logo](../shared/logo.svg)', file);
+		expect(code).toContain('import __docsmith_image_0 from "./shot.png";');
+		expect(code).toContain('import __docsmith_image_1 from "../shared/logo.svg";');
+		expect(code).toContain('src="{__docsmith_image_0}"');
+		expect(compile(code, { generate: 'server' }).warnings).toEqual([]);
+	});
+
+	it("adds the import to the page's own script, not its module script", async () => {
+		const file = pageWith(['guide/shot.png']);
+		const code = await compilePage(
+			'<script module>\n\texport const x = 1;\n</script>\n\n<script lang="ts">\n\tlet a = 1;\n</script>\n\n![Shot](./shot.png)',
+			file
+		);
+		expect(code).toMatch(/<script lang="ts">[^<]*import __docsmith_image_0 from "\.\/shot\.png";/);
+		expect(code.match(/<script(?![^>]*module)[^>]*>/g)).toHaveLength(1);
+	});
+
+	it('fails the build for an image that is not there, naming the page and the path', async () => {
+		const file = pageWith([]);
+		await expect(compilePage('![Shot](./missing.png)', file)).rejects.toThrow(
+			/guide\/\+page\.md: the image `\.\/missing\.png` is not there/
+		);
+	});
+
+	it('leaves static files and full URLs alone', async () => {
+		const file = pageWith([]);
+		const code = await compilePage('![a](/a.png)\n\n![b](https://example.com/b.png)', file);
+		expect(code).not.toContain('import __docsmith_image');
+		expect(code).toContain('src="/a.png"');
+		expect(code).toContain('src="https://example.com/b.png"');
+	});
+});
+
+describe('install blocks', () => {
+	it('draws a pkg fence as one tab per package manager, through the layout', async () => {
+		const code = await render('```sh pkg\nnpm i -D svelte-docsmith\n```');
+		expect(code).toContain('<Components.install tabs={[{"manager":"pnpm"');
+		expect(code).toContain('pnpm\\u003c/span>');
+		expect(code).toContain('language={"sh"}');
+		expect(compile(code, { generate: 'server' }).warnings).toEqual([]);
+	});
+
+	it('falls back to the npm block for a layout without install blocks', async () => {
+		const code = await render('```sh pkg\nnpm i a\n```');
+		expect(code).toContain('{:else}<Components.pre language={"sh"}>');
+		const plain = await render('```sh pkg\nnpm i a\n```', { layout: false });
+		expect(plain).not.toContain('Components');
+		expect(plain).not.toContain('pnpm');
+	});
+});
+
+describe('math', () => {
+	it('leaves dollars alone by default', async () => {
+		const code = await render('It costs $5, or $x$ with tax.');
+		expect(code).toContain('It costs $5, or $x$ with tax.');
+		expect(code).not.toContain('<math');
+	});
+
+	it('writes formulas as MathML when turned on', async () => {
+		const code = await render('Inline $x^2$ here.\n\n$$\n\\frac{a}{b}\n$$', { math: true });
+		expect(code).toMatch(/Inline \{@html "\\u003cmath>/);
+		expect(code).toContain(
+			'<div class="docsmith-math-display">{@html "\\u003cmath display=\\"block\\"'
+		);
+	});
+
+	it('keeps "$5 or $10" as text, as Pandoc does', async () => {
+		const code = await render('Pick $5 or $10.', { math: true });
+		expect(code).toContain('Pick $5 or $10.');
+	});
+
+	it('keeps braces and < in a formula away from Svelte', async () => {
+		const code = await render('Then $\\frac{a}{b} < \\{c\\}$.', { math: true });
+		const { warnings } = compile(code, { generate: 'server' });
+		expect(warnings).toEqual([]);
+		expect(code).not.toContain('{a}');
+	});
+
+	it('warns and shows the source of a formula it cannot read', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const code = await render('Bad $\\frac{a$ here.', { math: true });
+		expect(code).toContain('docsmith-math-error');
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('could not read the formula'));
+		warn.mockRestore();
 	});
 });
