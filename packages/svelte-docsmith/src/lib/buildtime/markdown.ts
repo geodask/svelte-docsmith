@@ -15,7 +15,7 @@ import { codeBlockMarkup, type RenderCodeBlock } from './code-block.js';
 import type { OutsidePaths } from '../core/outside-path.js';
 import { rehypeOutsidePaths } from './outside-paths.js';
 import { rehypeImages } from './images.js';
-import { remarkMathPlugins } from './math.js';
+import { rehypeMath, remarkMathPlugin } from './math.js';
 
 /** The `markdown` options of `docsmith()`: how doc pages are compiled. */
 export interface DocsmithMarkdownOptions {
@@ -109,11 +109,14 @@ export function markdownCompiler(
 				codeBlockMarkup(await renderCodeBlock(code, lang, meta), { layout: layout !== undefined })
 		},
 		remarkPlugins: [
-			...(options.math ? remarkMathPlugins((message) => console.warn(message)) : []),
+			...(options.math ? [remarkMathPlugin] : []),
 			...(options.remarkPlugins ?? [])
 		] as MdsvexOptions['remarkPlugins'],
 		rehypePlugins: [
 			rehypeSlug,
+			// After the slugs, so a heading's formula counts as its TeX text, as
+			// the table of contents reads it.
+			...(options.math ? [rehypeMath((message) => console.warn(message))] : []),
 			[rehypeSectionize, { idPropertyName: 'data-section-id' }],
 			rehypeOutsidePaths(outside, routesDir),
 			// Figures only where the packaged layout draws images: a custom layout

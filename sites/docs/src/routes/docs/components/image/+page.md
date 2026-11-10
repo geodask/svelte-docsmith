@@ -58,7 +58,7 @@ sites. Both are left as you wrote them.
 
 When a picture is shown smaller than its real size, it becomes a button that
 opens it full size. A picture that already fits has nothing more to show, so it
-stays a plain image. Zoom works with the keyboard, and Escape closes it.
+stays a plain image. Zoom works with the keyboard, and Escape closes it. An image inside a link never zooms: clicking it follows the link.
 
 ## A picture per colour mode
 

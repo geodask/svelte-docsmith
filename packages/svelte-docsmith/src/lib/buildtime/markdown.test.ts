@@ -4,6 +4,7 @@ import path from 'node:path';
 import { compile } from 'svelte/compiler';
 import { describe, expect, it, vi } from 'vitest';
 import { codeBlockRenderer } from './code-block.js';
+import { extractToc } from './vite/extract.js';
 import { markdownCompiler, type DocsmithMarkdownOptions } from './markdown.js';
 
 /** Compile a markdown string as the plugin would, with one renderer per call. */
@@ -340,6 +341,23 @@ describe('markdown images', () => {
 		);
 	});
 
+	it('finds a file whose name has spaces or other scripts in it', async () => {
+		const file = pageWith(['guide/my shot.png', 'guide/截图.png']);
+		const code = await compilePage('![a](<./my shot.png>)\n\n![b](./截图.png)', file);
+		expect(code).toContain('import __docsmith_image_0 from "./my shot.png";');
+		expect(code).toContain('import __docsmith_image_1 from "./截图.png";');
+	});
+
+	it('turns zoom off for an image inside a link, so a click follows the link', async () => {
+		const code = await render(
+			'[![Dashboard](/shot.png)](https://app.example.com)\n\n![Free](/b.png)'
+		);
+		expect(code).toMatch(
+			/<a href="https:\/\/app\.example\.com"[^>]*><Components\.img[^>]*zoom="\{false\}"/
+		);
+		expect(code.match(/zoom=/g)).toHaveLength(1);
+	});
+
 	it('leaves static files and full URLs alone', async () => {
 		const file = pageWith([]);
 		const code = await compilePage('![a](/a.png)\n\n![b](https://example.com/b.png)', file);
@@ -394,9 +412,26 @@ describe('math', () => {
 		expect(code).not.toContain('{a}');
 	});
 
+	it('leaves Svelte store reads alone', async () => {
+		const stores =
+			"<script>\n\timport { writable } from 'svelte/store';\n\tconst a = writable(1), b = writable(2), count = writable(3);\n</script>\n\n";
+		const code = await render(`${stores}Now {$a} and {$b} here, and {$count}.`, { math: true });
+		expect(code).toContain('Now {$a} and {$b} here, and {$count}.');
+		expect(code).not.toContain('<math');
+		expect(compile(code, { generate: 'server' }).warnings).toEqual([]);
+	});
+
+	it('gives a heading with a formula the id the table of contents links to', async () => {
+		const source = '## Area $x^2$ here';
+		const code = await render(source, { math: true });
+		const [entry] = extractToc(source);
+		expect(code).toContain(`id="${entry.id}"`);
+		expect(entry.id).toBe('area-x2-here');
+	});
+
 	it('warns and shows the source of a formula it cannot read', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-		const code = await render('Bad $\\frac{a$ here.', { math: true });
+		const code = await render('Bad $\\notacommand{a}$ here.', { math: true });
 		expect(code).toContain('docsmith-math-error');
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('could not read the formula'));
 		warn.mockRestore();

@@ -25,6 +25,7 @@ describe('isInstallBlock', () => {
 	it('leaves the rest of the meta for the renderer', () => {
 		expect(withoutInstallFlag('pkg title="Setup"')).toBe('title="Setup"');
 		expect(withoutInstallFlag('title="pkg" pkg')).toBe('title="pkg"');
+		expect(withoutInstallFlag('title="add a pkg here" pkg')).toBe('title="add a pkg here"');
 	});
 });
 
@@ -98,6 +99,12 @@ describe('writeInstallBlocks', () => {
 	it('keeps an indented block’s indentation', () => {
 		expect(writeInstallBlocks('1. Step\n\n   ```sh pkg\n   npm i a\n   ```')).toBe(
 			'1. Step\n\n   ```sh\n   # pnpm\n   pnpm add a\n   # npm\n   npm i a\n   # yarn\n   yarn add a\n   # bun\n   bun add a\n   ```'
+		);
+	});
+
+	it('reads and keeps CRLF line endings', () => {
+		expect(writeInstallBlocks('```sh pkg\r\nnpm i a\r\n```\r\n')).toBe(
+			'```sh\r\n# pnpm\r\npnpm add a\r\n# npm\r\nnpm i a\r\n# yarn\r\nyarn add a\r\n# bun\r\nbun add a\r\n```\r\n'
 		);
 	});
 

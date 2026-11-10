@@ -45,12 +45,14 @@ export function rehypeImages({ figures }: { figures: boolean }) {
 		const imports: string[] = [];
 		const page = file.filename;
 
-		const visit = (node: HastNode) => {
+		const visit = (node: HastNode, inLink: boolean) => {
 			if (node.type === 'element' && node.tagName === 'img') {
 				const properties = (node.properties ??= {});
 				const src = properties.src;
 				if (typeof src === 'string' && isPageRelative(src) && page) {
-					const specifier = src;
+					// remark hands the path over URL-encoded (`my%20shot.png`); the
+					// file on disk and the import both want it as written.
+					const specifier = decoded(src);
 					const target = path.resolve(path.dirname(path.resolve(page)), specifier.split(/[?#]/)[0]);
 					if (!existsSync(target)) {
 						throw new Error(
@@ -62,15 +64,28 @@ export function rehypeImages({ figures }: { figures: boolean }) {
 					imports.push(`import ${name} from ${JSON.stringify(specifier)};`);
 					properties.src = `{${name}}`;
 				}
+				// A linked image is the link's to click: a zoom button over it
+				// would take the click, and a button can't sit inside an <a>.
+				if (inLink) properties.zoom = '{false}';
 			}
 			if (!node.children) return;
 			if (figures) node.children = node.children.map(liftStandalone);
-			node.children.forEach(visit);
+			const linked = inLink || (node.type === 'element' && node.tagName === 'a');
+			node.children.forEach((child) => visit(child, linked));
 		};
-		visit(tree);
+		visit(tree, false);
 
 		if (imports.length) addImports(tree, imports);
 	};
+}
+
+/** A path as written, from the URL-encoded form remark gives it. */
+function decoded(src: string): string {
+	try {
+		return decodeURI(src);
+	} catch {
+		return src;
+	}
 }
 
 /**

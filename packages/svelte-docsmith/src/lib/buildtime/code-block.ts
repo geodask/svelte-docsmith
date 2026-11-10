@@ -308,6 +308,6 @@ export function sourcePanelHtml(block: CodeBlock): string {
  * escaped too, so the markdown pipeline can never mistake a `</script>` or a
  * tag inside a string for markup of its own.
  */
-function literal(value: unknown): string {
+export function literal(value: unknown): string {
 	return JSON.stringify(value).replace(/</g, '\\u003c');
 }

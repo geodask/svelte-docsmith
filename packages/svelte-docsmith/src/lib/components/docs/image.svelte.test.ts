@@ -74,6 +74,13 @@ describe('markdown images', () => {
 		expect(container.querySelector('figcaption')).toHaveTextContent('The caption');
 	});
 
+	it('offers no zoom for an image inside a link, so a click follows the link', async () => {
+		drawn({ natural: 1600, shown: 640 });
+		render(MarkdownImage, { props: { src: '/a.png', alt: 'A', zoom: false } });
+		await settle();
+		expect(screen.queryByRole('button')).toBeNull();
+	});
+
 	it('keeps an image inside a sentence inline, its title a hover hint', () => {
 		const { container } = render(MarkdownImage, {
 			props: { src: '/a.png', alt: 'A', title: 'Hint' }
