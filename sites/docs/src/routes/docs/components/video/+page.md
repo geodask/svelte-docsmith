@@ -69,8 +69,10 @@ The video then plays from `youtube-nocookie.com`, which sets no cookies until
 it plays. Watch links, `youtu.be` links, Shorts and embed links all work, and a
 start time in the link (`?t=90`) is kept. Shorts are shown upright.
 
+<Video src="https://www.youtube.com/watch?v=rv3Yq-B8qp4" title="Svelte in 100 Seconds, by Fireship" />
+
 ```svelte
-<Video src="https://www.youtube.com/watch?v=VIDEO_ID" title="Talk: what's new in Svelte" />
+<Video src="https://www.youtube.com/watch?v=rv3Yq-B8qp4" title="Svelte in 100 Seconds, by Fireship" />
 ```
 
 `poster` replaces the thumbnail with a picture of your own, which also means
