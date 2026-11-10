@@ -55,7 +55,9 @@ and ends one only when no space comes before it and no digit after it. So
 can still read as one long formula, so write `\$` for a dollar sign you mean
 literally.
 
-Dollar signs inside code, such as `$HOME`, are never formulas.
+Dollar signs inside code, such as `$HOME`, are never formulas, and neither are
+Svelte store reads: a `$` straight after `{`, as in `{$count}`, opens nothing,
+and a formula's braces have to pair up, as TeX needs them to anyway.
 
 ## Search and agents
 

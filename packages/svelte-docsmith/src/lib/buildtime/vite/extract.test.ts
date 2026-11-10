@@ -114,6 +114,13 @@ describe('extractSearchText with math', () => {
 		expect(extractSearchText(source, { math: true })).toBe('Area is , about $5 or $10. Done.');
 	});
 
+	it('keeps inline code and dollars remark-math reads as text', () => {
+		const text = 'Use `$state` and `$derived` runes. Price: $$100 or $$200. Read {$a} and {$b}.';
+		expect(extractSearchText(text, { math: true })).toBe(
+			'Use $state and $derived runes. Price: $$100 or $$200. Read {$a} and {$b}.'
+		);
+	});
+
 	it('keeps dollars as text when math is off', () => {
 		expect(extractSearchText(source)).toContain('$\\pi r^2$');
 	});

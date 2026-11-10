@@ -7,10 +7,19 @@
  * can't be followed by a space, and the closing one can't follow a space or be
  * followed by a digit, so "$5 or $10" stays text. `\$` is a literal dollar.
  *
- * Each formula is written by Temml as MathML at build time, so the page ships
- * no script and no font CSS: the browser draws MathML itself, in the theme's
- * text colour. The MathML goes in as a string literal under `{@html}`, so the
- * braces and `<` of a formula never reach Svelte as markup or expressions.
+ * A page is Svelte as well as markdown, and remark reads it before Svelte does,
+ * so two rules keep store reads out of formulas: a `$` straight after `{`
+ * opens nothing (`{$count}`), and a formula whose braces don't balance is not
+ * one (`{$a} and {$b}` would otherwise be the formula `a} and {`). TeX needs
+ * balanced braces, so no real formula is turned away.
+ *
+ * Formulas reach the HTML tree as `remark-math` leaves them, a span or div
+ * holding the TeX as text, so `rehype-slug` reads a heading's formula as its
+ * text, the same text the table of contents slugs. Then {@link rehypeMath}
+ * replaces each with Temml's MathML. The MathML goes in as a string literal
+ * under `{@html}`, so the braces and `<` of a formula never reach Svelte as
+ * markup or expressions, and the page ships no script and no font CSS: the
+ * browser draws MathML itself, in the theme's text colour.
  *
  * A formula Temml can't read warns and shows its source as code rather than
  * failing the build, like a Twoslash snippet that doesn't typecheck.
@@ -21,13 +30,15 @@
  * Runs in Node at build time.
  */
 import remarkMath from 'remark-math';
+import { literal } from './code-block.js';
 
-/** The few mdast node fields the step reads; mdsvex brings no mdast types. */
-type MdastNode = {
+/** The few hast node fields the step reads; mdsvex brings no hast types. */
+type HastNode = {
 	type: string;
+	tagName?: string;
 	value?: string;
-	data?: { hProperties?: { className?: string[] } };
-	children?: MdastNode[];
+	properties?: { className?: string[] };
+	children?: HastNode[];
 };
 
 type Temml = {
@@ -46,11 +57,6 @@ async function loadTemml(): Promise<Temml> {
 				'Install it with: npm i -D temml'
 		);
 	}
-}
-
-/** A string as a JavaScript literal for a Svelte `{expression}`; see `code-block.ts`. */
-function literal(value: string): string {
-	return JSON.stringify(value).replace(/</g, '\\u003c');
 }
 
 function escapeHtml(text: string): string {
@@ -76,37 +82,73 @@ export function mathMarkup(
 	return display ? `<div class="docsmith-math-display">${markup}</div>` : markup;
 }
 
-/**
- * The remark plugins that read and write math: `remark-math`'s tokenizers, then
- * a step that replaces each formula node with its markup.
- */
-export function remarkMathPlugins(warn: (message: string) => void) {
-	function writeMath() {
-		return async (tree: MdastNode, file: { filename?: string }) => {
-			const formulas: MdastNode[] = [];
-			const visit = (node: MdastNode) => {
-				if (node.type === 'math' || node.type === 'inlineMath') formulas.push(node);
-				else node.children?.forEach(visit);
-			};
-			visit(tree);
-			if (!formulas.length) return;
-
-			const renderer = await (temml ??= loadTemml());
-			const where = file.filename ? `${file.filename}: ` : '';
-			for (const node of formulas) {
-				// `$$…$$` inside a sentence is inline in the tree but asks for display.
-				const display =
-					node.type === 'math' ||
-					(node.data?.hProperties?.className?.includes('math-display') ?? false);
-				const value = mathMarkup(renderer, node.value ?? '', display, (message) =>
-					warn(`[svelte-docsmith] ${where}${message}`)
-				);
-				node.type = 'html';
-				node.value = value;
-				delete node.data;
-				delete node.children;
-			}
-		};
+/** Whether a formula's `{` and `}` pair up, escaped ones aside. */
+function bracesBalance(tex: string): boolean {
+	let depth = 0;
+	for (let i = 0; i < tex.length; i++) {
+		if (tex[i] === '\\') i++;
+		else if (tex[i] === '{') depth++;
+		else if (tex[i] === '}' && --depth < 0) return false;
 	}
-	return [remarkMath, writeMath];
+	return depth === 0;
+}
+
+type Tokenizer = ((eat: Eat, value: string, silent?: boolean) => unknown) & {
+	locator: (value: string, fromIndex: number) => number;
+};
+type Eat = (subvalue: string) => (node: { type: string; value?: string }) => unknown;
+
+/**
+ * `remark-math`, with its inline tokenizer kept out of Svelte expressions (see
+ * the module comment).
+ */
+function remarkMathInSvelte(this: { Parser: { prototype: Record<string, unknown> } }) {
+	remarkMath.call(this as never);
+	const tokenizers = this.Parser.prototype.inlineTokenizers as Record<string, Tokenizer>;
+	const original = tokenizers.math;
+
+	const tokenizer = ((eat, value, silent) => {
+		let found: { subvalue: string; node: { type: string; value?: string } } | undefined;
+		original((subvalue) => (node) => (found = { subvalue, node }), value, false);
+		if (!found || (found.node.type === 'inlineMath' && !bracesBalance(found.node.value ?? ''))) {
+			return undefined;
+		}
+		return silent ? true : eat(found.subvalue)(found.node);
+	}) as Tokenizer;
+
+	tokenizer.locator = (value, fromIndex) => {
+		let at = original.locator(value, fromIndex);
+		while (at > 0 && value[at - 1] === '{') at = original.locator(value, at + 1);
+		return at;
+	};
+	tokenizers.math = tokenizer;
+}
+
+/** The remark plugin that reads formulas. */
+export const remarkMathPlugin = remarkMathInSvelte;
+
+/** The rehype step that writes each formula `remark-math` read as MathML. */
+export function rehypeMath(warn: (message: string) => void) {
+	return () => async (tree: HastNode, file: { filename?: string }) => {
+		const formulas: { node: HastNode; display: boolean }[] = [];
+		const visit = (node: HastNode) => {
+			const classes = node.properties?.className ?? [];
+			if (node.type === 'element' && classes.includes('math')) {
+				formulas.push({ node, display: classes.includes('math-display') });
+			} else node.children?.forEach(visit);
+		};
+		visit(tree);
+		if (!formulas.length) return;
+
+		const renderer = await (temml ??= loadTemml());
+		const where = file.filename ? `${file.filename}: ` : '';
+		for (const { node, display } of formulas) {
+			const tex = (node.children ?? []).map((child) => child.value ?? '').join('');
+			const value = mathMarkup(renderer, tex, display, (message) =>
+				warn(`[svelte-docsmith] ${where}${message}`)
+			);
+			for (const key of Object.keys(node)) delete node[key as keyof HastNode];
+			Object.assign(node, { type: 'raw', value });
+		}
+	};
 }

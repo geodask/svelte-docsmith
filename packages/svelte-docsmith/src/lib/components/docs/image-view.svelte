@@ -14,7 +14,8 @@
 		alt,
 		title,
 		caption,
-		figure = false
+		figure = false,
+		zoom = true
 	}: {
 		/** The picture, or the light colour mode's picture when `dark` is given. */
 		src: string;
@@ -27,6 +28,8 @@
 		caption?: string;
 		/** Draw a block-level figure, with the caption, rather than an inline image. */
 		figure?: boolean;
+		/** Offer zoom when the picture is shown smaller than its real size. */
+		zoom?: boolean;
 	} = $props();
 
 	let open = $state(false);
@@ -40,6 +43,7 @@
 	function measure() {
 		const shown = pictures.find((img) => img.clientWidth > 0);
 		zoomable =
+			zoom &&
 			shown !== undefined &&
 			shown.complete &&
 			shown.naturalWidth > 0 &&

@@ -19,14 +19,23 @@ function withoutSetupBlocks(body: string): string {
 }
 
 /**
- * Drop formulas, as search drops code: `$$…$$` blocks and `$…$` by the same
- * rules `remark-math` reads them with (see `../math.ts`), so "$5 or $10" stays.
+ * Drop formulas, as search drops code, by the rules `remark-math` reads them
+ * with (see `../math.ts`): a `$$` block on lines of its own, and `$…$` or
+ * `$$…$$` in a line whose opener has no space after it and whose closer has no
+ * space before it and no digit after. Inline code is never a formula, so
+ * "$5 or $10" and `` `$state` `` stay.
  */
 function withoutFormulas(body: string): string {
+	const DISPLAY = /^[ \t]{0,3}\$\$[^\n]*\n[\s\S]*?^[ \t]*\$\$[ \t]*$/gm;
+	const INLINE = /(^|[^\\${])(\$\$?)(?![\s$])(?:\\.|[^$\\\n])*?[^\s\\]\2(?!\d)/g;
 	return outsideCodeFenceRuns(body, (prose) =>
 		prose
-			.replace(/\$\$[\s\S]+?\$\$/g, ' ')
-			.replace(/(^|[^\\$])\$(?=[^\s$])(?:\\.|[^$\\\n])*?[^\s\\]\$(?!\d)/g, '$1 ')
+			.replace(DISPLAY, ' ')
+			// Split around code spans: every third part is a span's backtick run
+			// (from the inner group), dropped; the code spans themselves are kept.
+			.split(/((`+)[\s\S]*?\2)/)
+			.map((part, i) => (i % 3 === 0 ? part.replace(INLINE, '$1 ') : i % 3 === 1 ? part : ''))
+			.join('')
 	);
 }
 

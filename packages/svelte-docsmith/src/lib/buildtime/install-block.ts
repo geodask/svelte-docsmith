@@ -42,7 +42,14 @@ export function isInstallBlock(meta?: string | null): boolean {
 /** The fence's meta without the `pkg` flag, for the rest of the renderer. */
 export function withoutInstallFlag(meta?: string | null): string {
 	if (!meta) return '';
-	return meta.replace(new RegExp(String.raw`(^|\s)${FLAG}(?=\s|$)`), '$1').trim();
+	// Key=value pairs are matched first and kept, so a `pkg` inside a quoted
+	// title stays: the same reading `isInstallBlock` makes.
+	return meta
+		.replace(
+			new RegExp(String.raw`(\w+=(?:"[^"]*"|'[^']*'|\S+))|(^|\s)${FLAG}(?=\s|$)`, 'g'),
+			(match, pair: string | undefined, space: string | undefined) => pair ?? space ?? match
+		)
+		.trim();
 }
 
 /** `-D` and `-E` in each manager's spelling, keyed by every npm spelling. */
@@ -136,7 +143,10 @@ const FENCE_OPEN = /^([ \t]*)(`{3,}|~{3,})(.*)$/;
  * comment. A fence inside another fence is sample code, and is left alone.
  */
 export function writeInstallBlocks(markdown: string): string {
-	const lines = markdown.split('\n');
+	// Pages aren't normalised, so a Windows checkout's CRLF lines are read
+	// without their \r and written back with it.
+	const eol = markdown.includes('\r\n') ? '\r\n' : '\n';
+	const lines = markdown.split(/\r?\n/);
 	const out: string[] = [];
 	for (let i = 0; i < lines.length; i++) {
 		const open = FENCE_OPEN.exec(lines[i]);
@@ -145,13 +155,10 @@ export function writeInstallBlocks(markdown: string): string {
 			continue;
 		}
 		const [, indent, marker, info] = open;
-		const closeAt = lines.findIndex(
-			(line, j) =>
-				j > i &&
-				new RegExp(
-					String.raw`^[ \t]*${marker[0] === '`' ? '`' : '~'}{${marker.length},}[ \t]*$`
-				).test(line)
+		const closer = new RegExp(
+			String.raw`^[ \t]*${marker[0] === '`' ? '`' : '~'}{${marker.length},}[ \t]*$`
 		);
+		const closeAt = lines.findIndex((line, j) => j > i && closer.test(line));
 		const end = closeAt === -1 ? lines.length : closeAt;
 		const body = lines.slice(i + 1, end);
 		const [lang = '', ...meta] = info.trim().split(/\s+/);
@@ -174,5 +181,5 @@ export function writeInstallBlocks(markdown: string): string {
 		}
 		i = end;
 	}
-	return out.join('\n');
+	return out.join(eol);
 }
