@@ -14,6 +14,8 @@ import rehypeSlug from 'rehype-slug';
 import { codeBlockMarkup, type RenderCodeBlock } from './code-block.js';
 import type { OutsidePaths } from '../core/outside-path.js';
 import { rehypeOutsidePaths } from './outside-paths.js';
+import { rehypeImages } from './images.js';
+import { remarkMathPlugins } from './math.js';
 
 /** The `markdown` options of `docsmith()`: how doc pages are compiled. */
 export interface DocsmithMarkdownOptions {
@@ -52,6 +54,13 @@ export interface DocsmithMarkdownOptions {
 	 * build warning rather than failing the build. Default: `false`.
 	 */
 	twoslash?: boolean;
+	/**
+	 * Render `$…$` as an inline formula and `$$…$$` as a display formula, written
+	 * as MathML at build time. A single `$` opens a formula only when no space
+	 * follows it, so "$5 or $10" stays text; write `\$` for a literal dollar.
+	 * Requires the optional peer dependency `temml`. Default: `false`.
+	 */
+	math?: boolean;
 }
 
 /**
@@ -99,11 +108,17 @@ export function markdownCompiler(
 			highlighter: async (code, lang, meta) =>
 				codeBlockMarkup(await renderCodeBlock(code, lang, meta), { layout: layout !== undefined })
 		},
-		remarkPlugins: options.remarkPlugins,
+		remarkPlugins: [
+			...(options.math ? remarkMathPlugins((message) => console.warn(message)) : []),
+			...(options.remarkPlugins ?? [])
+		] as MdsvexOptions['remarkPlugins'],
 		rehypePlugins: [
 			rehypeSlug,
 			[rehypeSectionize, { idPropertyName: 'data-section-id' }],
 			rehypeOutsidePaths(outside, routesDir),
+			// Figures only where the packaged layout draws images: a custom layout
+			// may not, and a lifted image would lose its paragraph for nothing.
+			rehypeImages({ figures: options.layout === undefined }),
 			...(options.rehypePlugins ?? [])
 		] as MdsvexOptions['rehypePlugins']
 	});

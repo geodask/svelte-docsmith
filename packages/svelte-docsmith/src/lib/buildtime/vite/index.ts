@@ -147,7 +147,7 @@ function contentIndexPlugin(
 	const docsBase = docsBaseFrom(routesDir, contentDir);
 	const changelogRoute = options.changelogPath;
 	const changelogOverrides = path.join(routesDir, changelogRoute);
-	const indexOptions = { contentDir, routesDir, versions };
+	const indexOptions = { contentDir, routesDir, versions, math: options.markdown?.math };
 	const brokenLinks = brokenLinksReporter({
 		indexOptions,
 		links,

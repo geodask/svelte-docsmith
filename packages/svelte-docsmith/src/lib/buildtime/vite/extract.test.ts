@@ -106,3 +106,15 @@ describe('extractLlmsContent', () => {
 		expect(extractLlmsContent(page, 'X')).toBe(`# X\n\nBody.\n\n${sample}\n\nAfter.`);
 	});
 });
+
+describe('extractSearchText with math', () => {
+	const source = 'Area is $\\pi r^2$, about $5 or $10.\n\n$$\nE = mc^2\n$$\n\nDone.\n';
+
+	it('leaves formulas out, as it leaves out code', () => {
+		expect(extractSearchText(source, { math: true })).toBe('Area is , about $5 or $10. Done.');
+	});
+
+	it('keeps dollars as text when math is off', () => {
+		expect(extractSearchText(source)).toContain('$\\pi r^2$');
+	});
+});

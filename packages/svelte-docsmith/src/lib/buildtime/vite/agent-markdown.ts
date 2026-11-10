@@ -20,6 +20,7 @@ import { outsideCodeFenceRuns, scriptBlocks } from '../markdown-source.js';
 import { relativeToCwd } from '../paths.js';
 import { indexedPages, type IndexedPage, type IndexOptions } from './collect.js';
 import { extractLlmsContent } from './extract.js';
+import { writeInstallBlocks } from '../install-block.js';
 import { readField } from './fields.js';
 import type { SourcePage } from './pages.js';
 import {
@@ -171,8 +172,9 @@ const BINDING_BY_TAG = new Map(
 
 /**
  * A page's agent markdown: the page as written with its frontmatter and setup
- * blocks dropped and its title as an `h1`, then each tag whose import was read
- * written out by its kind. The imports come from the raw source, as the setup
+ * blocks dropped and its title as an `h1`, its install blocks written out for
+ * every package manager, then each tag whose import was read written out by
+ * its kind. The imports come from the raw source, as the setup
  * blocks that hold them are gone from the text being rewritten.
  */
 function agentMarkdown(
@@ -180,7 +182,9 @@ function agentMarkdown(
 	reads: Map<string, DocImportRead> | undefined,
 	warn: (message: string) => void
 ): string {
-	const content = extractLlmsContent(page.source, page.title);
+	// Install blocks are written out first: they are fences, which the tag
+	// rewrite below never looks inside.
+	const content = writeInstallBlocks(extractLlmsContent(page.source, page.title));
 	if (reads === undefined) return content;
 
 	// The level of the heading a tag sits under, carried across code fences.
