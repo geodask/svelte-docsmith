@@ -1,0 +1,10 @@
+WEBVTT
+
+00:00.000 --> 00:01.800
+An install block shows the pnpm commands.
+
+00:01.800 --> 00:04.200
+Picking npm, then yarn, rewrites both lines for that package manager.
+
+00:04.200 --> 00:07.300
+Bun, then back to pnpm.

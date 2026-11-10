@@ -57,6 +57,8 @@ export { default as Do } from './components/docs/do.svelte';
 export { default as Dont } from './components/docs/dont.svelte';
 export { default as ColorSwatch } from './components/docs/color-swatch.svelte';
 export { default as ColorSwatches } from './components/docs/color-swatches.svelte';
+export { default as Tooltip } from './components/docs/tooltip.svelte';
+export { default as Video } from './components/docs/video.svelte';
 export { default as PropsTable } from './components/docs/props-table.svelte';
 export { default as Prop } from './components/docs/prop.svelte';
 
