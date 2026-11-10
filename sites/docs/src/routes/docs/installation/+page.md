@@ -6,7 +6,7 @@ order: 2
 ---
 
 <script>
-	import { Tabs, TabItem, Callout } from 'svelte-docsmith';
+	import { Callout } from 'svelte-docsmith';
 </script>
 
 ## Start a new project
@@ -15,40 +15,13 @@ The fastest way to begin is the scaffolder. It creates a ready-to-run SvelteKit
 project already wired with DocSmith: the markdown pipeline, the Vite plugin, the
 style contract, a `DocsShell` layout, a 404 page, and a couple of sample pages.
 
-<Tabs syncKey="pkg">
-<TabItem label="pnpm">
-
-```bash
-pnpm create svelte-docsmith my-docs
-```
-
-</TabItem>
-<TabItem label="npm">
-
-```bash
+```bash pkg
 npm create svelte-docsmith@latest my-docs
 ```
 
-</TabItem>
-<TabItem label="yarn">
-
-```bash
-yarn create svelte-docsmith my-docs
-```
-
-</TabItem>
-<TabItem label="bun">
-
-```bash
-bun create svelte-docsmith my-docs
-```
-
-</TabItem>
-</Tabs>
-
 Then install dependencies and start the dev server:
 
-```bash
+```bash pkg
 cd my-docs
 npm install
 npm run dev
@@ -63,36 +36,9 @@ already have.
 Svelte DocSmith is a SvelteKit library. Install it with your package manager of
 choice:
 
-<Tabs syncKey="pkg">
-<TabItem label="pnpm">
-
-```bash
-pnpm add -D svelte-docsmith
-```
-
-</TabItem>
-<TabItem label="npm">
-
-```bash
+```bash pkg
 npm install -D svelte-docsmith
 ```
-
-</TabItem>
-<TabItem label="yarn">
-
-```bash
-yarn add -D svelte-docsmith
-```
-
-</TabItem>
-<TabItem label="bun">
-
-```bash
-bun add -D svelte-docsmith
-```
-
-</TabItem>
-</Tabs>
 
 <Callout variant="note" title="Prerequisites">
 

@@ -261,7 +261,8 @@ option has a working default.
 	<Prop name="layout" type="string | false">
 		Absolute path to a custom mdsvex layout, or <code>false</code> for none. A
 		custom layout must export a <code>pre</code> component from its module
-		script, since code fences render through it.
+		script, since code fences render through it. Under a custom layout, images
+		are plain (no zoom or captions) and install blocks show their npm commands.
 	</Prop>
 	<Prop name="lineNumbers" type="boolean" default="false">
 		Number every code block. A fence overrides it either way with
@@ -270,6 +271,11 @@ option has a working default.
 	<Prop name="twoslash" type="boolean" default="false">
 		Enable Twoslash on fences marked <code>twoslash</code>. Needs the optional
 		peer dependencies; see <a href="/docs/code-blocks">Code blocks</a>.
+	</Prop>
+	<Prop name="math" type="boolean" default="false">
+		Render <code>$…$</code> and <code>$$…$$</code> as formulas, written as MathML at
+		build time. Needs the optional peer dependency <code>temml</code>; see
+		<a href="/docs/components/math">Math</a>.
 	</Prop>
 	<Prop name="remarkPlugins" type="PluggableList">
 		Extra remark plugins, appended after DocSmith's own.
