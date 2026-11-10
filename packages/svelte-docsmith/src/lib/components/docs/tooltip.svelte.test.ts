@@ -13,6 +13,7 @@ vi.stubGlobal(
 );
 
 const words = createRawSnippet(() => ({ render: () => '<span>HMR</span>' }));
+const popover = () => document.querySelector('[data-slot="popover-content"]');
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('Tooltip', () => {
@@ -21,7 +22,31 @@ describe('Tooltip', () => {
 		const trigger = screen.getByRole('button', { name: 'HMR' });
 		expect(trigger).toHaveClass('docsmith-tooltip-trigger');
 		expect(trigger).toHaveAttribute('aria-expanded', 'false');
-		expect(screen.queryByText('Hot module replacement')).toBeNull();
+		// A screen reader hears the note as the words' description, open or not.
+		const description = document.getElementById(trigger.getAttribute('aria-describedby')!);
+		expect(description).toHaveTextContent('Hot module replacement');
+		// Hidden, so it's never copied with the sentence; a description may be hidden.
+		expect(description).toHaveAttribute('hidden');
+		expect(popover()).toBeNull();
+	});
+
+	it('opens on hover and closes when the pointer leaves', async () => {
+		vi.useFakeTimers();
+		try {
+			render(Tooltip, { props: { note: 'Hot module replacement', children: words } });
+			const trigger = screen.getByRole('button', { name: 'HMR' });
+
+			await fireEvent.pointerEnter(trigger, { pointerType: 'mouse' });
+			await fireEvent.pointerMove(trigger, { pointerType: 'mouse' });
+			await vi.advanceTimersByTimeAsync(300);
+			expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+			await fireEvent.pointerLeave(trigger, { pointerType: 'mouse' });
+			await vi.advanceTimersByTimeAsync(600);
+			expect(trigger).toHaveAttribute('aria-expanded', 'false');
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('opens on a click or tap, describes the words, and closes on Escape', async () => {
@@ -31,9 +56,8 @@ describe('Tooltip', () => {
 		await fireEvent.pointerDown(trigger, { button: 0 });
 		await fireEvent.click(trigger, { button: 0 });
 		await settle();
-		const note = screen.getByText('Hot module replacement');
+		expect(popover()).toHaveTextContent('Hot module replacement');
 		expect(trigger).toHaveAttribute('aria-expanded', 'true');
-		expect(trigger.getAttribute('aria-describedby')).toBe(note.closest('[id]')!.id);
 
 		await fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
 		await settle();
@@ -60,6 +84,6 @@ describe('Tooltip', () => {
 		render(Tooltip, { props: { note, children: words } });
 		await fireEvent.click(screen.getByRole('button', { name: 'HMR' }), { button: 0 });
 		await settle();
-		expect(screen.getByText('vite').tagName).toBe('CODE');
+		expect(popover()?.querySelector('code')).toHaveTextContent('vite');
 	});
 });

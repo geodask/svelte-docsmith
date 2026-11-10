@@ -50,7 +50,9 @@ video's frame takes it as its title. Captions are in English unless
 
 `loop` plays a clip the way a GIF would: muted, looping, with no controls. A
 video file is far smaller than the same GIF and stays sharp. A pause button
-shows on hover and keyboard focus, so a reader can stop it.
+shows on hover and keyboard focus, and always on a touch screen, so a reader
+can stop it. With no controls to turn them on, a looping clip's `captions`
+show from the start.
 
 <Video src={installTabs} poster={installTabsPoster} title="Switching an install block between package managers" loop />
 
@@ -66,8 +68,9 @@ start on its own. It waits on its poster with a play button.
 Give `src` a YouTube link and the video shows YouTube's thumbnail with a play
 button. Nothing from YouTube's player loads until the reader presses play.
 The video then plays from `youtube-nocookie.com`, which sets no cookies until
-it plays. Watch links, `youtu.be` links, Shorts and embed links all work, and a
-start time in the link (`?t=90`) is kept. Shorts are shown upright.
+it plays. Watch links, `youtu.be` links, Shorts, live and embed links all work, and a
+start time in the link (`?t=90`) is kept. Shorts are shown upright. In development, a YouTube link
+that names no video, such as a channel or a playlist, logs a warning.
 
 <Video src="https://www.youtube.com/watch?v=rv3Yq-B8qp4" title="Svelte in 100 Seconds, by Fireship" />
 

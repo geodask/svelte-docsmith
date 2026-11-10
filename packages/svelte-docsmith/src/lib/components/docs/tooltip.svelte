@@ -46,14 +46,16 @@
 </script>
 
 <!-- No whitespace between the tags: inside a sentence, it would show as a
-     space before the punctuation that follows the words. -->
+     space before the punctuation that follows the words. A hidden copy of
+     the note describes the words to a screen reader, open or not, so the
+     words say they carry a note; hidden, it's never copied with the text. -->
 <Popover.Root bind:open onOpenChange={(value) => value || (viaFocus = false)}
 	><Popover.Trigger
 		openOnHover
 		openDelay={150}
 		closeDelay={150}
 		class="docsmith-tooltip-trigger"
-		aria-describedby={open ? `${id}-note` : undefined}
+		aria-describedby="{id}-description"
 		{onfocus}
 		{onblur}
 		{onkeydown}>{@render children()}</Popover.Trigger
@@ -63,10 +65,11 @@
 		class="w-auto max-w-xs gap-0 px-3 py-2 text-sm leading-snug"
 		trapFocus={false}
 		onOpenAutoFocus={(e) => e.preventDefault()}
-		onCloseAutoFocus={(e) => e.preventDefault()}
-		>{#if typeof note === 'string'}{note}{:else}{@render note()}{/if}</PopoverContent
+		onCloseAutoFocus={(e) => e.preventDefault()}>{@render noteText()}</PopoverContent
 	></Popover.Root
->
+><span id="{id}-description" hidden>{@render noteText()}</span>
+
+{#snippet noteText()}{#if typeof note === 'string'}{note}{:else}{@render note()}{/if}{/snippet}
 
 <style>
 	/* Reads as part of the sentence, with a dotted underline that says there is

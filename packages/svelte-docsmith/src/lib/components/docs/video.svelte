@@ -6,7 +6,7 @@
 	const VIDEO_ID = /^[\w-]{11}$/;
 
 	/**
-	 * The YouTube video a link names: a watch, short, Shorts or embed link.
+	 * The YouTube video a link names: a watch, short, Shorts, live or embed link.
 	 * Anything else is `undefined`, and is played as a file.
 	 */
 	export function youtubeVideo(src: string): YouTubeVideo | undefined {
@@ -31,6 +31,11 @@
 		return { id, short, ...(start ? { start } : {}) };
 	}
 
+	/** Whether a link points at YouTube at all, read or not. */
+	export function looksLikeYouTube(src: string): boolean {
+		return /^https?:\/\/(?:[\w-]+\.)?(?:youtube\.com|youtube-nocookie\.com|youtu\.be)\//.test(src);
+	}
+
 	/** `90`, `90s` or `1m30s` as seconds. */
 	function seconds(value: string | null): number | undefined {
 		const match = value && /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/.exec(value);
@@ -43,6 +48,7 @@
 <script lang="ts">
 	import Play from '@lucide/svelte/icons/play';
 	import Pause from '@lucide/svelte/icons/pause';
+	import { DEV } from 'esm-env';
 
 	const {
 		src,
@@ -52,7 +58,7 @@
 		captionsLang = 'en',
 		loop = false
 	}: {
-		/** A video file, or a YouTube link (watch, short, Shorts or embed). */
+		/** A video file, or a YouTube link (watch, short, Shorts, live or embed). */
 		src: string;
 		/** What the video shows, for screen readers and as the YouTube frame's title. */
 		title: string;
@@ -73,6 +79,17 @@
 	} = $props();
 
 	const youtube = $derived(youtubeVideo(src));
+
+	// A YouTube link that isn't a video (a channel, a playlist) would become a
+	// <video> that can never play.
+	$effect(() => {
+		if (DEV && !youtube && looksLikeYouTube(src)) {
+			console.warn(
+				`[svelte-docsmith] Video: \`${src}\` is a YouTube link but names no video. ` +
+					'Use a watch, youtu.be, Shorts, live or embed link.'
+			);
+		}
+	});
 
 	// YouTube: nothing from the player loads until the reader presses play.
 	let embedded = $state(false);
@@ -99,6 +116,10 @@
 		}
 	}
 
+	function focus(node: HTMLElement) {
+		node.focus();
+	}
+
 	function toggle() {
 		if (!clip) return;
 		if (clip.paused) clip.play()?.catch(() => {});
@@ -113,7 +134,10 @@
 			: 'aspect-video w-full'}"
 	>
 		{#if embedded}
+			<!-- Focus moves into the player, so the keyboard doesn't fall back to the
+			     page when the play button it was on goes away. -->
 			<iframe
+				use:focus
 				src={embed}
 				{title}
 				class="absolute inset-0 h-full w-full border-0"
@@ -150,29 +174,27 @@
 			use:startLoop
 		>
 			{#if captions}
-				<track kind="captions" src={captions} srclang={captionsLang} />
+				<!-- default: the loop has no controls to turn captions on with. -->
+				<track kind="captions" src={captions} srclang={captionsLang} default />
 			{/if}
 		</video>
-		{#if paused}
-			<button
-				type="button"
-				class="group absolute inset-0 cursor-pointer rounded-md focus-visible:outline-hidden"
-				aria-label="Play video: {title}"
-				onclick={toggle}
-			>
+		<!-- One button that changes, so keyboard focus stays on it. Moving
+		     pictures need a way to stop them: while playing, the button is a small
+		     pause in the corner, shown on hover, on focus and always on touch. -->
+		<button
+			type="button"
+			class={paused
+				? 'group absolute inset-0 cursor-pointer rounded-md focus-visible:outline-hidden'
+				: 'absolute right-2 bottom-2 grid size-8 cursor-pointer place-items-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover/video:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden motion-reduce:transition-none [@media(hover:none)]:opacity-100'}
+			aria-label="{paused ? 'Play' : 'Pause'} video: {title}"
+			onclick={toggle}
+		>
+			{#if paused}
 				{@render playMark()}
-			</button>
-		{:else}
-			<!-- Moving pictures need a way to stop them. -->
-			<button
-				type="button"
-				class="absolute right-2 bottom-2 grid size-8 cursor-pointer place-items-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover/video:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
-				aria-label="Pause video: {title}"
-				onclick={toggle}
-			>
+			{:else}
 				<Pause size={14} fill="currentColor" aria-hidden="true" />
-			</button>
-		{/if}
+			{/if}
+		</button>
 	</div>
 {:else}
 	<!-- Captions are the author's to give. -->
@@ -194,7 +216,7 @@
 
 {#snippet playMark()}
 	<span
-		class="absolute top-1/2 left-1/2 grid size-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white shadow-lg transition-transform group-hover:scale-105 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2"
+		class="absolute top-1/2 left-1/2 grid size-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/65 text-white shadow-lg transition-transform group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100 group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2"
 		aria-hidden="true"
 	>
 		<Play size={22} fill="currentColor" class="ml-0.5" />

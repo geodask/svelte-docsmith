@@ -50,6 +50,7 @@ describe('youtubeVideo', () => {
 		expect(youtubeVideo('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')?.id).toBe(
 			'dQw4w9WgXcQ'
 		);
+		expect(youtubeVideo('https://www.youtube.com/live/dQw4w9WgXcQ')?.id).toBe('dQw4w9WgXcQ');
 	});
 
 	it('treats anything else as a file', () => {
@@ -79,16 +80,26 @@ describe('Video from a file', () => {
 	});
 
 	it('loops muted with no controls, and can be paused', async () => {
-		const { container } = render(Video, { props: { src: '/clip.mp4', title: 'Clip', loop: true } });
+		const { container } = render(Video, {
+			props: { src: '/clip.mp4', title: 'Clip', captions: '/clip.vtt', loop: true }
+		});
 		await settle();
 		const video = container.querySelector('video')!;
 		expect(video.controls).toBe(false);
 		expect(video.loop).toBe(true);
 		expect(video.muted).toBe(true);
 		expect(play).toHaveBeenCalledOnce();
+		// With no controls to turn them on, the captions are on from the start.
+		expect(video.querySelector('track')).toHaveAttribute('default');
 
-		await fireEvent.click(screen.getByRole('button', { name: 'Pause video: Clip' }));
-		expect(screen.getByRole('button', { name: 'Play video: Clip' })).toBeInTheDocument();
+		// One button that changes, so focus stays on it.
+		const button = screen.getByRole('button', { name: 'Pause video: Clip' });
+		button.focus();
+		await fireEvent.click(button);
+		expect(button).toHaveAccessibleName('Play video: Clip');
+		expect(document.activeElement).toBe(button);
+		await fireEvent.click(button);
+		expect(button).toHaveAccessibleName('Pause video: Clip');
 	});
 
 	it('holds a loop on its poster under reduced motion until play is pressed', async () => {
@@ -120,6 +131,14 @@ describe('Video from YouTube', () => {
 			'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&start=30'
 		);
 		expect(frame).toHaveAttribute('title', 'Talk');
+		// The play button is gone: focus moves into the player, not the page.
+		expect(document.activeElement).toBe(frame);
+	});
+
+	it('warns in development about a YouTube link that names no video', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		render(Video, { props: { src: 'https://www.youtube.com/@sveltesociety', title: 'Channel' } });
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('names no video'));
 	});
 
 	it('uses the poster over the thumbnail', () => {
