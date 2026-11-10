@@ -2,7 +2,7 @@
 title: Landing Page
 description: Build the marketing page that sits in front of your docs.
 section: Components
-order: 20
+order: 23
 ---
 
 <script>

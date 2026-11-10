@@ -2,7 +2,7 @@
 title: Props Table
 description: Document a component's API in a consistent table, generated from its source.
 section: Components
-order: 19
+order: 22
 ---
 
 <script>
