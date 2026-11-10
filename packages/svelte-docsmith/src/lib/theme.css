@@ -157,10 +157,6 @@
 		--code-token-punctuation: color-mix(in oklch, var(--muted-foreground) 70%, var(--foreground));
 		--code-token-comment: var(--muted-foreground);
 		--code-token-link: var(--primary);
-		/* Do and Dont panels: a green and the theme's destructive red, pulled
-		 * toward the foreground so their labels read in both colour modes. */
-		--docsmith-do: color-mix(in oklch, oklch(0.62 0.17 150) 80%, var(--foreground));
-		--docsmith-dont: color-mix(in oklch, var(--destructive) 80%, var(--foreground));
 	}
 
 	* {

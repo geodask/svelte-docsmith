@@ -55,9 +55,11 @@ these are this site's own theme tokens.
 
 The name defaults to the variable for `var(--x)`, and to the value for any
 other colour. Below the name is the value the browser resolves, in the notation
-your stylesheet uses, and it updates when the reader switches colour mode. It
-is left out when it would only repeat the name. A translucent colour shows over
-a checkerboard.
+your stylesheet uses. A token derived from others, such as a `color-mix()`,
+shows the colour it comes out as. The value updates when the reader switches
+colour mode, whether your site marks that with a class or attribute on the
+`html` element or follows the system setting. It is left out when it would only
+repeat the name. A translucent colour shows over a checkerboard.
 
 The server can't know what a variable resolves to, so the page first shows the
 value as written, and the browser fills in the resolved value as it loads.

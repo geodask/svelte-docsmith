@@ -31,11 +31,21 @@
 		border-radius: var(--radius);
 		padding: 0.875rem 1rem 1rem;
 	}
+	/* A site sets --docsmith-do or --docsmith-dont to change them. Otherwise a
+	   green and the theme's destructive red, pulled toward the foreground so
+	   the label reads in both colour modes. The fallbacks live here, not in
+	   theme.css, which holds no colours (ADR 0010). */
 	.docsmith-guideline-do {
-		--guideline-accent: var(--docsmith-do);
+		--guideline-accent: var(
+			--docsmith-do,
+			color-mix(in oklch, oklch(0.62 0.17 150) 80%, var(--foreground))
+		);
 	}
 	.docsmith-guideline-dont {
-		--guideline-accent: var(--docsmith-dont);
+		--guideline-accent: var(
+			--docsmith-dont,
+			color-mix(in oklch, var(--destructive) 80%, var(--foreground))
+		);
 	}
 	.docsmith-guideline-label {
 		display: flex;
