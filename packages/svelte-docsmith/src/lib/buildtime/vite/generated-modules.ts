@@ -30,7 +30,7 @@ import type { ResolvedDocsmithOptions } from './options.js';
 import type { DocPages, ReadPages } from './doc-pages.js';
 import { withCommitDates } from './pages.js';
 import { collectReleases } from './releases.js';
-import { themeTokens } from './theme.js';
+import { themeTokens } from '../../core/theme-file.js';
 
 /** Every generated module, by the name after `svelte-docsmith/`. */
 export const GENERATED_MODULE_NAMES = [

@@ -4,23 +4,37 @@
  * preset, a pasted theme file, a hand edit), and the result serialises to a
  * theme file, a theme link and a CLI paste code.
  *
- * The theme link, paste code and theme file formats are public (ADR-0012) and
- * live in the package's core/theme-link.ts, which `svelte-docsmith theme`
- * shares. It is imported by path because `$docsmith` is a Vite alias that
- * TypeScript can't see. This module only adds the browser's deflate-raw and
- * base64url.
+ * The theme file, theme link and paste code formats are public (ADR-0012) and
+ * live in the package: core/theme-file.ts reads and writes a theme file, and
+ * core/theme-link.ts holds the link and paste code, which `svelte-docsmith
+ * theme` shares. They are imported by path because `$docsmith` is a Vite alias
+ * that TypeScript can't see. This module only adds the browser's deflate-raw
+ * and base64url.
  */
+import {
+	oklchToHex,
+	oklchToLinearSrgb,
+	type Oklch
+} from '../../../../../packages/svelte-docsmith/src/lib/core/colour.ts';
+import {
+	isThemeFile,
+	modeTokens,
+	themeTokens,
+	writeThemeFile,
+	type ColourMode,
+	type ThemeTokens,
+	type Tokens
+} from '../../../../../packages/svelte-docsmith/src/lib/core/theme-file.ts';
 import {
 	PASTE_CODE_PREFIX,
 	ThemeLinkError,
 	readThemeLinkJson,
-	toThemeFile,
 	writeThemeLinkJson
 } from '../../../../../packages/svelte-docsmith/src/lib/core/theme-link.ts';
 
-export type Tokens = Record<string, string>;
-export type ThemeTokens = { light: Tokens; dark: Tokens };
-export type Mode = 'light' | 'dark';
+export { modeTokens, oklchToHex, writeThemeFile };
+export type { Oklch, ThemeTokens, Tokens };
+export type Mode = ColourMode;
 export type Shadow = 'none' | 'soft' | 'crisp' | 'offset';
 
 export interface Inputs {
@@ -106,11 +120,7 @@ export function emptyState(inputs: Inputs = defaultInputs): BuilderState {
 
 // ---------------------------------------------------------------- colour maths
 
-/** OKLCH as [lightness 0–1, chroma, hue in degrees]. */
-export type Oklch = [number, number, number];
-
 const toLinear = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-const fromLinear = (c: number) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
 
 function srgbToOklch(r: number, g: number, b: number): Oklch {
 	const [lr, lg, lb] = [r, g, b].map(toLinear);
@@ -124,37 +134,11 @@ function srgbToOklch(r: number, g: number, b: number): Oklch {
 	return [L, C, C < 1e-4 ? 0 : ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360];
 }
 
-function oklchToLinearSrgb([L, C, H]: Oklch): [number, number, number] {
-	const a = C * Math.cos((H * Math.PI) / 180);
-	const b = C * Math.sin((H * Math.PI) / 180);
-	const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-	const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-	const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
-	return [
-		4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-		-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-		-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s
-	].map((c) => Math.min(1, Math.max(0, c))) as [number, number, number];
-}
-
 export function hexToOklch(hex: string): Oklch {
 	const n = hex.replace('#', '');
 	const full = n.length === 3 ? [...n].map((ch) => ch + ch).join('') : n;
 	const [r, g, b] = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16) / 255);
 	return srgbToOklch(r, g, b);
-}
-
-export function oklchToHex(c: Oklch): string {
-	return (
-		'#' +
-		oklchToLinearSrgb(c)
-			.map((v) =>
-				Math.round(Math.min(1, Math.max(0, fromLinear(v))) * 255)
-					.toString(16)
-					.padStart(2, '0')
-			)
-			.join('')
-	);
 }
 
 function hslToOklch(h: number, s: number, l: number): Oklch {
@@ -348,11 +332,6 @@ export function resolve(state: BuilderState): ThemeTokens {
 	};
 }
 
-/** The tokens `.dark` actually shows: it inherits what it doesn't set from `:root`. */
-export function modeTokens(tokens: ThemeTokens, m: Mode): Tokens {
-	return m === 'light' ? tokens.light : { ...tokens.light, ...tokens.dark };
-}
-
 /**
  * Change guided inputs. Every override whose generated value moves is
  * dropped, so a control always visibly does something, even over a preset or
@@ -489,32 +468,19 @@ export function contrastIssues(tokens: ThemeTokens): ContrastIssue[] {
 
 // --------------------------------------------------------------- theme files
 
-function tokenBlock(css: string, selector: RegExp): Tokens {
-	const m = css.match(selector);
-	if (!m) return {};
-	const out: Tokens = {};
-	for (const [, k, v] of m[1].matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) out[k] = v.trim();
-	return out;
-}
-
 /**
  * Read a pasted theme file: a tweakcn or shadcn export, a preset, or one of
- * ours. Comments and any `@theme` block are ignored, as the plugin ignores them.
+ * ours, the way the plugin reads it.
  */
 export function parseThemeFile(source: string): ThemeTokens | { error: string } {
-	const css = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/@theme[^{]*\{[^}]*\}/g, '');
-	const light = tokenBlock(css, /:root\s*\{([^}]*)\}/);
-	const dark = tokenBlock(css, /\.dark\s*\{([^}]*)\}/);
-	if (!Object.keys(light).length && !Object.keys(dark).length) {
+	if (!isThemeFile(source)) {
 		return {
 			error:
 				"That isn't a theme file: it needs a :root { … } block of custom properties, and usually a .dark one."
 		};
 	}
-	return { light, dark };
+	return themeTokens(source);
 }
-
-export { toThemeFile };
 
 // ------------------------------------------------------- links and paste codes
 

@@ -6,28 +6,47 @@
  *   `{ "v": 1, "tokens": { light, dark }, "inputs"?: {…} }`. The format is
  *   public: agents build these links themselves, so it stays stable.
  * - A **paste code** is `dsm1.` + base64url of deflate-raw of a theme file.
- * - A **theme file** is `:root` with every token and `.dark` with only the
- *   tokens that differ from it.
+ * - The **CLI handoff** is the builder's form POST of a theme file to the
+ *   loopback port `svelte-docsmith theme` listens on: {@link CLI_HANDOFF}.
  *
- * This module owns the JSON and the CSS. Each side does the base64url and
+ * The theme file itself is core/theme-file.ts's. This module owns the JSON and
+ * the wire names. Each side does the base64url and
  * deflate-raw itself (CompressionStream in the browser, zlib in the CLI), and a
  * fixture test on each side checks that step against the same link.
  */
 
-export type ThemeLinkTokens = {
-	light: Record<string, string>;
-	dark: Record<string, string>;
-};
+import type { ThemeTokens } from './theme-file.js';
 
 /** What a theme link carries, once decompressed and checked. */
 export type ThemeLinkData = {
-	tokens: ThemeLinkTokens;
+	tokens: ThemeTokens;
 	/** The builder's control positions, when the link came from the builder. */
 	inputs?: Record<string, unknown>;
 };
 
 export const THEME_LINK_VERSION = 1;
 export const PASTE_CODE_PREFIX = 'dsm1.';
+
+/**
+ * The names the CLI handoff travels under. The command opens the builder with
+ * `?cli=<port>&state=<nonce>`; the builder posts a form to
+ * `http://127.0.0.1:<port>/theme` with the nonce, the theme file and the page
+ * to link back to.
+ */
+export const CLI_HANDOFF = {
+	/** URL parameter on the builder: the loopback port to post to. */
+	portParam: 'cli',
+	/** URL parameter on the builder: the one-time nonce. */
+	nonceParam: 'state',
+	/** Path of the form POST on the loopback server. */
+	path: '/theme',
+	/** Form field: the nonce, sent back. */
+	nonceField: 'state',
+	/** Form field: the theme file. */
+	fileField: 'file',
+	/** Form field: the builder's own URL, for the "saved" page's link back. */
+	backField: 'back'
+} as const;
 
 /** Why a theme link can't be read. Each side words the message for its reader. */
 export class ThemeLinkError extends Error {
@@ -48,16 +67,13 @@ export function themeLinkPayload(link: string): string {
 }
 
 /** The JSON a theme link compresses. */
-export function writeThemeLinkJson(
-	tokens: ThemeLinkTokens,
-	inputs?: Record<string, unknown>
-): string {
+export function writeThemeLinkJson(tokens: ThemeTokens, inputs?: Record<string, unknown>): string {
 	return JSON.stringify({ v: THEME_LINK_VERSION, tokens, inputs });
 }
 
 /** Check a decompressed theme link. Throws a {@link ThemeLinkError}. */
 export function readThemeLinkJson(json: string): ThemeLinkData {
-	let data: { v?: unknown; tokens?: Partial<ThemeLinkTokens>; inputs?: Record<string, unknown> };
+	let data: { v?: unknown; tokens?: Partial<ThemeTokens>; inputs?: Record<string, unknown> };
 	try {
 		data = JSON.parse(json);
 	} catch {
@@ -68,19 +84,4 @@ export function readThemeLinkJson(json: string): ThemeLinkData {
 	const { light, dark } = data.tokens ?? {};
 	if (!light || !dark) throw new ThemeLinkError('no-tokens');
 	return { tokens: { light, dark }, inputs: data.inputs };
-}
-
-/** The theme file: `:root` in full, `.dark` with only what differs from it. */
-export function toThemeFile(tokens: ThemeLinkTokens): string {
-	const lines = (t: Record<string, string>) =>
-		Object.entries(t)
-			.map(([k, v]) => `\t--${k}: ${v};`)
-			.join('\n');
-	const darkOnly = Object.fromEntries(
-		Object.entries(tokens.dark).filter(([k, v]) => tokens.light[k] !== v)
-	);
-	return (
-		'/* Made with the svelte-docsmith theme builder: https://docsmith.geodask.com/themes */\n' +
-		`:root {\n${lines(tokens.light)}\n}\n\n.dark {\n${lines(darkOnly)}\n}\n`
-	);
 }

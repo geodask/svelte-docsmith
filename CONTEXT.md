@@ -277,7 +277,9 @@ theme exactly. How the CLI handoff and agents pass a theme around.
 _Avoid_: share link, permalink, theme URL
 
 **Preset manifest**:
-The ordered list of presets, read from their CSS files by
-`packages/svelte-docsmith/scripts/theme-presets.mjs`. The docs site's theme
-showcase and the scaffolder's theme prompt both come from it.
+The ordered list of presets and their display names, read from their CSS files
+by `packages/svelte-docsmith/scripts/theme-presets.mjs`. It says which presets
+there are, not what is in them: a preset's tokens are read from its CSS like
+any other theme file. The docs site's theme showcase and the scaffolder's theme
+prompt both come from it.
 _Avoid_: theme list, PRESETS

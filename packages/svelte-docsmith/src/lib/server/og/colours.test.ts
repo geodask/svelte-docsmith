@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { presetNames, themeTokens } from '#lib/buildtime/vite/theme.js';
+import { presetNames } from '#lib/buildtime/vite/theme.js';
+import { themeTokens } from '#lib/core/theme-file.js';
 import { DEFAULT_OG_COLOURS, ogColours, toSatoriColour } from './colours.js';
 
 describe('toSatoriColour', () => {

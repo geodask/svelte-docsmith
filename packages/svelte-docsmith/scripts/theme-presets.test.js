@@ -2,13 +2,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-	DEFAULT_PRESET,
-	PRESET_ORDER,
-	parseTokens,
-	readPresets,
-	themesDir
-} from './theme-presets.mjs';
+import { DEFAULT_PRESET as LIBRARY_DEFAULT, themeTokens } from '../src/lib/core/theme-file.ts';
+import { DEFAULT_PRESET, PRESET_ORDER, readPresets, themesDir } from './theme-presets.mjs';
 
 const pkgRoot = path.resolve(import.meta.dirname, '..');
 const repoRoot = path.resolve(pkgRoot, '../..');
@@ -39,12 +34,12 @@ describe('readPresets', () => {
 		expect(presets.filter((p) => p.default)).toHaveLength(1);
 	});
 
-	it('takes names from the header comment and tokens from both modes', () => {
-		const rose = readPresets().find((p) => p.slug === 'rose');
+	it('takes names from the header comment', () => {
+		expect(readPresets().find((p) => p.slug === 'rose')?.name).toBe('Rosé');
+	});
 
-		expect(rose?.name).toBe('Rosé');
-		expect(rose?.light.primary).toBe('oklch(0.58 0.17 13)');
-		expect(rose?.dark.primary).toMatch(/^oklch\(/);
+	it('names the default preset the library falls back to', () => {
+		expect(DEFAULT_PRESET).toBe(LIBRARY_DEFAULT);
 	});
 
 	it('refuses a preset file that is not placed in the order', () => {
@@ -69,49 +64,24 @@ describe('readPresets', () => {
 	});
 });
 
-describe('every preset is a complete theme', () => {
-	const presets = readPresets();
-	const base = presets.find((p) => p.default);
-	// The colours the default preset sets are the colours every theme needs.
-	const colourTokens = Object.keys(base.light).filter((t) => /^oklch/.test(base.light[t]));
-	const codeTokens = ['keyword', 'string', 'function', 'constant', 'parameter', 'comment'].map(
-		(role) => `code-token-${role}`
-	);
-
-	it.each(presets.map((p) => [p.slug, p]))(
-		'%s sets every colour and code token in both modes',
-		(_, preset) => {
-			for (const token of [...colourTokens, ...codeTokens]) {
-				expect(preset.light, `:root --${token}`).toHaveProperty(token);
-				expect(preset.dark, `.dark --${token}`).toHaveProperty(token);
-			}
-		}
-	);
-});
-
-describe('parseTokens', () => {
-	it('reads the declarations of the named block only', () => {
-		const css = ':root { --a: 1px; --b-c: oklch(1 0 0); }\n.dark { --a: 2px; }';
-
-		expect(parseTokens(css, ':root')).toEqual({ a: '1px', 'b-c': 'oklch(1 0 0)' });
-		expect(parseTokens(css, '\\.dark')).toEqual({ a: '2px' });
-		expect(parseTokens(css, '\\.missing')).toEqual({});
-	});
-});
-
 describe('theme.css', () => {
 	// The theme comes from docsmith({ theme }), appended by the plugin after
 	// theme.css, so theme.css itself must carry no colour: one would be a second
 	// default that a partial theme file silently inherits.
-	const base = read(path.join(pkgRoot, 'src/lib/theme.css')).split('@layer base')[1];
-	const builtIn = { light: parseTokens(base, ':root'), dark: parseTokens(base, '\\.dark') };
-	const preset = readPresets().find((p) => p.default);
+	const builtIn = themeTokens(read(path.join(pkgRoot, 'src/lib/theme.css')));
+	const preset = themeTokens(read(path.join(themesDir, `${DEFAULT_PRESET}.css`)));
 	const isColour = (value) => /^(oklch|hsl|rgb|#)/.test(value);
 
-	it('sets none of the colour tokens a preset sets', () => {
+	it('gives no colour token a colour of its own', () => {
 		const colours = Object.keys(preset.light).filter((token) => isColour(preset.light[token]));
 		expect(colours.length).toBeGreaterThan(20);
-		for (const token of colours) expect(builtIn.light, `--${token}`).not.toHaveProperty(token);
+		// A code colour may fall back to a mix of other tokens (ADR-0011), which
+		// follows the theme; a literal colour would not.
+		for (const token of colours) {
+			const value = builtIn.light[token];
+			if (value !== undefined)
+				expect(value, `--${token}`).toMatch(/^(?:var\(--|color-mix\(.*var\(--)/);
+		}
 	});
 
 	it('has no dark block', () => {

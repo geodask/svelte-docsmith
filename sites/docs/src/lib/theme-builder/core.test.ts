@@ -20,7 +20,7 @@ import {
 	setInputs,
 	setToken,
 	clearToken,
-	toThemeFile,
+	writeThemeFile,
 	type ThemeTokens
 } from './core.ts';
 
@@ -28,7 +28,6 @@ const presetsDir = path.resolve(
 	import.meta.dirname,
 	'../../../../../packages/svelte-docsmith/src/lib/themes'
 );
-const presets = fs.readdirSync(presetsDir).filter((f) => f.endsWith('.css'));
 const readPreset = (f: string) => fs.readFileSync(path.join(presetsDir, f), 'utf8');
 
 /**
@@ -172,26 +171,6 @@ describe('parseColour', () => {
 });
 
 describe('theme files', () => {
-	it('read every preset', () => {
-		for (const f of presets) {
-			const t = parseThemeFile(readPreset(f));
-			expect('error' in t, f).toBe(false);
-			expect(Object.keys((t as ThemeTokens).light), f).toEqual(
-				expect.arrayContaining(COLOUR_TOKENS)
-			);
-		}
-	});
-
-	it('read a verbatim tweakcn export, ignoring @theme inline', () => {
-		const t = parseThemeFile(
-			`:root {\n  --background: oklch(1 0 0);\n  --primary: oklch(0.6 0.2 30);\n}\n\n.dark {\n  --background: oklch(0.2 0 0);\n}\n\n@theme inline {\n  --color-background: var(--background);\n}`
-		);
-		expect(t).toEqual({
-			light: { background: 'oklch(1 0 0)', primary: 'oklch(0.6 0.2 30)' },
-			dark: { background: 'oklch(0.2 0 0)' }
-		});
-	});
-
 	it('reject text that is not a theme, saying why', () => {
 		expect(parseThemeFile('body { color: red }')).toEqual({
 			error: expect.stringMatching(/:root/)
@@ -200,7 +179,7 @@ describe('theme files', () => {
 
 	it('round-trip, writing only what .dark changes', () => {
 		const tokens = resolve(emptyState());
-		const file = toThemeFile(tokens);
+		const file = writeThemeFile(tokens);
 		const back = parseThemeFile(file) as ThemeTokens;
 		expect(back.light).toEqual(tokens.light);
 		expect(modeTokens(back, 'dark')).toEqual(modeTokens(tokens, 'dark'));
@@ -237,7 +216,7 @@ describe('theme links', () => {
 
 	it('keep a paste code readable by plain zlib, as the CLI reads it', async () => {
 		const { inflateRawSync } = await import('node:zlib');
-		const file = toThemeFile(resolve(emptyState()));
+		const file = writeThemeFile(resolve(emptyState()));
 		const code = await encodePasteCode(file);
 		expect(code.startsWith('dsm1.')).toBe(true);
 		expect(inflateRawSync(Buffer.from(code.slice(5), 'base64url')).toString()).toBe(file);

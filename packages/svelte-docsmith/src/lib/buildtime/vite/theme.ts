@@ -3,7 +3,7 @@
  * reach every page.
  *
  * A theme is one CSS file of `:root` and `.dark` token blocks, the shape shadcn
- * and tweakcn export (see ADR-0010). `theme.css` carries no colours of its own;
+ * and tweakcn export (see ADR-0010), read by core/theme-file.ts. `theme.css` carries no colours of its own;
  * it marks itself with {@link THEME_MARKER}, and the plugin appends the chosen
  * theme, wrapped in the `base` cascade layer, to whatever stylesheet that
  * marker ends up in once Tailwind has compiled it. So every page that imports
@@ -14,9 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
-
-/** The preset a site gets when it names no theme. */
-export const DEFAULT_THEME = 'darkmatter';
+import { DEFAULT_PRESET, readThemeFile } from '../../core/theme-file.js';
 
 /**
  * The custom property `theme.css` declares so the plugin can find the compiled
@@ -45,7 +43,7 @@ export function presetNames(dir: string = presetsDir): string[] {
  * quietly falls back to the default look.
  */
 export function resolveTheme(theme: unknown, cwd: string, dir: string = presetsDir): string {
-	const value = theme ?? DEFAULT_THEME;
+	const value = theme ?? DEFAULT_PRESET;
 	if (typeof value !== 'string' || value.trim() === '') {
 		throw new Error(
 			"[svelte-docsmith] docsmith({ theme }) takes a preset name or a path to a theme file, e.g. theme: 'ocean' or theme: './src/theme.css', " +
@@ -84,99 +82,11 @@ export interface ThemeLayer {
  * so. That makes a verbatim tweakcn export a valid theme file.
  */
 export function themeLayer(source: string): ThemeLayer {
-	const droppedImports: string[] = [];
-	const rules: string[] = [];
-	collectRules(stripComments(source), rules, droppedImports);
+	const { rules, imports } = readThemeFile(source);
 	return {
 		css: `@layer base {\n${rules.join('\n')}\n}\n`,
-		droppedImports
+		droppedImports: imports
 	};
-}
-
-/** A theme file's custom properties, per colour mode, without their `--`. */
-export interface ThemeTokens {
-	/** What `:root` declares. */
-	light: Record<string, string>;
-	/** What `.dark` declares. */
-	dark: Record<string, string>;
-}
-
-/**
- * Read a theme file's tokens: the custom properties its `:root` and `.dark`
- * rules declare, last one winning, the way the cascade reads them. Rules for
- * other selectors are ignored. What the OG images are coloured from.
- */
-export function themeTokens(source: string): ThemeTokens {
-	const rules: string[] = [];
-	collectRules(stripComments(source), rules, []);
-	const tokens: ThemeTokens = { light: {}, dark: {} };
-	for (const rule of rules) {
-		const open = rule.indexOf('{');
-		const selectors = rule
-			.slice(0, open)
-			.split(',')
-			.map((s) => s.trim());
-		const body = rule.slice(open + 1, -1);
-		const targets = [
-			...(selectors.includes(':root') ? [tokens.light] : []),
-			...(selectors.includes('.dark') ? [tokens.dark] : [])
-		];
-		if (targets.length === 0) continue;
-		for (const match of body.matchAll(/--([\w-]+)\s*:\s*([^;]+)/g)) {
-			for (const target of targets) target[match[1]] = match[2].trim();
-		}
-	}
-	return tokens;
-}
-
-function stripComments(css: string): string {
-	return css.replace(/\/\*[\s\S]*?\*\//g, '');
-}
-
-/**
- * Walk one level of statements: a qualified rule (`:root { … }`) is kept
- * whole, an `@layer` block is walked into, and any other at-rule is skipped,
- * block and all.
- */
-function collectRules(css: string, rules: string[], droppedImports: string[]) {
-	let i = 0;
-	while (i < css.length) {
-		while (i < css.length && /\s/.test(css[i])) i++;
-		if (i >= css.length) break;
-		const start = i;
-		// The prelude runs to the statement's `;` or its block's `{`.
-		while (i < css.length && css[i] !== '{' && css[i] !== ';') i = skipString(css, i) + 1;
-		const prelude = css.slice(start, i).trim();
-		if (css[i] === ';' || i >= css.length) {
-			if (/^@import\b/i.test(prelude)) droppedImports.push(prelude);
-			i++;
-			continue;
-		}
-		const end = matchingBrace(css, i);
-		const body = css.slice(i + 1, end);
-		if (/^@layer\b/i.test(prelude)) collectRules(body, rules, droppedImports);
-		else if (!prelude.startsWith('@')) rules.push(`${prelude} {${body}}`);
-		i = end + 1;
-	}
-}
-
-/** Index of the last character of a string starting at `i`, or `i` itself. */
-function skipString(css: string, i: number): number {
-	const quote = css[i];
-	if (quote !== '"' && quote !== "'") return i;
-	let j = i + 1;
-	while (j < css.length && css[j] !== quote) j += css[j] === '\\' ? 2 : 1;
-	return j;
-}
-
-/** Index of the `}` closing the block opened at `open`. */
-function matchingBrace(css: string, open: number): number {
-	let depth = 0;
-	for (let i = open; i < css.length; i = skipString(css, i) + 1) {
-		if (css[i] === '{') depth++;
-		else if (css[i] === '}' && --depth === 0) return i;
-	}
-	return css.length;
 }
 
 /** Whether compiled CSS is the stylesheet `theme.css` ended up in. */

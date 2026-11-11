@@ -21,12 +21,13 @@ import readline from 'node:readline';
 import { spawn } from 'node:child_process';
 import zlib from 'node:zlib';
 import type { Readable } from 'node:stream';
+import { isThemeFile, writeThemeFile } from '../../core/theme-file.js';
 import {
+	CLI_HANDOFF,
 	PASTE_CODE_PREFIX,
 	ThemeLinkError,
 	readThemeLinkJson,
-	themeLinkPayload,
-	toThemeFile
+	themeLinkPayload
 } from '../../core/theme-link.js';
 import { CliError } from './error.js';
 
@@ -113,7 +114,7 @@ export function themeFileFromLink(link: string): string {
 		throw new CliError("that theme link is damaged: it doesn't decode.");
 	}
 	try {
-		return toThemeFile(readThemeLinkJson(json).tokens);
+		return writeThemeFile(readThemeLinkJson(json).tokens);
 	} catch (error) {
 		if (!(error instanceof ThemeLinkError)) throw error;
 		throw new CliError(
@@ -141,8 +142,10 @@ export function writeTheme(
 	source: string,
 	{ cwd, file = DEFAULT_FILE, config }: WriteOptions
 ): string[] {
-	if (!/:root\s*\{/.test(source)) {
-		throw new CliError("that isn't a theme file: it has no :root { … } block.");
+	if (!isThemeFile(source)) {
+		throw new CliError(
+			"that isn't a theme file: it sets no custom properties in a :root { … } or .dark { … } block."
+		);
 	}
 	const target = path.resolve(cwd, file);
 	fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -207,8 +210,8 @@ export type ThemeServer = {
 };
 
 /**
- * Listen on 127.0.0.1 for the builder's form POST to `/theme`. Only a body
- * carrying `nonce` is accepted; the theme is handed to `write`, and the reply
+ * Listen on 127.0.0.1 for the builder's form POST (see `CLI_HANDOFF`). Only a
+ * body carrying `nonce` is accepted; the theme is handed to `write`, and the reply
  * is a small page saying what changed.
  */
 export function startThemeServer(
@@ -220,7 +223,7 @@ export function startThemeServer(
 	const want = Buffer.from(nonce);
 
 	const server = http.createServer((req, res) => {
-		if (req.method !== 'POST' || req.url !== '/theme') {
+		if (req.method !== 'POST' || req.url !== CLI_HANDOFF.path) {
 			res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found');
 			return;
 		}
@@ -238,8 +241,9 @@ export function startThemeServer(
 		req.on('end', () => {
 			if (res.writableEnded) return;
 			const form = new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
-			const back = /^https?:\/\//.test(form.get('back') ?? '') ? form.get('back')! : undefined;
-			const got = Buffer.from(form.get('state') ?? '');
+			const backUrl = form.get(CLI_HANDOFF.backField) ?? '';
+			const back = /^https?:\/\//.test(backUrl) ? backUrl : undefined;
+			const got = Buffer.from(form.get(CLI_HANDOFF.nonceField) ?? '');
 			if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) {
 				res.writeHead(403, { 'content-type': 'text/html; charset=utf-8' });
 				res.end(
@@ -252,7 +256,7 @@ export function startThemeServer(
 				return;
 			}
 			try {
-				const changes = write(form.get('file') ?? '');
+				const changes = write(form.get(CLI_HANDOFF.fileField) ?? '');
 				res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
 				res.end(
 					page(
@@ -323,8 +327,8 @@ export async function themeCommand(args: ThemeArgs, io: ThemeIo = {}): Promise<v
 	const nonce = crypto.randomBytes(16).toString('base64url');
 	const server = await startThemeServer(nonce, write);
 	const url = new URL(args.builder);
-	url.searchParams.set('cli', String(server.port));
-	url.searchParams.set('state', nonce);
+	url.searchParams.set(CLI_HANDOFF.portParam, String(server.port));
+	url.searchParams.set(CLI_HANDOFF.nonceParam, nonce);
 
 	log('Build a theme in the browser, then press "Send to my project".');
 	log(`  ${url.href}`);

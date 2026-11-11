@@ -5,6 +5,7 @@
 import { untrack } from 'svelte';
 import { themes, defaultThemeSlug } from '#lib/themes-data.ts';
 import { themeStore } from '#lib/theme-store.svelte.ts';
+import { CLI_HANDOFF } from '../../../../../packages/svelte-docsmith/src/lib/core/theme-link.ts';
 import {
 	clearToken,
 	contrastIssues,
@@ -15,7 +16,7 @@ import {
 	resolve,
 	setInputs,
 	setToken,
-	toThemeFile,
+	writeThemeFile,
 	type BuilderState,
 	type Inputs,
 	type Mode,
@@ -56,7 +57,7 @@ export class Builder {
 	state = $state<BuilderState>(presetState(defaultThemeSlug));
 	origin = $state<Origin>({ kind: 'preset', slug: defaultThemeSlug });
 	tokens = $derived<ThemeTokens>(resolve(this.state));
-	file = $derived(toThemeFile(this.tokens));
+	file = $derived(writeThemeFile(this.tokens));
 	issues = $derived(contrastIssues(this.tokens));
 	link = $state('');
 	pasteCode = $state('');
@@ -99,8 +100,8 @@ export class Builder {
 		// Read once on start, never watched: plain URLSearchParams is right here.
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const params = new URLSearchParams(location.search);
-		const port = Number(params.get('cli'));
-		const nonce = params.get('state');
+		const port = Number(params.get(CLI_HANDOFF.portParam));
+		const nonce = params.get(CLI_HANDOFF.nonceParam);
 		try {
 			if (port > 1023 && port < 65536 && nonce) {
 				this.cli = { port, nonce };
@@ -209,11 +210,11 @@ export class Builder {
 		if (!this.cli) return;
 		const form = document.createElement('form');
 		form.method = 'POST';
-		form.action = `http://127.0.0.1:${this.cli.port}/theme`;
+		form.action = `http://127.0.0.1:${this.cli.port}${CLI_HANDOFF.path}`;
 		for (const [name, value] of [
-			['state', this.cli.nonce],
-			['file', this.file],
-			['back', `${location.origin}/themes`]
+			[CLI_HANDOFF.nonceField, this.cli.nonce],
+			[CLI_HANDOFF.fileField, this.file],
+			[CLI_HANDOFF.backField, `${location.origin}/themes`]
 		]) {
 			const input = document.createElement('input');
 			input.type = 'hidden';
