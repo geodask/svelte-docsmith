@@ -46,9 +46,11 @@ traffic.
 
 ## The events
 
-Every event has a `type` and a `path`, the page the reader was on. The types are
-snake_case, which every analytics provider accepts as an event name, so a
-handler can usually forward them unchanged.
+Every event has a `type` and a `path`, the page the reader was on. The `path`
+never ends in a slash (except `/` itself), whatever your `trailingSlash`
+setting, so one page is always one path. The types are snake_case, which every
+analytics provider accepts as an event name, so a handler can usually forward
+them unchanged.
 
 | `type`          | Sent when                                                                                       | Also carries                                                                                                                 |
 | --------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |

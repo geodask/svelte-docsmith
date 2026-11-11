@@ -32,12 +32,12 @@
 	function cast(value: 'up' | 'down') {
 		if (vote) return;
 		vote = value;
-		report({ type: 'feedback', path, vote: value });
+		report({ type: 'feedback', vote: value });
 		onfeedback?.(value, path);
 	}
 
 	function followed(link: 'edit' | 'issue') {
-		report({ type: 'feedback_link', path, link });
+		report({ type: 'feedback_link', link });
 	}
 </script>
 

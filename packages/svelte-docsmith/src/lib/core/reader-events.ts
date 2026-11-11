@@ -5,7 +5,8 @@
  *
  * Every event carries a snake_case `type`, so a handler can forward it to any
  * analytics provider as is (`capture(event.type, event)`), and `path`, the page
- * the reader was on. Adding an event or a field is a minor; renaming or
+ * the reader was on: the current path with any trailing slash stripped, so a
+ * page is one path whatever the site's `trailingSlash`. Adding an event or a field is a minor; renaming or
  * removing one is a major.
  */
 

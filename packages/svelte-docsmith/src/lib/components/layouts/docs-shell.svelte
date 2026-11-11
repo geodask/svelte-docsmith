@@ -176,7 +176,7 @@
 		createSearchSession({
 			load: search,
 			version: () => view.activeVersionId,
-			onsearch: (finished) => report({ type: 'search', path: view.pathname, ...finished })
+			onsearch: (finished) => report({ type: 'search', ...finished })
 		});
 	}
 

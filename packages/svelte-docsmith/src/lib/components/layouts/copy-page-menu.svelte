@@ -69,7 +69,7 @@
 	// Each menu item is a `page_action` reader event, reported as the reader
 	// uses it, whether or not the clipboard then cooperates.
 	function act(action: Exclude<PageAction, 'copy_mcp_setup'>) {
-		report({ type: 'page_action', path, action });
+		report({ type: 'page_action', action });
 	}
 
 	let copied = $state(false);
@@ -209,7 +209,7 @@
 								label="Copy {editor} setup"
 								copied={copiedSnippet === editor}
 								onclick={() => {
-									report({ type: 'page_action', path, action: 'copy_mcp_setup', editor });
+									report({ type: 'page_action', action: 'copy_mcp_setup', editor });
 									copySnippet(editor, code);
 								}}
 								class="absolute top-1 right-1"
