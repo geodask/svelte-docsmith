@@ -19,6 +19,21 @@ of what the shell and the route handlers show. Served to the browser as
 `svelte-docsmith/site`, so it is plain data.
 _Avoid_: siteConfig, DocsmithConfig, defineConfig
 
+**Doc page**:
+A `+page` file under the docs root in an extension compiled as markdown: `.md`,
+unless `markdown.extensions` says otherwise. The indexes, the dev watcher, the
+broken-link check and the archive CLI all go by this one rule. A `+page.svelte`
+beside them is a route of the app, not a doc page.
+_Avoid_: markdown page, content file, docs file
+
+**Generated module**:
+One of the modules the plugin builds for a site and serves under the package's
+own name: `svelte-docsmith/site`, `/content`, `/search`, `/llms`, `/changelog`
+and `/reader-events`. Each has a fallback in the package, which is also what
+declares its exports and their types.
+_Avoid_: virtual module (Vite's word for how they are served), generated index
+(only some of them are indexes)
+
 ### Navigation
 
 **Reading order**:
@@ -194,10 +209,11 @@ _Avoid_: package manager tabs, npm2yarn, install tabs
 ### Agent access
 
 **Agent markdown**:
-A doc page's markdown as coding agents receive it: the page's prose with its
-generated props tables written out as markdown tables and its live examples'
-source written out as code blocks. The same text everywhere an agent reads a
-page.
+A doc page's markdown as coding agents receive it: the page's prose with every
+docs component an agent couldn't read as a tag written out. Generated props
+tables become markdown tables, live examples' source becomes code blocks,
+install blocks list every package manager's commands and section cards become a
+list of links. The same text everywhere an agent reads a page.
 _Avoid_: LLM content, raw markdown, page markdown (that is the `+page.md` the
 author writes)
 
@@ -229,7 +245,8 @@ Something a reader did on a docs site that only svelte-docsmith can see, such
 as a feedback vote, a search, a 404 or a copied code block, passed to the
 author's reader event handler. Pageviews and generic clicks are the analytics
 provider's own business, so they are never reader events. svelte-docsmith
-sends reader events nowhere itself.
+sends reader events nowhere itself. Every one carries the path of the page the
+reader was on, without a trailing slash, so one page is always one path.
 _Avoid_: analytics event, tracking event, telemetry
 
 **Reader event handler**:
@@ -270,6 +287,12 @@ _Avoid_: theme config, theme JSON, custom CSS
 The `/themes` page of the docs site, where an author starts from a preset or a
 pasted theme file, adjusts it, previews it on a sample docs page and exports it.
 _Avoid_: theme editor, theme generator, showcase
+
+**CLI handoff**:
+How a theme gets from the theme builder into a project: `svelte-docsmith theme`
+opens the builder and waits, and the builder sends it the theme file, or shows
+a paste code where the browser can't reach the terminal.
+_Avoid_: theme sync, theme export (that is the builder's panel), callback
 
 **Theme link**:
 A theme builder URL that carries a whole theme, so opening it restores that
