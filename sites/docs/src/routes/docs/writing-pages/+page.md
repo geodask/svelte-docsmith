@@ -42,6 +42,7 @@ built-in fields:
 | `section`     | no       | Sidebar group, a string or a nested path. Omitted pages fall under "Docs". |
 | `order`       | no       | Sort key within the group.                                                 |
 | `lastUpdated` | no       | The day the page last changed, `YYYY-MM-DD`. Git supplies it otherwise.    |
+| `since`       | no       | The release the page arrived in, shown in the page header.                 |
 
 ```md
 ---
@@ -72,6 +73,24 @@ This puts "Middleware" under a collapsible **Advanced** group inside **Guides**.
 Nesting can go as deep as you like, `order` still sorts each level, and a
 subsection inherits the smallest `order` of its pages. The branch holding the
 current page is expanded on load; the rest start collapsed.
+
+### Marking what's new
+
+Set `since` to the release a page arrived in, and the page header shows it:
+
+```md
+---
+title: Charts
+section: Components
+since: '0.15'
+---
+```
+
+When `since` names the newest release in your [changelog](/docs/changelog),
+the page also gets a dot in the sidebar, so readers can spot what the release
+added. `0.15` matches `0.15.0` and `0.15.2` alike. The dots move on with the
+next release, and a site without a changelog shows the badge but no dots.
+Quote the version: YAML reads `since: 1.10` as the number 1.1.
 
 <Callout variant="warning" title="A missing page is almost always frontmatter">
 

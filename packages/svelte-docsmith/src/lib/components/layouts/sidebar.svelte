@@ -53,6 +53,14 @@
 						)}
 					>
 						{node.title}
+						{#if node.isNew}
+							<!-- New in the latest release: a dot to the eye, a word to a screen reader. -->
+							<span
+								class="bg-primary ml-1.5 inline-block size-1.5 rounded-full align-middle"
+								aria-hidden="true"
+							></span>
+							<span class="sr-only">(new)</span>
+						{/if}
 					</a>
 				</li>
 			{/if}

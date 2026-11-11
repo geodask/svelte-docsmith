@@ -77,4 +77,80 @@ describe('PropsTable', () => {
 		});
 		expect(screen.getByText('No props.')).toBeInTheDocument();
 	});
+
+	it('shows since on the caption and on a row', () => {
+		const { container } = render(PropsTable, {
+			props: {
+				of: {
+					name: 'Label',
+					typeParameters: [],
+					since: '0.4',
+					props: [{ name: 'compact', required: false, bindable: false, since: '0.6' }],
+					inherited: []
+				}
+			}
+		});
+		expect(container.querySelector('.props-table-since')?.textContent).toBe('since 0.4');
+		expect(screen.getByText('since 0.6')).toBeInTheDocument();
+	});
+
+	it('opens object props into collapsed, nested field rows grouped by shape', async () => {
+		const { container } = render(PropsTable, {
+			props: {
+				of: {
+					name: 'Popover',
+					typeParameters: [],
+					inherited: [],
+					props: [
+						{
+							name: 'options',
+							type: 'Options',
+							required: false,
+							bindable: false,
+							fields: [
+								{
+									fields: [
+										{
+											name: 'placement',
+											type: 'Placement',
+											required: true,
+											description: 'Where it <code>sits</code>.',
+											fields: [{ fields: [{ name: 'side', required: true }] }]
+										}
+									]
+								}
+							]
+						},
+						{
+							name: 'choice',
+							required: false,
+							bindable: false,
+							fields: [
+								{ label: "kind: 'text'", fields: [{ name: 'placeholder', required: false }] },
+								{ label: "kind: 'number'", fields: [{ name: 'min', required: false }] }
+							]
+						},
+						{ name: 'label', required: false, bindable: false }
+					]
+				}
+			}
+		});
+		const disclosures = [...container.querySelectorAll('details.prop-fields')];
+		// One per prop or field that opens: options, its placement, choice.
+		expect(disclosures).toHaveLength(3);
+		expect(disclosures.every((d) => !(d as HTMLDetailsElement).open)).toBe(true);
+		const names = [...container.querySelectorAll('.prop-name')].map((n) => n.textContent);
+		expect(names).toEqual([
+			'options',
+			'placement',
+			'side',
+			'choice',
+			'placeholder',
+			'min',
+			'label'
+		]);
+		expect(screen.getByText('sits').tagName).toBe('CODE');
+		const shapes = [...container.querySelectorAll('.props-shape')].map((n) => n.textContent);
+		expect(shapes).toEqual(["kind: 'text'", "kind: 'number'"]);
+	});
 });

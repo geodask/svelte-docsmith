@@ -30,10 +30,39 @@ export interface TypedProp {
 	deprecated?: string;
 	/** `@default` text, which wins over the destructured default. */
 	defaultTag?: string;
+	/** `@since` text: the release the prop first appeared in. */
+	since?: string;
 	/** Tagged `@internal`: left out of the table. */
 	internal: boolean;
 	/** The props playground control its type allows, if any. */
 	control?: PropControl;
+	/** What an object type opens into, when the prop's type is one of the project's own. */
+	fields?: TypedFieldGroup[];
+}
+
+/** One member of an object a prop's type opens into. `@internal` members are already left out. */
+export interface TypedField {
+	name: string;
+	type: string;
+	optional: boolean;
+	/** JSDoc description, as markdown. */
+	description?: string;
+	/** `@deprecated` text (`''` when the tag is bare). */
+	deprecated?: string;
+	/** `@default` text. */
+	defaultTag?: string;
+	/** `@since` text. */
+	since?: string;
+	fields?: TypedFieldGroup[];
+}
+
+/**
+ * The fields of one object shape a type opens into. `label` names the shape
+ * when the type is a union, so a reader can tell the shapes apart.
+ */
+export interface TypedFieldGroup {
+	label?: string;
+	fields: TypedField[];
 }
 
 export interface TypedInheritedAttributes {
@@ -275,15 +304,77 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
 	};
 
 	// A prop typed with an alias from a library (`ClassValue`) keeps its name:
-	// expanding it would print the library's internals. Project aliases fall
-	// through to `printPropType`, which expands them.
-	const libraryAlias = (symbol: TS.Symbol): string | undefined => {
+	// expanding it would print the library's internals. So does a project
+	// alias of a union that holds objects (`type Action = Link | Button`): its
+	// shapes open as fields, so spelling them out in the type would say it
+	// twice. Other project aliases fall through to `printPropType`, which
+	// expands them.
+	const keptAlias = (symbol: TS.Symbol): string | undefined => {
 		const declaration = symbol.valueDeclaration;
 		if (!declaration || !ts.isPropertySignature(declaration) || !declaration.type) return;
 		const declared = checker.getTypeFromTypeNode(declaration.type);
 		const alias = declared.aliasSymbol?.getDeclarations() ?? [];
-		if (alias.length === 0 || !alias.every((d) => isExternal(d.getSourceFile()))) return;
+		if (alias.length === 0) return;
+		const external = alias.every((d) => isExternal(d.getSourceFile()));
+		const holdsObjects =
+			declared.isUnion() && declared.types.some((t) => expandable(ts, checker, t, isExternal));
+		if (!external && !holdsObjects) return;
 		return checker.typeToString(declared, typeNode, flags);
+	};
+
+	const docs = (symbol: TS.Symbol) => {
+		const tags = symbol.getJsDocTags(checker);
+		const tag = (name: string) => {
+			const found = tags.find((t) => t.name === name);
+			return found ? ts.displayPartsToString(found.text ?? []).trim() : undefined;
+		};
+		const description = ts.displayPartsToString(symbol.getDocumentationComment(checker)).trim();
+		return {
+			description: description || undefined,
+			deprecated: tag('deprecated'),
+			defaultTag: tag('default'),
+			since: tag('since') || undefined,
+			internal: tag('internal') !== undefined
+		};
+	};
+
+	// What a type opens into, for a type the project declares itself. Each
+	// object type on the way down is remembered, so a type that refers to
+	// itself (a tree node's `children`) stops there and shows its name.
+	const fieldGroups = (type: TS.Type, path: TS.Type[]): TypedFieldGroup[] | undefined => {
+		const members = flatMembers(ts, checker, type);
+		const shapes = members.filter(
+			(member) => !path.includes(member) && expandable(ts, checker, member, isExternal)
+		);
+		if (shapes.length === 0 || path.length >= MAX_DEPTH) return undefined;
+		const groups = shapes
+			.map((shape, i): TypedFieldGroup => {
+				const fields = fieldsOf(shape, [...path, shape]);
+				return members.length > 1
+					? { label: shapeLabel(ts, checker, shape, i, typeNode, flags), fields }
+					: { fields };
+			})
+			.filter((group) => group.fields.length > 0);
+		return groups.length > 0 ? groups : undefined;
+	};
+
+	const fieldsOf = (shape: TS.Type, path: TS.Type[]): TypedField[] => {
+		const fields: TypedField[] = [];
+		for (const symbol of checker.getPropertiesOfType(shape)) {
+			if (declaredOutside(symbol)) continue;
+			const { internal, ...doc } = docs(symbol);
+			if (internal) continue;
+			const optional = (symbol.flags & ts.SymbolFlags.Optional) !== 0;
+			const type = checker.getTypeOfSymbol(symbol);
+			fields.push({
+				name: symbol.name,
+				type: keptAlias(symbol) ?? printPropType(ts, checker, type, optional, typeNode, flags),
+				optional,
+				...doc,
+				fields: fieldGroups(type, path)
+			});
+		}
+		return fields;
 	};
 
 	const props: TypedProp[] = [];
@@ -294,22 +385,14 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
 			continue;
 		}
 		const optional = (symbol.flags & ts.SymbolFlags.Optional) !== 0;
-		const tags = symbol.getJsDocTags(checker);
-		const tag = (name: string) => {
-			const found = tags.find((t) => t.name === name);
-			return found ? ts.displayPartsToString(found.text ?? []).trim() : undefined;
-		};
-		const description = ts.displayPartsToString(symbol.getDocumentationComment(checker)).trim();
 		const type = checker.getTypeOfSymbol(symbol);
 		props.push({
 			name: symbol.name,
-			type: libraryAlias(symbol) ?? printPropType(ts, checker, type, optional, typeNode, flags),
+			type: keptAlias(symbol) ?? printPropType(ts, checker, type, optional, typeNode, flags),
 			optional,
-			description: description || undefined,
-			deprecated: tag('deprecated'),
-			defaultTag: tag('default'),
-			internal: tag('internal') !== undefined,
-			control: controlFor(ts, type)
+			...docs(symbol),
+			control: controlFor(ts, type),
+			fields: fieldGroups(type, [])
 		});
 	}
 
@@ -318,6 +401,86 @@ function readProps(ts: Ts, program: TS.Program, source: TS.SourceFile): TypedCom
 		: [];
 
 	return { props, inherited, files: [] };
+}
+
+/** How deep fields open, a backstop for types that grow without repeating. */
+const MAX_DEPTH = 8;
+
+/**
+ * The shapes a type can be, for opening it into fields: a union's members
+ * without `undefined` and `null`, with an array (`Item[]`) standing for its
+ * element, so a list of objects opens into the object's fields.
+ */
+function flatMembers(ts: Ts, checker: TS.TypeChecker, type: TS.Type): TS.Type[] {
+	const out: TS.Type[] = [];
+	// A recursive alias (`type Value = string | Value[]`) leads back to itself.
+	const seen = new Set<TS.Type>();
+	const visit = (t: TS.Type) => {
+		if (seen.has(t)) return;
+		seen.add(t);
+		if (t.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Null)) return;
+		if (t.isUnion()) return t.types.forEach(visit);
+		if (checker.isArrayType(t)) {
+			const [element] = checker.getTypeArguments(t as TS.TypeReference);
+			if (element) return visit(element);
+		}
+		out.push(t);
+	};
+	visit(type);
+	return out;
+}
+
+/**
+ * Whether a type opens into fields: a plain object type (an interface, a type
+ * alias of an object, or an inline object type) that the project declares
+ * itself and that has members. Functions, classes, tuples, `Snippet`, HTML
+ * attributes and anything else from a library stay closed.
+ */
+function expandable(
+	ts: Ts,
+	checker: TS.TypeChecker,
+	type: TS.Type,
+	isExternal: (sf: TS.SourceFile) => boolean
+): boolean {
+	if (!(type.flags & ts.TypeFlags.Object)) return false;
+	if (type.getCallSignatures().length || type.getConstructSignatures().length) return false;
+	if (checker.isTupleType(type) || checker.isArrayType(type)) return false;
+	const symbol = type.aliasSymbol ?? type.getSymbol();
+	if (!symbol || symbol.flags & ts.SymbolFlags.Class) return false;
+	const declarations = symbol.getDeclarations() ?? [];
+	if (declarations.length === 0 || declarations.some((d) => isExternal(d.getSourceFile()))) {
+		return false;
+	}
+	return checker.getPropertiesOfType(type).length > 0;
+}
+
+/**
+ * What a union member is called in the table: its own name when it has one
+ * (`Placement`), else the members that pick it out (`kind: 'text'`), else its
+ * place in the union.
+ */
+function shapeLabel(
+	ts: Ts,
+	checker: TS.TypeChecker,
+	shape: TS.Type,
+	index: number,
+	enclosing: TS.Node,
+	flags: TS.TypeFormatFlags
+): string {
+	const symbol = shape.aliasSymbol ?? shape.getSymbol();
+	if (symbol && symbol.name !== '__type' && symbol.name !== '__object') {
+		return checker.typeToString(shape, enclosing, flags);
+	}
+	const literal =
+		ts.TypeFlags.StringLiteral | ts.TypeFlags.NumberLiteral | ts.TypeFlags.BooleanLiteral;
+	const discriminants = checker
+		.getPropertiesOfType(shape)
+		.filter((property) => checker.getTypeOfSymbol(property).flags & literal)
+		.map(
+			(property) =>
+				`${property.name}: ${checker.typeToString(checker.getTypeOfSymbol(property), enclosing, flags)}`
+		);
+	return discriminants.length > 0 ? discriminants.join(', ') : `Option ${index + 1}`;
 }
 
 /**

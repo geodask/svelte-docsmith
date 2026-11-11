@@ -184,7 +184,9 @@ function agentMarkdown(
 ): string {
 	// Install blocks are written out first: they are fences, which the tag
 	// rewrite below never looks inside.
-	const content = writeInstallBlocks(extractLlmsContent(page.source, page.title));
+	const content = writeInstallBlocks(
+		extractLlmsContent(page.source, page.title, readField(page.frontmatter, 'since'))
+	);
 	if (reads === undefined) return content;
 
 	// The level of the heading a tag sits under, carried across code fences.

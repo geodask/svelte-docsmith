@@ -10,6 +10,8 @@ export interface ExtractedProps {
 	name: string;
 	/** Type parameter names of a generic component, e.g. `['T']`. */
 	typeParameters: string[];
+	/** The component's `@since`, from its `<!-- @component -->` comment. */
+	since?: string;
 	/** Declared props, in declaration order. */
 	props: ExtractedProp[];
 	/** What the component also accepts by spreading its remaining props. */
@@ -37,6 +39,38 @@ export interface ExtractedProp {
 	control?: PropControl;
 	/** The default as a value, when its source text is a literal (`'a'`, `false`, `-1`). */
 	literalDefault?: PropValue;
+	/** `@since` text: the release the prop first appeared in. */
+	since?: string;
+	/**
+	 * What the prop's type opens into when it is one of the library's own
+	 * object types: one group for an object or a list of them, one per object
+	 * in a union.
+	 */
+	fields?: ExtractedFieldGroup[];
+}
+
+/**
+ * The fields of one object shape a prop's type opens into. `label` names the
+ * shape when the type is a union (`Placement`, `kind: 'text'`).
+ */
+export interface ExtractedFieldGroup {
+	label?: string;
+	fields: ExtractedField[];
+}
+
+/** One member of an object a prop's type opens into, and what it opens into in turn. */
+export interface ExtractedField {
+	name: string;
+	type?: string;
+	/** The `@default` tag's text. */
+	default?: string;
+	required: boolean;
+	/** Present when tagged `@deprecated`: the tag's text as inline HTML, or `''`. */
+	deprecated?: string;
+	/** JSDoc description rendered to inline HTML. */
+	description?: string;
+	since?: string;
+	fields?: ExtractedFieldGroup[];
 }
 
 /** A value a props playground control can hold. */

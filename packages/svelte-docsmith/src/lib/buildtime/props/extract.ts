@@ -13,6 +13,8 @@ import path from 'node:path';
 import { marked } from 'marked';
 import { VERSION } from 'svelte/compiler';
 import type {
+	ExtractedField,
+	ExtractedFieldGroup,
 	ExtractedProp,
 	ExtractedProps,
 	PropControl,
@@ -26,7 +28,8 @@ import {
 	mtimeOf,
 	MISSING_PEERS,
 	type PropsTypeChecker,
-	type TypedComponent
+	type TypedComponent,
+	type TypedFieldGroup
 } from './typescript.js';
 
 export interface ExtractResult {
@@ -177,13 +180,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 		const done = (watchFiles: string[]): ExtractResult => ({
 			props: {
 				...extracted,
-				props: extracted.props.map((prop) =>
-					clean({
-						...prop,
-						deprecated: prop.deprecated === undefined ? undefined : renderMarkdown(prop.deprecated),
-						description: prop.description ? renderMarkdown(prop.description) : undefined
-					})
-				)
+				props: extracted.props.map((prop) => clean({ ...prop, ...rendered(prop) }))
 			},
 			markdown: extracted,
 			warnings,
@@ -198,6 +195,7 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 			return done([file]);
 		}
 		extracted.typeParameters = parsed.typeParameters;
+		if (parsed.since) extracted.since = parsed.since;
 		if (!parsed.hasProps) {
 			warn('no `$props()` found, so the props table is empty.');
 			return done([file]);
@@ -238,7 +236,9 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 						deprecated: prop.deprecated,
 						description: prop.description,
 						control,
-						literalDefault: control && asControlValue(control, destructured?.literal)
+						literalDefault: control && asControlValue(control, destructured?.literal),
+						since: prop.since,
+						fields: prop.fields && fieldGroups(prop.fields)
 					})
 				);
 			}
@@ -253,6 +253,45 @@ export function createPropsExtractor(options: PropsExtractorOptions): PropsExtra
 
 		return done([...new Set([file, ...(typed?.files ?? []), ...setupFiles])]);
 	}
+}
+
+/** The type checker's field groups as a props import carries them: JSDoc as markdown. */
+function fieldGroups(groups: TypedFieldGroup[]): ExtractedFieldGroup[] {
+	return groups.map((group) =>
+		clean({
+			label: group.label,
+			fields: group.fields.map((field) =>
+				clean({
+					name: field.name,
+					type: field.type,
+					default: field.defaultTag,
+					required: !field.optional && field.defaultTag === undefined,
+					deprecated: field.deprecated,
+					description: field.description,
+					since: field.since,
+					fields: field.fields && fieldGroups(field.fields)
+				})
+			)
+		})
+	);
+}
+
+/**
+ * A prop's or field's text as the rendered table shows it: its deprecation
+ * note and description turned from the JSDoc's markdown into inline HTML, and
+ * the same done to every field below it.
+ */
+function rendered<T extends ExtractedProp | ExtractedField>(
+	item: T
+): Pick<T, 'deprecated' | 'description' | 'fields'> {
+	return {
+		deprecated: item.deprecated === undefined ? undefined : renderMarkdown(item.deprecated),
+		description: item.description ? renderMarkdown(item.description) : undefined,
+		fields: item.fields?.map((group) => ({
+			...group,
+			fields: group.fields.map((field) => clean({ ...field, ...rendered(field) }))
+		}))
+	};
 }
 
 /** `file-tree-item.svelte` → `FileTreeItem`. */
@@ -288,10 +327,9 @@ function renderMarkdown(text: string): string {
 		);
 }
 
-function clean(prop: ExtractedProp): ExtractedProp {
-	return Object.fromEntries(
-		Object.entries(prop).filter(([, value]) => value !== undefined)
-	) as unknown as ExtractedProp;
+/** The object without its `undefined` keys, so absent and unset read the same. */
+function clean<T extends object>(item: T): T {
+	return Object.fromEntries(Object.entries(item).filter(([, value]) => value !== undefined)) as T;
 }
 
 function message(error: unknown): string {

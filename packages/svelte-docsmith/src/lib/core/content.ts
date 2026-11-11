@@ -59,6 +59,15 @@ export type DocsContentItem = {
 	lastUpdated?: string;
 	/** Estimated reading time in whole minutes (at ~200 wpm), min 1. */
 	readingTime?: number;
+	/** The release the page first appeared in, from its `since` frontmatter, as written. */
+	since?: string;
+	/**
+	 * Whether the page is new in the latest release: its `since` names the
+	 * newest release in the site's changelog (`0.15` matches `0.15.2`). Only
+	 * pages of the current version can be new, and only on a site with a
+	 * changelog.
+	 */
+	isNew?: boolean;
 	/**
 	 * The page's `h2`/`h3` headings, extracted at build time by the `docsmith()`
 	 * vite plugin, so `DocsShell` can render the in-page TOC server-side. The

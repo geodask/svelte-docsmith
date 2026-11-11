@@ -83,6 +83,19 @@ _Avoid_: docgen data, props metadata, props JSON
 A props table whose rows the author writes on the doc page.
 _Avoid_: manual table, static table
 
+**Prop field**:
+One member of an object a prop's type opens into in a generated props table,
+when that type is one of the library's own. A list opens into its item's
+fields, and a union of objects into each shape's. Fields open in turn.
+_Avoid_: nested prop, sub-prop, member, field (alone, that is frontmatter)
+
+**Since**:
+The release a prop, component or page first appeared in: `@since` in JSDoc or
+the `<!-- @component -->` comment, or `since` in frontmatter. Free text, shown
+as written. A page whose `since` names the newest changelog release is new,
+and gets a dot in the sidebar.
+_Avoid_: added in, introduced, version badge
+
 **Inherited attributes**:
 What a component accepts by spreading its remaining props onto something else:
 an element's native attributes, or every prop of another component's type. They
@@ -117,7 +130,8 @@ _Avoid_: code preview, generated source
 
 **Built-in field**:
 A frontmatter key svelte-docsmith reads itself to place and describe a page:
-`title`, `description`, `section`, `order`, `lastUpdated`. Always type-checked.
+`title`, `description`, `section`, `order`, `lastUpdated`, `since`. Always
+type-checked.
 _Avoid_: known field, reserved key, standard field
 
 **Custom field**:

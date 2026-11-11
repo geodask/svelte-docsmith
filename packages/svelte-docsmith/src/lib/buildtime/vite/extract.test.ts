@@ -92,6 +92,12 @@ describe('extractLlmsContent', () => {
 		);
 	});
 
+	it('says since under the title when the page has one', () => {
+		expect(extractLlmsContent('---\nsince: 0.15\n---\n\nBody.', 'X', '0.15')).toBe(
+			'# X\n\nSince 0.15\n\nBody.'
+		);
+	});
+
 	it('drops script and style blocks', () => {
 		expect(
 			extractLlmsContent('---\ntitle: X\n---\n\n<style>\n\ta {}\n</style>\n\nBody.', 'X')

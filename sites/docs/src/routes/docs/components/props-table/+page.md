@@ -10,6 +10,7 @@ order: 24
 	import badgeProps from '$docsmith/components/docs/badge.svelte?props';
 	import propsTableProps from '$docsmith/components/docs/props-table.svelte?props';
 	import propProps from '$docsmith/components/docs/prop.svelte?props';
+	import toastProps from '#lib/examples/toast.svelte?props';
 </script>
 
 Document a component's props the same way on every page: name, type, default
@@ -53,6 +54,46 @@ page:
 The caption is the component's name (`Select<T>` for a generic component); pass
 `title` to change it.
 
+### Since
+
+Tag a prop `@since 0.3` and its row says when it arrived. The same tag in the
+component's own `<!-- @component -->` comment goes on the caption. The text is
+shown as written, so use whatever your releases are called.
+
+<!-- prettier-ignore -->
+```svelte
+<!--
+@component
+A short message that slides in and leaves on its own.
+
+@since 0.2
+-->
+<script lang="ts">
+	const { duration = 4000 }: {
+		/**
+		 * How long it stays, in milliseconds.
+		 * @since 0.3
+		 */
+		duration?: number;
+	} = $props();
+</script>
+```
+
+### Fields
+
+A prop typed with one of your own object types opens into that object's
+fields: press **Fields** under the row. Each field has its own type, default
+(from a `@default` tag) and description, and fields open in turn. A list
+(`Column[]`) opens into its item's fields, and a union of objects shows each
+shape under its own name: the type's name, or the members that tell the shapes
+apart (`kind: 'link'`). Here is a `Toast` whose `position` and `action` open:
+
+<PropsTable of={toastProps} />
+
+Types from a library stay closed, `Snippet` and HTML attributes included, and a
+type that refers to itself stops where it repeats. In agent markdown each field
+gets its own row, named by its path (`position.edge`).
+
 Coding agents read the same table. In a page's agent markdown, which feeds
 [`llms-full.txt` and the `.md` pages](/docs/seo#llmstxt), a generated props table
 is written out as a markdown table with the same rows.
@@ -74,8 +115,9 @@ is written out as a markdown table with the same rows.
 ## Written by hand
 
 Wrap `Prop` rows in a `PropsTable`. Give each `Prop` a `name`; add `type`,
-`default`, `required`, `bindable` or `deprecated` as needed, and put the
-description in the body.
+`default`, `required`, `bindable`, `deprecated` or `since` as needed, and put the
+description in the body. Nested `Prop` rows in a `fields` snippet open under the
+row, as generated fields do.
 
 <PropsTable>
 	<Prop name="variant" type="'default' | 'primary'" default="'default'">

@@ -118,7 +118,7 @@ export function extractToc(source: string): TocEntry[] {
  * blocks removed, everything else (headings, prose, code, component tags) kept,
  * with the frontmatter title prepended as an `h1` (pages start their body at h2).
  */
-export function extractLlmsContent(source: string, title: string): string {
+export function extractLlmsContent(source: string, title: string, since?: string): string {
 	const body = withoutSetupBlocks(splitFrontmatter(source).body).trim();
-	return `# ${title}\n\n${body}`;
+	return since === undefined ? `# ${title}\n\n${body}` : `# ${title}\n\nSince ${since}\n\n${body}`;
 }

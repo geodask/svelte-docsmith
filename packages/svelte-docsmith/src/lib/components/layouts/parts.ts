@@ -42,6 +42,8 @@ export type PageHeaderProps = {
 	 * `readingTime` is `false` or the page has no estimate.
 	 */
 	readingMinutes?: number;
+	/** The release the page first appeared in, from its `since` frontmatter. */
+	since?: string;
 	/** Whether to offer the Copy page menu: `DocsShell`'s `copyPage` is on and this is a doc page. */
 	copyPage: boolean;
 };

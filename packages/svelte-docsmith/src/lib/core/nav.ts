@@ -1,8 +1,11 @@
 import type { DocsContentItem } from './content.js';
 import { readingTree, type ReadingEntry } from './reading-order.js';
 
-/** A single sidebar link (a leaf). */
-export type NavItem = { title: string; url: string };
+/**
+ * A single sidebar link (a leaf). `isNew` marks a page new in the latest
+ * release (see `DocsContentItem.isNew`).
+ */
+export type NavItem = { title: string; url: string; isNew?: boolean };
 
 /** A titled group of sidebar entries, which may themselves be nested groups. */
 export type NavGroup = { title: string; items: NavNode[] };
@@ -18,7 +21,9 @@ export function isNavGroup(node: NavNode): node is NavGroup {
 function toNavNodes(entries: ReadingEntry<DocsContentItem>[]): NavNode[] {
 	return entries.map((entry) =>
 		'page' in entry
-			? { title: entry.page.title, url: entry.page.path }
+			? entry.page.isNew
+				? { title: entry.page.title, url: entry.page.path, isNew: true }
+				: { title: entry.page.title, url: entry.page.path }
 			: { title: entry.group.title, items: toNavNodes(entry.group.entries) }
 	);
 }

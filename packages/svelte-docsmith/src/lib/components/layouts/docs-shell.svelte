@@ -201,6 +201,7 @@
 		path: view.pathname,
 		breadcrumbs: view.breadcrumbs,
 		readingMinutes: readingTime ? view.readingMinutes : undefined,
+		since: view.entry?.since,
 		copyPage: copyPage && Boolean(view.entry)
 	});
 	const pagerProps: PagerProps = $derived({ prev: view.prev, next: view.next });
