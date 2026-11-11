@@ -10,6 +10,8 @@
  *
  * The Vite plugin and agent markdown each loop over {@link DOC_IMPORT_KINDS};
  * neither names a kind. Adding one is a module here and a line in that list.
+ * Agent markdown turns each kind into one of its tag rewrites, beside the ones
+ * for docs components that import nothing (see `../agent-markdown.ts`).
  */
 import type { Plugin } from 'vite';
 import type { ExtractedProps } from '../../../core/extracted-props.js';
