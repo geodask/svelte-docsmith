@@ -116,7 +116,7 @@ export function markdownCompiler(
 		rehypePlugins: [
 			rehypeSlug,
 			// After the slugs, so a heading's formula counts as its TeX text, as
-			// the table of contents reads it.
+			// the page reading (./page-reading.ts) reads it.
 			...(options.math ? [rehypeMath((message) => console.warn(message))] : []),
 			[rehypeSectionize, { idPropertyName: 'data-section-id' }],
 			rehypeOutsidePaths(outside, routesDir),

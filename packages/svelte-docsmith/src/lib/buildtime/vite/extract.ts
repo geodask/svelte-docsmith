@@ -1,5 +1,5 @@
-import GithubSlugger from 'github-slugger';
 import { outsideCodeFenceRuns, proseLines, splitFrontmatter } from '../markdown-source.js';
+import { readPage } from '../page-reading.js';
 
 export type TocEntry = { id: string; title: string; depth: 2 | 3 };
 
@@ -39,7 +39,7 @@ function withoutFormulas(body: string): string {
 	);
 }
 
-/** Strip inline markdown so a heading's TOC label is plain text. */
+/** Strip inline markdown, so search text is plain words. */
 function stripInlineMarkdown(text: string): string {
 	return text
 		.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -92,25 +92,15 @@ export function readingMinutes(text: string): number {
 }
 
 /**
- * Extract `h2`/`h3` headings from a markdown page so the in-page TOC can be
- * server-rendered (no post-hydration pop-in). Skips fenced code blocks. Ids are
- * produced with the same `github-slugger` that `rehype-slug` uses at render
- * time — including its duplicate-suffixing — so the SSR anchors match the real
- * heading ids exactly, not just for common cases.
+ * A page's `h2`/`h3` headings, so the in-page TOC can be server-rendered (no
+ * post-hydration pop-in). The headings and their ids come from the page
+ * reading (`../page-reading.js`), which gives each the id `rehype-slug` renders
+ * and the broken-link check accepts, so a TOC link always lands.
  */
 export function extractToc(source: string): TocEntry[] {
-	const slugger = new GithubSlugger();
-	const toc: TocEntry[] = [];
-
-	for (const line of proseLines(splitFrontmatter(source).body)) {
-		const m = /^(#{2,3})\s+(.+?)\s*#*\s*$/.exec(line);
-		if (!m) continue;
-		const title = stripInlineMarkdown(m[2]);
-		if (!title) continue;
-
-		toc.push({ id: slugger.slug(title), title, depth: m[1].length as 2 | 3 });
-	}
-	return toc;
+	return readPage(source).headings.flatMap(({ depth, id, title }) =>
+		(depth === 2 || depth === 3) && id && title ? [{ id, title, depth }] : []
+	);
 }
 
 /**

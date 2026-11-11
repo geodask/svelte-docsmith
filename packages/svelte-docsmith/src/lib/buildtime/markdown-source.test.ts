@@ -4,6 +4,7 @@ import {
 	proseLines,
 	scriptBlocks,
 	splitFrontmatter,
+	stretches,
 	withFrontmatter
 } from './markdown-source.js';
 
@@ -173,5 +174,77 @@ describe('proseLines', () => {
 
 	it('yields blank lines as they are, for callers that filter them', () => {
 		expect(lines('a\n\nb')).toEqual(['a', '', 'b']);
+	});
+});
+
+describe('stretches', () => {
+	const walk = (text: string, options?: { setupBlocks?: boolean }) => [
+		...stretches(text.split('\n'), options)
+	];
+
+	it('splits a page into prose runs and fenced blocks, losing no line', () => {
+		const text = 'One\n\n```ts title="a.ts"\nconst a = 1;\n```\nTwo';
+		const found = walk(text);
+
+		expect(found).toEqual([
+			{ kind: 'prose', lines: ['One', ''] },
+			{
+				kind: 'fence',
+				indent: '',
+				marker: '```',
+				info: 'ts title="a.ts"',
+				body: ['const a = 1;'],
+				lines: ['```ts title="a.ts"', 'const a = 1;', '```'],
+				closed: true
+			},
+			{ kind: 'prose', lines: ['Two'] }
+		]);
+		expect(found.flatMap((stretch) => stretch.lines).join('\n')).toBe(text);
+	});
+
+	it('closes a fence only on the same marker, at least as long, with nothing after it', () => {
+		const [fence] = walk('````md\n```svelte\n~~~~\n```` not a closer\n`````\nafter');
+
+		expect(fence).toMatchObject({
+			kind: 'fence',
+			body: ['```svelte', '~~~~', '```` not a closer'],
+			closed: true
+		});
+	});
+
+	it('reads an indented fence and keeps its indentation', () => {
+		const [, fence] = walk('- item\n\n  ~~~sh\n  npm i\n  ~~~');
+
+		expect(fence).toMatchObject({ kind: 'fence', indent: '  ', marker: '~~~', info: 'sh' });
+	});
+
+	it('reads a line of inline code that starts with three backticks as prose', () => {
+		expect(walk('```not a fence``` here\n## Heading')).toEqual([
+			{ kind: 'prose', lines: ['```not a fence``` here', '## Heading'] }
+		]);
+	});
+
+	it('runs an unclosed fence to the end of the page', () => {
+		expect(walk('```js\nconst a = 1;')).toMatchObject([
+			{ kind: 'fence', body: ['const a = 1;'], closed: false }
+		]);
+	});
+
+	it('reads fences on lines that keep their carriage return', () => {
+		const [fence, after] = walk('```sh pkg\r\nnpm i\r\n```\r\nafter');
+
+		expect(fence).toMatchObject({ kind: 'fence', info: 'sh pkg', body: ['npm i\r'], closed: true });
+		expect(after).toEqual({ kind: 'prose', lines: ['after'] });
+	});
+
+	it('keeps a script block whole when asked, fence-like lines and all', () => {
+		const text = '<script>\n\tconst code = `\n```\n`;\n</script>\n\n```js\nreal\n```';
+
+		const bodies = (options?: { setupBlocks?: boolean }) =>
+			walk(text, options).flatMap((stretch) => (stretch.kind === 'fence' ? [stretch.body] : []));
+
+		expect(bodies({ setupBlocks: true })).toEqual([['real']]);
+		// Without it, the template literal's ``` opens a fence of its own.
+		expect(bodies()).toEqual([['`;', '</script>', '', '```js', 'real']]);
 	});
 });

@@ -31,8 +31,12 @@ export type MarkdownSource = {
  */
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
-/** An opening or closing code fence, indented anywhere on its line. */
-const FENCE = /^\s*(`{3,}|~{3,})/;
+/**
+ * A fence opener: indentation, the marker run, and the info string. A backtick
+ * fence's info string can't hold a backtick (CommonMark): that line is inline
+ * code, which {@link opensFence} checks.
+ */
+const FENCE_OPEN = /^([ \t]*)(`{3,}|~{3,})([^\n]*)$/;
 
 /** The open tag of a `<script>` or `<style>` block, starting a line as HTML may. */
 const SETUP_BLOCK_OPEN = /^ {0,3}<(script|style)(?=[\s>]|$)/i;
@@ -59,59 +63,103 @@ export function withFrontmatter(
 	return source.slice(0, start) + transform(match[1]) + source.slice(start + match[1].length);
 }
 
+/** A stretch of a page: a run of prose lines, or one fenced code block. */
+export type Stretch =
+	| {
+			kind: 'prose';
+			/** The run's lines, in order. Never empty. */
+			lines: string[];
+	  }
+	| {
+			kind: 'fence';
+			/** The opener's indentation. */
+			indent: string;
+			/** The opener's marker run: three or more backticks or tildes. */
+			marker: string;
+			/** The opener's info string, trimmed: the language and any metadata. */
+			info: string;
+			/** The code between the markers, as written. */
+			body: string[];
+			/** Every line of the block as written: the opener, the body and the closer. */
+			lines: string[];
+			/** Whether the block has a closer. An unclosed fence runs to the end of the page. */
+			closed: boolean;
+	  };
+
 /**
- * A line-by-line scanner for fence state, rather than one regex pairing fences
- * up, so an indented fence (inside a list item or a component) and a `~~~`
- * fence are both recognised. Per CommonMark a fence closes only on the same
- * character, at least as long as the opener, with no info string — so the
- * ```svelte inside a ```` block opens nothing and closes nothing.
+ * Walk a page's lines as prose runs and fenced code blocks: the one fence
+ * rule every build-time pass reads a page by.
  *
- * Returns a predicate that consumes the page's lines in order and answers
- * whether each one is prose. Fence markers themselves are not.
+ * A line-by-line walk rather than one regex pairing fences up, so an indented
+ * fence (inside a list item or a component) and a `~~~` fence are both
+ * recognised. Per CommonMark a fence closes only on the same character, at
+ * least as long as the opener, with no info string, so the ```svelte inside a
+ * ```` block opens nothing and closes nothing. A line that only looks like a
+ * backtick opener, with a backtick later on it, is inline code and prose.
  *
  * With `setupBlocks`, a `<script>` or `<style>` block starting a prose line is
  * prose through its closing tag, as CommonMark reads such an HTML block, so a
  * fence-like line in its code (a ``` in a template literal) opens nothing.
+ *
+ * Lines may keep a trailing `\r` (a page split on `\n` alone): it is never
+ * part of a marker or an info string.
  */
-function fenceScanner({ setupBlocks = false } = {}): (line: string) => boolean {
-	let open: string | undefined;
+export function* stretches(
+	lines: string[],
+	{ setupBlocks = false }: { setupBlocks?: boolean } = {}
+): Generator<Stretch> {
+	let prose: string[] = [];
 	let setupClose: RegExp | undefined;
 
-	return (line) => {
-		if (setupClose) {
-			if (setupClose.test(line)) setupClose = undefined;
-			return true;
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		const open = setupClose ? null : opensFence(line);
+		if (!open) {
+			if (setupClose) {
+				if (setupClose.test(line)) setupClose = undefined;
+			} else if (setupBlocks) {
+				const setup = SETUP_BLOCK_OPEN.exec(line);
+				if (setup) {
+					const close = new RegExp(`</${setup[1]}>`, 'i');
+					if (!close.test(line.slice(setup[0].length))) setupClose = close;
+				}
+			}
+			prose.push(line);
+			continue;
 		}
-		const match = FENCE.exec(line);
-		if (open) {
-			const closes =
-				match &&
-				match[1][0] === open[0] &&
-				match[1].length >= open.length &&
-				!line.slice(match[0].length).trim();
-			if (closes) open = undefined;
-			return false;
-		}
-		if (match) {
-			open = match[1];
-			return false;
-		}
-		const setup = setupBlocks ? SETUP_BLOCK_OPEN.exec(line) : null;
-		if (setup) {
-			const close = new RegExp(`</${setup[1]}>`, 'i');
-			if (!close.test(line.slice(setup[0].length))) setupClose = close;
-		}
-		return true;
-	};
+		if (prose.length) yield { kind: 'prose', lines: prose };
+		prose = [];
+
+		const closer = new RegExp(`^[ \\t]*${open.marker[0]}{${open.marker.length},}[ \\t]*\\r?$`);
+		let end = i + 1;
+		while (end < lines.length && !closer.test(lines[end])) end++;
+		const closed = end < lines.length;
+		yield {
+			kind: 'fence',
+			...open,
+			body: lines.slice(i + 1, end),
+			lines: lines.slice(i, closed ? end + 1 : end),
+			closed
+		};
+		i = end;
+	}
+	if (prose.length) yield { kind: 'prose', lines: prose };
+}
+
+/** The fence a line opens, if it opens one. */
+function opensFence(line: string): { indent: string; marker: string; info: string } | undefined {
+	const match = FENCE_OPEN.exec(line.endsWith('\r') ? line.slice(0, -1) : line);
+	if (!match || (match[2][0] === '`' && match[3].includes('`'))) return undefined;
+	return { indent: match[1], marker: match[2], info: match[3].trim() };
 }
 
 /** Apply `transform` to a page's prose lines, leaving fenced code untouched. */
 export function outsideCodeFences(text: string, transform: (line: string) => string): string {
-	const isProse = fenceScanner();
-	return text
-		.split('\n')
-		.map((line) => (isProse(line) ? transform(line) : line))
-		.join('\n');
+	const out: string[] = [];
+	for (const stretch of stretches(text.split('\n'))) {
+		out.push(...(stretch.kind === 'prose' ? stretch.lines.map(transform) : stretch.lines));
+	}
+	return out.join('\n');
 }
 
 /**
@@ -127,30 +175,18 @@ export function outsideCodeFenceRuns(
 	transform: (prose: string) => string,
 	options: { setupBlocks?: boolean } = {}
 ): string {
-	const isProse = fenceScanner(options);
 	const out: string[] = [];
-	let run: string[] = [];
-	const flush = () => {
-		if (run.length) out.push(transform(run.join('\n')));
-		run = [];
-	};
-	for (const line of text.split('\n')) {
-		if (isProse(line)) {
-			run.push(line);
-		} else {
-			flush();
-			out.push(line);
-		}
+	for (const stretch of stretches(text.split('\n'), options)) {
+		if (stretch.kind === 'prose') out.push(transform(stretch.lines.join('\n')));
+		else out.push(...stretch.lines);
 	}
-	flush();
 	return out.join('\n');
 }
 
 /** A page's prose lines, in order, with fenced code and its markers dropped. */
 export function* proseLines(text: string): Generator<string> {
-	const isProse = fenceScanner();
-	for (const line of text.split('\n')) {
-		if (isProse(line)) yield line;
+	for (const stretch of stretches(text.split('\n'))) {
+		if (stretch.kind === 'prose') yield* stretch.lines;
 	}
 }
 
