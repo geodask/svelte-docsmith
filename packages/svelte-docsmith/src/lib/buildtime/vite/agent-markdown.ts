@@ -22,6 +22,8 @@ import { indexedPages, type IndexedPage, type IndexOptions } from './collect.js'
 import { extractLlmsContent } from './extract.js';
 import { writeInstallBlocks } from '../install-block.js';
 import { readField } from './fields.js';
+import { writeSectionCards } from './section-cards.js';
+import type { SectionPage } from '../../core/section-cards.js';
 import type { SourcePage } from './pages.js';
 import {
 	DOC_IMPORT_KINDS,
@@ -76,15 +78,29 @@ export async function llmsIndex(
 ): Promise<LlmsDoc[]> {
 	const indexed = indexedPages(pages, options);
 	const reads = await Promise.all(indexed.map((page) => readDocImports(page, host)));
-	return indexed.map((page, i) => ({
+	const placed = indexed.map((page) => ({
 		path: page.url,
 		title: page.title,
 		section: readField(page.frontmatter, 'section'),
 		order: readField(page.frontmatter, 'order'),
-		description: readField(page.frontmatter, 'description'),
-		content: agentMarkdown(page, reads[i], host.warn),
-		version: page.version
+		description: readField(page.frontmatter, 'description')
 	}));
+	// `<SectionCards />` lists pages of the page's own version only.
+	const byVersion = new Map<string | undefined, SectionPage[]>();
+	indexed.forEach((page, i) => {
+		const pages = byVersion.get(page.version) ?? [];
+		byVersion.set(page.version, [...pages, placed[i]]);
+	});
+	return indexed.map((page, i) => {
+		const pages = byVersion.get(page.version)!;
+		const content = writeSectionCards(
+			agentMarkdown(page, reads[i], host.warn),
+			{ ...placed[i], file: page.file },
+			pages,
+			host.warn
+		);
+		return { ...placed[i], content, version: page.version };
+	});
 }
 
 const KIND_BY_QUERY = new Map(DOC_IMPORT_KINDS.map((kind) => [kind.query, kind]));

@@ -587,3 +587,50 @@ describe('agent markdown install blocks', () => {
 		expect(markdown).toContain('```svelte\n<button />\n```');
 	});
 });
+
+describe('agent markdown section cards', () => {
+	const section = [
+		page('components', 'title: Components\nsection: Components\norder: 0', '<SectionCards />'),
+		page('components/card', 'title: Card\nsection: Components\norder: 2\ndescription: A box.'),
+		page('components/badge', 'title: Badge\nsection: Components\norder: 1'),
+		page('components/forms/input', 'title: Input\nsection: [Components, Forms]\norder: 5'),
+		page('guides/start', 'title: Start\nsection: Guides')
+	];
+
+	it("writes the page's own section out as links in reading order, without the page", async () => {
+		const markdown = await agentMarkdown(section, literalHost());
+		expect(markdown['/docs/components']).toBe(
+			'# Components\n\n- [Badge](/docs/components/badge)\n- [Card](/docs/components/card): A box.\n- [Forms](/docs/components/forms/input)'
+		);
+	});
+
+	it('lists the section a `section` attribute names, as a string or an array', async () => {
+		const pages = [
+			...section,
+			page(
+				'home',
+				'title: Home',
+				'<SectionCards section="Guides" />\n\n<SectionCards section={[\'Components\', "Forms"]} />'
+			)
+		];
+		const markdown = await agentMarkdown(pages, literalHost());
+		expect(markdown['/docs/home']).toBe(
+			'# Home\n\n- [Start](/docs/guides/start)\n\n- [Input](/docs/components/forms/input)'
+		);
+	});
+
+	it('keeps a tag whose section is an expression, and warns', async () => {
+		const pages = [...section, page('home', 'title: Home', '<SectionCards section={which} />')];
+		const host = literalHost();
+		const markdown = await agentMarkdown(pages, host);
+		expect(markdown['/docs/home']).toBe('# Home\n\n<SectionCards section={which} />');
+		expect(host.warn).toHaveBeenCalledWith(expect.stringContaining('could not read the `section`'));
+	});
+
+	it('leaves SectionCards in code samples as written', async () => {
+		const pages = [...section, page('home', 'title: Home', '```svelte\n<SectionCards />\n```')];
+		expect((await agentMarkdown(pages, literalHost()))['/docs/home']).toBe(
+			'# Home\n\n```svelte\n<SectionCards />\n```'
+		);
+	});
+});

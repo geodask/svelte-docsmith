@@ -48,3 +48,20 @@ export function useDocsPage(): DocsPageContext {
 		}
 	};
 }
+
+/**
+ * Read the page view if there is one: the same accessor as {@link useDocsPage},
+ * or `undefined` outside `DocsShell`. For docs components an author places in
+ * a page, which may be rendered somewhere the shell isn't, such as a test or a
+ * custom layout, and should then render nothing rather than throw.
+ */
+export function findDocsPage(): DocsPageContext | undefined {
+	const get = getContext<(() => DocsPageView) | undefined>(KEY);
+	return get
+		? {
+				get view() {
+					return get();
+				}
+			}
+		: undefined;
+}

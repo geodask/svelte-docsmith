@@ -96,6 +96,18 @@ as written. A page whose `since` names the newest changelog release is new,
 and gets a dot in the sidebar.
 _Avoid_: added in, introduced, version badge
 
+**Anatomy**:
+A live component with its named parts labelled over it with numbers and
+described below it. The labels follow the component as it changes, and clicks
+go through them.
+_Avoid_: parts diagram, annotated example
+
+**Part**:
+One named element of a component in an Anatomy, marked with `data-part` and
+described by a `<Part>` of the same name. Parts are numbered in the order the
+`<Part>`s are written.
+_Avoid_: region, slot, piece
+
 **Inherited attributes**:
 What a component accepts by spreading its remaining props onto something else:
 an element's native attributes, or every prop of another component's type. They
