@@ -39,6 +39,18 @@ export const BUILTIN_FIELDS = {
 		read: (value: unknown) =>
 			typeof value === 'string' && ISO_DAY.test(value) ? value : undefined,
 		expected: 'a YYYY-MM-DD date'
+	},
+	/**
+	 * The release the page first appeared in, as written. YAML reads an
+	 * unquoted `0.15` as a number, which is taken as its text; one that loses
+	 * a digit that way (`1.10`) needs quotes.
+	 */
+	since: {
+		read: (value: unknown) => {
+			if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+			return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+		},
+		expected: "a version, like '0.15'"
 	}
 } satisfies Record<string, BuiltinField<unknown>>;
 

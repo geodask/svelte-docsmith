@@ -45,6 +45,7 @@ import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from '.
 import { contentIndex, searchIndex } from './collect.js';
 import { llmsIndex } from './agent-markdown.js';
 import { collectReleases } from './releases.js';
+import { parseChangelog } from '../changelog.js';
 import { commitDates } from '../git.js';
 import { createPropsReader } from '../props/reader.js';
 import { docImportReads, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
@@ -259,8 +260,18 @@ function contentIndexPlugin(
 				if (typos) console.warn(typos);
 				// Here for the same reason: once per build, with the pages already read.
 				brokenLinks.pagesRead(pages);
+				// The newest release marks the pages that are new in it. Watched, so a
+				// release in `dev` moves the dots without a restart.
+				let latestRelease: string | undefined;
+				if (changelogFile && fs.existsSync(changelogFile)) {
+					this.addWatchFile(changelogFile);
+					latestRelease = parseChangelog(fs.readFileSync(changelogFile, 'utf-8'))[0]?.version;
+				}
 				// Only this index has a date field, so only this one pays for git.
-				const docs = contentIndex(withCommitDates(pages, trackedDates()), indexOptions);
+				const docs = contentIndex(withCommitDates(pages, trackedDates()), {
+					...indexOptions,
+					latestRelease
+				});
 				warnAboutDocsRoot(contentDir, exists, docs.length);
 				const resolved = resolveVersions(versions, docsBase, docs);
 				return (

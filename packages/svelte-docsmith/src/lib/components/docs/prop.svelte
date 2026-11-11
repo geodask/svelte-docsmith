@@ -9,8 +9,10 @@
 		required = false,
 		bindable = false,
 		deprecated,
+		since,
 		default: defaultValue,
-		children
+		children,
+		fields
 	}: {
 		/** Property name. */
 		name: string;
@@ -22,10 +24,17 @@
 		bindable?: boolean;
 		/** Mark the property as deprecated; a string says what to use instead. */
 		deprecated?: boolean | string;
+		/** The release the property first appeared in, shown as "Since 0.4". */
+		since?: string;
 		/** Default value, shown alongside the type. */
 		default?: string;
 		/** Description. */
 		children?: Snippet;
+		/**
+		 * What the property's type opens into: nested `<Prop>` rows for an
+		 * object's fields, shown collapsed under the description.
+		 */
+		fields?: Snippet;
 	} = $props();
 
 	// Split a top-level union into per-value chips so long ones wrap as a tidy
@@ -42,6 +51,7 @@
 		{#if required}<span class="prop-required">required</span>{/if}
 		{#if bindable}<span class="prop-flag">bindable</span>{/if}
 		{#if deprecated}<span class="prop-flag prop-flag-deprecated">deprecated</span>{/if}
+		{#if since}<span class="prop-flag prop-flag-since">since {since}</span>{/if}
 
 		{#if type}
 			<span class="prop-types">
@@ -64,6 +74,12 @@
 	{/if}
 	{#if children}
 		<div class="prop-desc">{@render children()}</div>
+	{/if}
+	{#if fields}
+		<details class="prop-fields">
+			<summary class="prop-fields-toggle">Fields</summary>
+			<div class="prop-fields-list">{@render fields()}</div>
+		</details>
 	{/if}
 </div>
 
@@ -120,6 +136,61 @@
 	}
 	.prop-flag-deprecated {
 		text-decoration: line-through;
+	}
+	/* A version reads as a number, so it keeps its case. */
+	.prop-flag-since {
+		text-transform: none;
+	}
+
+	/* The fields an object type opens into: collapsed under the description,
+	   then a nested run of rows set in from a rule, so depth reads at a glance. */
+	.prop-fields {
+		margin-top: 0.6rem;
+	}
+	.prop-fields-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		cursor: pointer;
+		list-style: none;
+		color: var(--muted-foreground);
+		font-size: 0.75rem;
+		font-weight: 600;
+		border-radius: 0.3rem;
+	}
+	.prop-fields-toggle::-webkit-details-marker {
+		display: none;
+	}
+	.prop-fields-toggle::before {
+		content: '';
+		width: 0.4rem;
+		height: 0.4rem;
+		border-right: 1.5px solid currentColor;
+		border-bottom: 1.5px solid currentColor;
+		transform: rotate(-45deg);
+		transition: transform 150ms ease-out;
+	}
+	.prop-fields[open] > .prop-fields-toggle::before {
+		transform: rotate(45deg);
+	}
+	.prop-fields-toggle:hover {
+		color: var(--foreground);
+	}
+	.prop-fields-toggle:focus-visible {
+		outline: 2px solid var(--ring, var(--primary));
+		outline-offset: 2px;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.prop-fields-toggle::before {
+			transition: none;
+		}
+	}
+	.prop-fields-list {
+		margin-top: 0.5rem;
+		border-left: 2px solid var(--border);
+	}
+	.prop-fields-list :global(.prop-row) {
+		padding: 0.6rem 0 0.6rem 0.85rem;
 	}
 
 	/* Type values as chips: a union wraps as a neat pill group, each token

@@ -179,6 +179,103 @@ describe('?props', { timeout: 60_000 }, () => {
 	});
 });
 
+describe('?props in agent markdown', () => {
+	const at: TagSite = { attributes: ' of={props}', indent: '', level: 1 };
+
+	it('writes fields after their row by path, naming the shape a union field belongs to', () => {
+		const table = propsImport.write(
+			{
+				name: 'Popover',
+				typeParameters: [],
+				inherited: [],
+				props: [
+					{
+						name: 'options',
+						type: 'Options',
+						required: false,
+						bindable: false,
+						fields: [
+							{
+								fields: [
+									{
+										name: 'placement',
+										type: 'Placement',
+										required: true,
+										description: 'Where it sits.',
+										fields: [
+											{ fields: [{ name: 'side', type: "'top' | 'bottom'", required: true }] }
+										]
+									}
+								]
+							}
+						]
+					},
+					{
+						name: 'choice',
+						type: 'Choice',
+						required: false,
+						bindable: false,
+						fields: [
+							{
+								label: "kind: 'text'",
+								fields: [{ name: 'placeholder', type: 'string', required: false }]
+							},
+							{
+								label: "kind: 'number'",
+								fields: [{ name: 'min', type: 'number', required: false }]
+							}
+						]
+					}
+				]
+			},
+			at
+		);
+		expect(table.split('\n').slice(2)).toEqual([
+			'| Prop | Type | Default | Description |',
+			'| --- | --- | --- | --- |',
+			'| `options?` | `Options` |  |  |',
+			'| `options.placement` | `Placement` |  | Where it sits. |',
+			"| `options.placement.side` | `'top' \\| 'bottom'` |  |  |",
+			'| `choice?` | `Choice` |  |  |',
+			"| `choice.placeholder?` *(when kind: 'text')* | `string` |  |  |",
+			"| `choice.min?` *(when kind: 'number')* | `number` |  |  |"
+		]);
+	});
+
+	it("adds the component's since under the heading, and a column when a row has one", () => {
+		const table = propsImport.write(
+			{
+				...BADGE,
+				since: '0.4',
+				props: [
+					...BADGE.props,
+					{
+						name: 'compact',
+						type: 'boolean',
+						required: false,
+						bindable: false,
+						since: '0.6',
+						fields: []
+					}
+				]
+			},
+			at
+		);
+		expect(table.split('\n')).toEqual([
+			'## `Badge`',
+			'',
+			'Since 0.4',
+			'',
+			'| Prop | Type | Default | Description | Since |',
+			'| --- | --- | --- | --- | --- |',
+			"| `tone?` | `'a' \\| 'b'` |  |  |  |",
+			'| `compact?` | `boolean` |  |  | 0.6 |'
+		]);
+		// No column without a since.
+		expect(propsImport.write(BADGE, at)).not.toContain('Since');
+	});
+});
+
 describe('DOC_IMPORT_KINDS', () => {
 	it('gives every kind its own query and tag', () => {
 		const queries = DOC_IMPORT_KINDS.map((kind) => kind.query);

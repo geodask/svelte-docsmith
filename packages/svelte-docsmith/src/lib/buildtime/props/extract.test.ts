@@ -41,6 +41,128 @@ describe('createPropsExtractor', COLD, () => {
 		expect(byName.children).toMatchObject({ type: 'Snippet', required: true });
 	});
 
+	it('reads @since on props and on the component comment', async () => {
+		const { props, warnings } = await extract('since');
+		expect(warnings).toEqual([]);
+		expect(props.since).toBe('0.4');
+		const byName = Object.fromEntries(props.props.map((p) => [p.name, p]));
+		expect(byName.compact.since).toBe('0.6');
+		expect(byName.compact.description).toBe('Tighter padding.');
+		expect(byName.label).not.toHaveProperty('since');
+	});
+
+	it("opens the library's own object types into fields", async () => {
+		const { props, markdown, warnings } = await extract('fields');
+		expect(warnings).toEqual([]);
+		const byName = Object.fromEntries(props.props.map((p) => [p.name, p]));
+
+		// An interface, nested, with JSDoc tags read on every level and
+		// `@internal` members left out.
+		expect(byName.options.fields).toEqual([
+			{
+				fields: [
+					{
+						name: 'delay',
+						type: 'number',
+						required: false,
+						description: 'Delay before opening, in <strong>ms</strong>.',
+						since: '0.3'
+					},
+					{
+						name: 'placement',
+						type: 'Placement',
+						required: true,
+						description: 'Where it sits.',
+						fields: [
+							{
+								fields: [
+									{ name: 'side', type: "'top' | 'bottom'", required: true },
+									{
+										name: 'offset',
+										type: 'number',
+										default: '4',
+										required: false,
+										description: 'Gap from the trigger, in pixels.'
+									}
+								]
+							}
+						]
+					},
+					{
+						name: 'wait',
+						type: 'number',
+						required: false,
+						deprecated: 'Use <code>delay</code>.'
+					}
+				]
+			}
+		]);
+		// Agent markdown keeps the JSDoc's own markdown.
+		expect(markdown.props.find((p) => p.name === 'options')!.fields![0].fields[0].description).toBe(
+			'Delay before opening, in **ms**.'
+		);
+		// An inline object type opens too.
+		expect(byName.style.fields).toEqual([
+			{
+				fields: [
+					{ name: 'color', type: 'string', required: true },
+					{ name: 'width', type: 'number', required: false }
+				]
+			}
+		]);
+		// A type that refers to itself stops at the repeat.
+		expect(byName.tree.fields).toEqual([
+			{
+				fields: [
+					{ name: 'label', type: 'string', required: true },
+					{ name: 'children', type: 'TreeNode[]', required: false }
+				]
+			}
+		]);
+		// Library types, functions, records, an alias that contains itself and
+		// snippets stay closed, and
+		// object props still get no control.
+		for (const name of ['attrs', 'data', 'onpick', 'nested', 'children']) {
+			expect(byName[name]).not.toHaveProperty('fields');
+		}
+		expect(byName.options).not.toHaveProperty('control');
+	});
+
+	it('opens a list into its item and a union into each shape', async () => {
+		const { props } = await extract('fields');
+		const byName = Object.fromEntries(props.props.map((p) => [p.name, p]));
+		expect(byName.columns.fields).toEqual([
+			{
+				fields: [
+					{ name: 'key', type: 'string', required: true },
+					{ name: 'header', type: 'string', required: false, description: 'Header text.' }
+				]
+			}
+		]);
+		// A local alias of a union of objects keeps its name, as its shapes open below.
+		expect(byName.choice.type).toBe('Choice');
+		// Anonymous shapes are named by the members that pick them out.
+		expect(byName.choice.fields).toEqual([
+			{
+				label: "kind: 'text'",
+				fields: [
+					{ name: 'kind', type: "'text'", required: true },
+					{ name: 'placeholder', type: 'string', required: false }
+				]
+			},
+			{
+				label: "kind: 'number'",
+				fields: [
+					{ name: 'kind', type: "'number'", required: true },
+					{ name: 'min', type: 'number', required: false }
+				]
+			}
+		]);
+		// A named shape in a union with other types keeps its name.
+		expect(byName.transition.fields).toMatchObject([{ label: 'Placement' }]);
+		expect(byName.transition.control).toBeUndefined();
+	});
+
 	it('derives a playground control and starting value from each type', async () => {
 		const { props, warnings } = await extract('controls');
 		expect(warnings).toEqual([]);

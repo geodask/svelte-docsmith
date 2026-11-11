@@ -42,4 +42,19 @@ describe('Sidebar', () => {
 		expect(detailsBySummary(container, 'Advanced')?.open).toBe(true);
 		expect(detailsBySummary(container, 'Other')?.open).toBe(false);
 	});
+
+	it('marks a page new in the latest release with a dot, named for screen readers', () => {
+		const withNew: NavGroup[] = [
+			{
+				title: 'Guide',
+				items: [
+					{ title: 'Introduction', url: '/docs/introduction' },
+					{ title: 'Charts', url: '/docs/charts', isNew: true }
+				]
+			}
+		];
+		render(Sidebar, { props: { nav: withNew } });
+		expect(screen.getByRole('link', { name: 'Charts (new)' })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Introduction' })).toBeInTheDocument();
+	});
 });

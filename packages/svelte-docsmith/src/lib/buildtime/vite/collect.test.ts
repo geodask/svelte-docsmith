@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { contentIndex, searchIndex } from './collect.js';
+import { contentIndex, releaseMatches, searchIndex } from './collect.js';
 import { toPage, type SourcePage } from './pages.js';
 import type { DocsVersions } from '#lib/core/version.js';
 
@@ -116,6 +116,34 @@ describe('contentIndex', () => {
 		expect(version['/']).toBe('v2');
 		expect(version['/intro']).toBe('v2');
 		expect(version['/v1/intro']).toBe('v1');
+	});
+
+	it("carries since, and marks pages new when it names the changelog's latest release", () => {
+		const versions: DocsVersions = {
+			current: { id: 'v2', label: 'v2' },
+			archived: [{ id: 'v1', label: 'v1' }]
+		};
+		const pages = [
+			page('fresh', 'title: Fresh\nsince: 0.15'),
+			page('older', "title: Older\nsince: '0.14'"),
+			page('plain', 'title: Plain'),
+			page('v1/fresh', 'title: Fresh\nsince: 0.15')
+		];
+		const byPath = (latestRelease?: string) =>
+			Object.fromEntries(
+				contentIndex(pages, { ...options, versions, latestRelease }).map((d) => [d.path, d])
+			);
+
+		const latest = byPath('0.15.2');
+		expect(latest['/docs/fresh']).toMatchObject({ since: '0.15', isNew: true });
+		expect(latest['/docs/older'].since).toBe('0.14');
+		expect(latest['/docs/older']).not.toHaveProperty('isNew');
+		expect(latest['/docs/plain']).not.toHaveProperty('since');
+		// An archive is never new.
+		expect(latest['/docs/v1/fresh']).not.toHaveProperty('isNew');
+		// No changelog, no dots; since still shows.
+		expect(byPath()['/docs/fresh']).toEqual(expect.objectContaining({ since: '0.15' }));
+		expect(byPath()['/docs/fresh']).not.toHaveProperty('isNew');
 	});
 
 	it('carries through the date the page was given', () => {
@@ -272,5 +300,17 @@ describe('searchIndex', () => {
 		];
 
 		expect(searchIndex(pages, options).map((d) => d.path)).toEqual(['/docs/a', '/docs/b']);
+	});
+});
+
+describe('releaseMatches', () => {
+	it('matches the same version, or a prefix of it at a dot', () => {
+		expect(releaseMatches('0.15.2', '0.15')).toBe(true);
+		expect(releaseMatches('0.15.0', '0.15.0')).toBe(true);
+		expect(releaseMatches('v1.0.0', '1')).toBe(true);
+		expect(releaseMatches('1.0.0', 'v1.0')).toBe(true);
+		expect(releaseMatches('0.150.0', '0.15')).toBe(false);
+		expect(releaseMatches('0.15.2', '0.15.1')).toBe(false);
+		expect(releaseMatches('0.15.2', 'v')).toBe(false);
 	});
 });

@@ -69,6 +69,14 @@ describe('DocsShell overrides', () => {
 		expect(pager.getByRole('link', { name: /Deploy/ })).toHaveAttribute('href', '/docs/deploy');
 	});
 
+	it("shows the page's since in the page header", () => {
+		const withSince = content.map((item) =>
+			item.path === '/docs/guide' ? { ...item, since: '0.15' } : item
+		);
+		render(Harness, { props: { content: withSince } });
+		expect(screen.getByText('Since 0.15')).toBeInTheDocument();
+	});
+
 	it('replaces the sidebar, on the page and in the mobile menu', async () => {
 		render(Harness, { props: { content, overrides: ['sidebar'] } });
 		expect(screen.queryByRole('navigation', { name: 'Documentation' })).not.toBeInTheDocument();

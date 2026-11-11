@@ -50,7 +50,8 @@ describe('propsReference', () => {
 				required: false,
 				bindable: false,
 				deprecated: false,
-				description: ['Visual intent.']
+				description: ['Visual intent.'],
+				fields: []
 			},
 			{
 				name: 'old',
@@ -59,7 +60,8 @@ describe('propsReference', () => {
 				required: true,
 				bindable: true,
 				deprecated: true,
-				description: ['Deprecated: Use <code>value</code>.', 'The old value.']
+				description: ['Deprecated: Use <code>value</code>.', 'The old value.'],
+				fields: []
 			}
 		]);
 	});
@@ -69,6 +71,64 @@ describe('propsReference', () => {
 			props({ props: [{ name: 'old', required: false, bindable: false, deprecated: '' }] })
 		);
 		expect(rows[0]).toMatchObject({ deprecated: true, description: [] });
+	});
+
+	it('carries @since on the caption and on rows', () => {
+		const reference = propsReference(
+			props({
+				since: '0.4',
+				props: [
+					{ name: 'compact', required: false, bindable: false, since: '0.6' },
+					{ name: 'label', required: true, bindable: false }
+				]
+			})
+		);
+		expect(reference.since).toBe('0.4');
+		expect(reference.rows[0].since).toBe('0.6');
+		expect(reference.rows[1]).not.toHaveProperty('since');
+		expect(propsReference(props())).not.toHaveProperty('since');
+	});
+
+	it('gives each field a row, grouped by shape and nested', () => {
+		const { rows } = propsReference(
+			props({
+				props: [
+					{
+						name: 'options',
+						required: false,
+						bindable: true,
+						fields: [
+							{
+								fields: [
+									{
+										name: 'placement',
+										type: 'Placement',
+										required: true,
+										fields: [{ fields: [{ name: 'side', required: true, since: '0.3' }] }]
+									}
+								]
+							}
+						]
+					},
+					{
+						name: 'choice',
+						required: false,
+						bindable: false,
+						fields: [
+							{ label: "kind: 'a'", fields: [{ name: 'kind', required: true }] },
+							{ label: "kind: 'b'", fields: [{ name: 'kind', required: true, deprecated: '' }] }
+						]
+					}
+				]
+			})
+		);
+		const [placement] = rows[0].fields[0].rows;
+		expect(rows[0].fields[0]).not.toHaveProperty('label');
+		// A field is never bindable, whatever its prop is.
+		expect(placement).toMatchObject({ name: 'placement', type: 'Placement', bindable: false });
+		expect(placement.fields[0].rows[0]).toMatchObject({ name: 'side', since: '0.3', fields: [] });
+		expect(rows[1].fields.map((group) => group.label)).toEqual(["kind: 'a'", "kind: 'b'"]);
+		expect(rows[1].fields[1].rows[0]).toMatchObject({ deprecated: true, description: [] });
 	});
 
 	it('sums up inherited attributes by what they belong to', () => {

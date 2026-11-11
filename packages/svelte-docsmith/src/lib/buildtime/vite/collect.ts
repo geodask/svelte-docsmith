@@ -26,6 +26,8 @@ export type IndexOptions = {
 	versions?: DocsVersions;
 	/** Whether pages are read with math (`markdown.math`), so search leaves formulas out. */
 	math?: boolean;
+	/** The newest release in the site's changelog, which marks pages whose `since` names it as new. */
+	latestRelease?: string;
 };
 
 /** A page resolved against the site's layout: its URL, title and owning version. */
@@ -106,10 +108,39 @@ export function contentIndex(pages: SourcePage[], options: IndexOptions): DocsCo
 		sourcePath: relativeToCwd(page.file),
 		lastUpdated: page.lastUpdated,
 		readingTime: readingMinutes(extractSearchText(page.source, options)),
+		...sinceOf(page, options),
 		toc: extractToc(page.source),
 		version: page.version,
 		data: dataOf(page.frontmatter)
 	}));
+}
+
+/**
+ * A page's `since`, and whether that makes it new: it names the latest release,
+ * and the page belongs to the current version (an archive is never new).
+ */
+function sinceOf(
+	page: IndexedPage,
+	options: IndexOptions
+): Pick<DocsContentItem, 'since' | 'isNew'> {
+	const since = readField(page.frontmatter, 'since');
+	if (since === undefined) return {};
+	const current = page.version === undefined || page.version === options.versions?.current.id;
+	const latest = options.latestRelease;
+	return current && latest !== undefined && releaseMatches(latest, since)
+		? { since, isNew: true }
+		: { since };
+}
+
+/**
+ * Whether `since` names `release`: the same version, or a prefix of it at a
+ * dot (`0.15` names `0.15.2`, not `0.150.0`). A leading `v` on either is
+ * ignored.
+ */
+export function releaseMatches(release: string, since: string): boolean {
+	const bare = (version: string) => version.trim().replace(/^v/i, '');
+	const [r, s] = [bare(release), bare(since)];
+	return s !== '' && (r === s || r.startsWith(`${s}.`));
 }
 
 /**

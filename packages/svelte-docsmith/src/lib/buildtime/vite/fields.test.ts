@@ -24,6 +24,16 @@ describe('readField', () => {
 		expect(readField({ section: ['Guides', 3] }, 'section')).toBeUndefined();
 		expect(readField({ section: [] }, 'section')).toBeUndefined();
 		expect(readField({ lastUpdated: 'last week' }, 'lastUpdated')).toBeUndefined();
+		expect(readField({ since: '' }, 'since')).toBeUndefined();
+		expect(readField({ since: ['0.15'] }, 'since')).toBeUndefined();
+	});
+
+	it('reads since as text, whether YAML gave a string or a number', () => {
+		expect(readField({ since: '0.15' }, 'since')).toBe('0.15');
+		expect(readField({ since: ' v1.2.0 ' }, 'since')).toBe('v1.2.0');
+		// `since: 0.15` unquoted.
+		expect(readField({ since: 0.15 }, 'since')).toBe('0.15');
+		expect(readField({ since: 2 }, 'since')).toBe('2');
 	});
 });
 

@@ -10,11 +10,13 @@
  *
  * @experimental Outside the 1.0 stability promise, like the props import.
  */
-import type { ExtractedProps } from './extracted-props.js';
+import type { ExtractedField, ExtractedProp, ExtractedProps } from './extracted-props.js';
 
 export interface PropsReference {
 	/** The author's `title`, else the component's name with its type parameters (`Select<T>`). */
 	caption: string;
+	/** The component's `@since`. */
+	since?: string;
 	/** One per declared prop, in declaration order. */
 	rows: PropRow[];
 	/** What follows the rows: one per inherited attributes group, or the empty case. */
@@ -33,6 +35,16 @@ export interface PropRow {
 	 * note when the tag has text, then the description. Empty when neither.
 	 */
 	description: string[];
+	/** `@since`: the release the prop or field first appeared in. */
+	since?: string;
+	/** What the row's type opens into: a row per field, grouped by shape. Empty when it opens into nothing. */
+	fields: PropFieldGroup[];
+}
+
+/** The rows of one object shape a row's type opens into, named when the type is a union. */
+export interface PropFieldGroup {
+	label?: string;
+	rows: PropRow[];
 }
 
 /**
@@ -52,18 +64,29 @@ export function propsReference(props: ExtractedProps, title?: string): PropsRefe
 	if (props.props.length === 0 && notes.length === 0) notes.push(['No props.']);
 	return {
 		caption: title ?? props.name + (params.length ? `<${params.join(', ')}>` : ''),
-		rows: props.props.map((prop) => ({
-			name: prop.name,
-			type: prop.type,
-			default: prop.default,
-			required: prop.required,
-			bindable: prop.bindable,
-			deprecated: prop.deprecated !== undefined,
-			description: [prop.deprecated && deprecationNote(prop.deprecated), prop.description].filter(
-				(text): text is string => !!text
-			)
-		})),
+		...(props.since ? { since: props.since } : {}),
+		rows: props.props.map(propRow),
 		notes
+	};
+}
+
+/** A prop, or a field of one, as a row. A field is never bindable. */
+function propRow(prop: ExtractedProp | ExtractedField): PropRow {
+	return {
+		name: prop.name,
+		type: prop.type,
+		default: prop.default,
+		required: prop.required,
+		bindable: 'bindable' in prop && prop.bindable,
+		deprecated: prop.deprecated !== undefined,
+		description: [prop.deprecated && deprecationNote(prop.deprecated), prop.description].filter(
+			(text): text is string => !!text
+		),
+		...(prop.since ? { since: prop.since } : {}),
+		fields: (prop.fields ?? []).map((group) => ({
+			...(group.label ? { label: group.label } : {}),
+			rows: group.fields.map(propRow)
+		}))
 	};
 }
 

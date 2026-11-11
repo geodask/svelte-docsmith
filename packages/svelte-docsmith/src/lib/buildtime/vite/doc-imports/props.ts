@@ -37,9 +37,11 @@ const TITLE_ATTRIBUTE =
 	/(?:^|\s)title\s*=\s*(?:"([^"]*)"|'([^']*)'|\{\s*(?:"([^"]*)"|'([^']*)')\s*\})/;
 
 /**
- * A generated props table as agent markdown: the caption as a heading, then a
- * `Prop | Type | Default | Description` table of the page's rows, then the
- * page's notes.
+ * A generated props table as agent markdown: the caption as a heading (and the
+ * component's since, under it), then a `Prop | Type | Default | Description`
+ * table of the page's rows, then the page's notes. Each field a row opens into
+ * follows its row, named by its path (`options.delay`). A `Since` column joins
+ * the table when any row has a since.
  */
 function propsTable(
 	props: ExtractedProps,
@@ -47,14 +49,23 @@ function propsTable(
 	level: number,
 	indent: string
 ): string {
-	const { caption, rows, notes } = propsReference(props, title);
+	const { caption, since, rows, notes } = propsReference(props, title);
 	const blocks = [`${'#'.repeat(level)} ${code(caption)}`];
+	if (since) blocks.push(`Since ${since}`);
 	if (rows.length) {
+		const flat = flatRows(rows);
+		const withSince = flat.some(({ row }) => row.since !== undefined);
+		const cells = (row: FlatRow) => {
+			const all = rowCells(row);
+			return withSince ? [...all, (row.row.since ?? '').replaceAll('|', '\\|')] : all;
+		};
 		blocks.push(
 			[
-				'| Prop | Type | Default | Description |',
-				'| --- | --- | --- | --- |',
-				...rows.map((row) => `| ${rowCells(row).join(' | ')} |`)
+				withSince
+					? '| Prop | Type | Default | Description | Since |'
+					: '| Prop | Type | Default | Description |',
+				withSince ? '| --- | --- | --- | --- | --- |' : '| --- | --- | --- | --- |',
+				...flat.map((row) => `| ${cells(row).join(' | ')} |`)
 			].join('\n')
 		);
 	}
@@ -64,11 +75,36 @@ function propsTable(
 	return indented(blocks.join('\n\n'), indent);
 }
 
+/** A row with the path to it, and the shape it belongs to when its parent's type is a union. */
+interface FlatRow {
+	row: PropRow;
+	path: string;
+	shape?: string;
+}
+
+/**
+ * The rows depth-first, each field straight after the row it belongs to. A
+ * field of a union names its shape; the fields below it name their own.
+ */
+function flatRows(rows: PropRow[], parent = '', shape?: string): FlatRow[] {
+	return rows.flatMap((row) => {
+		const path = parent + row.name;
+		return [
+			shape === undefined ? { row, path } : { row, path, shape },
+			...row.fields.flatMap((group) => flatRows(group.rows, `${path}.`, group.label))
+		];
+	});
+}
+
 /** One row's cells, marked as the rendered row is and escaped for a table. */
-function rowCells(row: PropRow): string[] {
-	let name = code(row.required ? row.name : `${row.name}?`);
+function rowCells({ row, path, shape }: FlatRow): string[] {
+	let name = code(row.required ? path : `${path}?`);
 	if (row.deprecated) name = `~~${name}~~`;
-	const marks = [row.bindable && '*(bindable)*', row.deprecated && '*(deprecated)*'];
+	const marks = [
+		shape !== undefined && `*(when ${shape})*`,
+		row.bindable && '*(bindable)*',
+		row.deprecated && '*(deprecated)*'
+	];
 	return [
 		[name, ...marks.filter(Boolean)].join(' '),
 		row.type === undefined ? '' : code(row.type),

@@ -26,6 +26,8 @@ export interface ParsedComponent {
 	destructured: DestructuredProp[];
 	/** Type parameter names from `generics="…"`. */
 	typeParameters: string[];
+	/** `@since` in the component's `<!-- @component -->` comment. */
+	since?: string;
 }
 
 // The estree nodes we touch, loosely typed: Svelte's parser output includes
@@ -40,11 +42,13 @@ interface Node {
 export function parseComponent(code: string, filename: string): ParsedComponent {
 	const ast = parse(code, { modern: true, filename });
 	const typeParameters = genericsOf(ast.instance?.attributes ?? [], code);
+	const since = componentSince(ast.fragment.nodes as unknown as Node[]);
 	const empty: ParsedComponent = {
 		hasProps: false,
 		typed: false,
 		destructured: [],
-		typeParameters
+		typeParameters,
+		...(since ? { since } : {})
 	};
 	if (!ast.instance) return empty;
 
@@ -63,7 +67,21 @@ export function parseComponent(code: string, filename: string): ParsedComponent 
 		if (name === undefined) continue;
 		destructured.push({ name, ...defaultOf(property.value as Node, code) });
 	}
-	return { hasProps: true, typed, destructured, typeParameters };
+	return { ...empty, hasProps: true, typed, destructured };
+}
+
+/**
+ * The `@since` line of the component's documentation comment, the
+ * `<!-- @component … -->` that Svelte's tooling shows on hover.
+ */
+function componentSince(nodes: Node[]): string | undefined {
+	for (const node of nodes) {
+		if (node.type !== 'Comment') continue;
+		const data = String(node.data ?? '').trim();
+		if (!data.startsWith('@component')) continue;
+		return /^\s*@since[ \t]+(.+?)\s*$/m.exec(data)?.[1];
+	}
+	return undefined;
 }
 
 function findPropsDeclarator(node: Node): Node | undefined {
