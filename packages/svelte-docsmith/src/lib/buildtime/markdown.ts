@@ -64,9 +64,10 @@ export interface DocsmithMarkdownOptions {
 }
 
 /**
- * The file extensions compiled as markdown: the author's, or `['.md']`. One
- * default for every pass that has to agree on which files are doc pages: the
- * compiler, the plugin that runs it, and the broken-link check's route list.
+ * The file extensions compiled as markdown: the author's, or `['.md']`. A
+ * `+page` file in one of them is a doc page (`isDocPage` in `./vite/pages.js`),
+ * so the compiler, the indexes, the link check and the archive CLI agree on
+ * which files those are.
  */
 export function markdownExtensions(options: DocsmithMarkdownOptions): string[] {
 	return options.extensions ?? ['.md'];

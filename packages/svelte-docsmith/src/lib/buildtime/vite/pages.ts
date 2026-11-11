@@ -10,8 +10,6 @@ import { splitFrontmatter } from '../markdown-source.js';
 import { readField } from './fields.js';
 import { parseFrontmatter } from './frontmatter.js';
 
-const PAGE_NAMES = ['+page.md', '+page.svx'];
-
 /**
  * One doc page as authored on disk, before any index-specific derivation. Its
  * URL, version, headings and search text are all derived from these fields, so
@@ -36,32 +34,36 @@ export type SourcePage = {
 	lastUpdated?: string;
 };
 
-/** Whether a filename is a doc page the plugin should index. */
-export function isPageFile(file: string): boolean {
-	return PAGE_NAMES.some((name) => file.endsWith(name));
+/**
+ * Whether a file is a doc page: a `+page` file in one of the extensions
+ * compiled as markdown (`markdown.extensions`, `['.md']` unless the author says
+ * otherwise; see `markdownExtensions` in `../markdown.js`).
+ *
+ * The one rule for what a doc page is. The indexes, the dev watcher, the
+ * broken-link check and the archive CLI all ask it with the compiler's own
+ * extensions, so a page is indexed exactly when it is compiled.
+ */
+export function isDocPage(file: string, extensions: readonly string[]): boolean {
+	const name = path.basename(file);
+	return extensions.some((extension) => name === `+page${extension}`);
 }
 
 /**
- * Whether a filename is a route SvelteKit serves as a page: a `+page.svelte`,
- * or a `+page` file in one of the extensions compiled as markdown. Wider than
- * {@link isPageFile}: a `+page.svelte` is no doc page, so no index reads it,
- * but a link to it is still a link to a page. A `+page.ts` or
- * `+page.server.ts` alone renders nothing, so it doesn't count.
+ * Whether a file is a route SvelteKit serves as a page: a doc page, or a
+ * `+page.svelte`. Wider than {@link isDocPage}: a `+page.svelte` is no doc
+ * page, so no index reads it, but a link to it is still a link to a page. A
+ * `+page.ts` or `+page.server.ts` alone renders nothing, so it doesn't count.
  */
-export function isRouteFile(file: string, markdownExtensions: string[]): boolean {
-	const name = path.basename(file);
-	return (
-		isPageFile(name) ||
-		['.svelte', ...markdownExtensions].some((extension) => name === `+page${extension}`)
-	);
+export function isPageRoute(file: string, extensions: readonly string[]): boolean {
+	return isDocPage(file, extensions) || path.basename(file) === '+page.svelte';
 }
 
 /**
  * The absolute path of every page route under `contentDir`, doc pages and
- * `+page.svelte` alike (see {@link isRouteFile}).
+ * `+page.svelte` alike (see {@link isPageRoute}).
  */
-export function listRouteFiles(contentDir: string, markdownExtensions: string[]): string[] {
-	return listFiles(contentDir, (name) => isRouteFile(name, markdownExtensions));
+export function listRouteFiles(contentDir: string, extensions: readonly string[]): string[] {
+	return listFiles(contentDir, (name) => isPageRoute(name, extensions));
 }
 
 /**
@@ -78,13 +80,16 @@ export function toPage(file: string, source: string): SourcePage {
 }
 
 /**
- * Read every doc page under `contentDir`. `exists` distinguishes a missing docs
+ * Read every doc page (see {@link isDocPage}) under `contentDir`. `exists` distinguishes a missing docs
  * root from an empty one, which the page list alone cannot: both give no pages,
  * but only one of them is a misconfiguration worth reporting.
  */
-export function readSourcePages(contentDir: string): { pages: SourcePage[]; exists: boolean } {
+export function readSourcePages(
+	contentDir: string,
+	extensions: readonly string[]
+): { pages: SourcePage[]; exists: boolean } {
 	if (!fs.existsSync(contentDir)) return { pages: [], exists: false };
-	const pages = listPageFiles(contentDir).map((file) =>
+	const pages = listFiles(contentDir, (name) => isDocPage(name, extensions)).map((file) =>
 		toPage(file, fs.readFileSync(file, 'utf-8'))
 	);
 	return { pages, exists: true };
@@ -119,13 +124,6 @@ export function withCommitDates(pages: SourcePage[], dates: Map<string, string>)
 			lastUpdated: readField(page.frontmatter, 'lastUpdated') ?? dates.get(page.file)
 		};
 	});
-}
-
-/**
- * List the absolute paths of every `+page.md`/`+page.svx` under `contentDir`.
- */
-export function listPageFiles(contentDir: string): string[] {
-	return listFiles(contentDir, isPageFile);
 }
 
 /** The absolute path of every file under `contentDir` whose name `wanted` accepts. */

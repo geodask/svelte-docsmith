@@ -29,20 +29,18 @@
  *
  * The options themselves are resolved in `./options.js`. What each generated
  * module exports is described in `./generated-modules.js`, the one home of
- * the six. Reading the docs root lives in `./pages.js` and building each index
- * from what it read lives in `./collect.js`; props are read through
- * `../props/reader.js`, which owns the shared extractor, file watching and
- * warn-once. Broken-link reporting lives in `./broken-links.js`. This file
- * owns the Vite plugins, as adapters over those.
+ * the six. Which files are doc pages, reading them and checking them lives in
+ * `./doc-pages.js`, and building each index from what it read lives in
+ * `./collect.js`; props are read through `../props/reader.js`, which owns the
+ * shared extractor, file watching and warn-once. This file owns the Vite
+ * plugins, as adapters over those.
  */
 import type { Plugin, ViteDevServer } from 'vite';
-import { isPageFile } from './pages.js';
+import { docPages } from './doc-pages.js';
 import { docImportDeps, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
 import { generatedModules } from './generated-modules.js';
 import { markdownPlugin } from './markdown.js';
-import { markdownExtensions } from '../markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
-import { brokenLinksReporter } from './broken-links.js';
 import { themePlugin } from './theme.js';
 
 export type {
@@ -94,15 +92,9 @@ function contentIndexPlugin(
 	docImports: DocImportDeps,
 	authored: DocsmithOptions
 ): Plugin {
-	const { contentDir, routesDir, versions, links } = options;
-	const brokenLinks = brokenLinksReporter({
-		indexOptions: { contentDir, routesDir, versions, math: options.markdown?.math },
-		links,
-		markdownExtensions: markdownExtensions(options.markdown)
-	});
-	const generated = generatedModules(options, docImports, {
-		pagesRead: (pages) => brokenLinks.pagesRead(pages)
-	});
+	const pages = docPages(options);
+	const generated = generatedModules(options, docImports, pages);
+	let serving = false;
 
 	return {
 		name: 'docsmith-content',
@@ -113,7 +105,15 @@ function contentIndexPlugin(
 		api: { docsmith: authored },
 
 		configResolved(config) {
-			brokenLinks.configResolved(config.command);
+			serving = config.command === 'serve';
+			pages.command(config.command);
+		},
+
+		// `vite build --watch` has no dev server to hear changes from. In `dev`
+		// the watcher in `configureServer` reports them, added and removed
+		// pages included.
+		watchChange(id) {
+			if (!serving) pages.changed(id);
 		},
 
 		resolveId(id) {
@@ -130,11 +130,10 @@ function contentIndexPlugin(
 		},
 
 		configureServer(server: ViteDevServer) {
-			server.watcher.add(contentDir);
-			brokenLinks.devStarted();
+			server.watcher.add(options.contentDir);
+			pages.devStarted();
 			const onChange = (file: string) => {
-				brokenLinks.fileChanged(file);
-				if (!isPageFile(file)) return;
+				if (!pages.changed(file)) return;
 				let invalidated = false;
 				for (const id of generated.builtFromPages) {
 					const mod = server.moduleGraph.getModuleById(id);

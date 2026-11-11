@@ -17,20 +17,18 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { checkVersions, resolveVersions } from '../../core/version.js';
+import { resolveVersions } from '../../core/version.js';
 import { ogColours } from '../../server/og/colours.js';
-import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
 import { parseChangelog } from '../changelog.js';
 import { commitDates } from '../git.js';
 import { siteGithubStars } from '../github-stars.js';
-import { checkOutsidePaths } from '../outside-paths.js';
 import { docsBaseFrom } from '../paths.js';
 import { llmsIndex, type ResolveImport } from './agent-markdown.js';
 import { contentIndex, searchIndex } from './collect.js';
 import { docImportReads, type DocImportDeps } from './doc-imports/index.js';
-import { checkFrontmatter } from './frontmatter-schema.js';
 import type { ResolvedDocsmithOptions } from './options.js';
-import { readSourcePages, withCommitDates, type SourcePage } from './pages.js';
+import type { DocPages, ReadPages } from './doc-pages.js';
+import { withCommitDates } from './pages.js';
 import { collectReleases } from './releases.js';
 import { themeTokens } from './theme.js';
 
@@ -83,12 +81,6 @@ export type GeneratedModuleHost = {
 	/** Resolve an import the way Vite resolves a page's own. */
 	resolve: ResolveImport;
 	warn(message: string): void;
-};
-
-/** The hooks the content index calls with the pages it read. */
-export type GeneratedModuleHooks = {
-	/** Once per load of the content index, with every page under the docs root. */
-	pagesRead(pages: SourcePage[]): void;
 };
 
 export type GeneratedModuleSet = {
@@ -144,7 +136,7 @@ function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number)
 export function generatedModules(
 	options: ResolvedDocsmithOptions,
 	docImports: DocImportDeps,
-	hooks: GeneratedModuleHooks
+	docPages: DocPages
 ): GeneratedModuleSet {
 	const { contentDir, routesDir, versions, changelogFile, links } = options;
 	const docsBase = docsBaseFrom(routesDir, contentDir);
@@ -189,11 +181,11 @@ export function generatedModules(
 	// body loads the module again. A directory would be treated as an
 	// unresolvable import by vite:import-analysis; pages added and removed are
 	// what `builtFromPages` is for.
-	const readPages = (host: GeneratedModuleHost) => {
-		const read = readSourcePages(contentDir);
+	const watched = <T extends ReadPages>(read: T, host: GeneratedModuleHost): T => {
 		for (const page of read.pages) host.watch(page.file);
 		return read;
 	};
+	const readPages = (host: GeneratedModuleHost) => watched(docPages.read(), host);
 
 	const modules: { [K in GeneratedModuleName]: Description<K> } = {
 		site: {
@@ -225,22 +217,10 @@ export function generatedModules(
 		content: {
 			fromPages: true,
 			exports: async (host) => {
-				// Before anything is read: a config that disagrees with the docs root
-				// produces an index that is wrong rather than empty, so it has to fail
-				// here rather than render. Re-runs on every load, so archiving during
-				// `dev` reports immediately.
-				checkVersions(versions, discoverArchives(contentDir), ARCHIVE_MARKER);
-				const { pages, exists } = readPages(host);
-				// A page under an outside path contradicts the config whether or not
-				// links are checked, so this runs under `broken: 'ignore'` too.
-				checkOutsidePaths(pages, indexOptions, links.outside);
-				// Checked here only: the docs layout always imports this index, so a
-				// bad page fails the build (or raises the dev overlay) once, not once
-				// per index.
-				const typos = await checkFrontmatter(pages, options.schema);
-				if (typos) console.warn(typos);
-				// Here for the same reason: once per build, with the pages already read.
-				hooks.pagesRead(pages);
+				// Sound pages only, and here only: the docs layout always imports this
+				// index, so a bad page fails the build (or raises the dev overlay)
+				// once, not once per index.
+				const { pages, exists } = watched(await docPages.sound(), host);
 				// The newest release marks the pages that are new in it. Watched, so a
 				// release in `dev` moves the dots without a restart.
 				let latestRelease: string | undefined;

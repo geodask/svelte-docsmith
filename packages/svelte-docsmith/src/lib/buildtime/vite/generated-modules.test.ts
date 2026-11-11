@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ARCHIVE_MARKER, markerContents } from '../archives.js';
 import { docImportDeps } from './doc-imports/index.js';
+import { docPages } from './doc-pages.js';
 import {
 	DefaultExportOf,
 	GENERATED_MODULE_NAMES,
@@ -67,8 +68,7 @@ function generated(options: TestOptions = {}) {
 		...(routesDir ? { content: path.join(routesDir, 'docs'), routes: routesDir } : {}),
 		...options
 	});
-	const pagesRead = vi.fn();
-	const set = generatedModules(resolved, docImportDeps(resolved), { pagesRead });
+	const set = generatedModules(resolved, docImportDeps(resolved), docPages(resolved));
 	const host = {
 		watch: vi.fn(),
 		warn: vi.fn(),
@@ -77,7 +77,6 @@ function generated(options: TestOptions = {}) {
 	return {
 		set,
 		host,
-		pagesRead,
 		read: <K extends GeneratedModuleName>(name: K) => set.read(name, host)
 	};
 }
@@ -191,21 +190,6 @@ describe('svelte-docsmith/content', () => {
 		// Including the untitled page: adding a title to it has to rebuild the nav.
 		expect(host.watch).toHaveBeenCalledWith(path.join(routesDir, 'docs', 'intro', '+page.md'));
 		expect(host.watch).toHaveBeenCalledWith(path.join(routesDir, 'docs', 'untitled', '+page.md'));
-	});
-
-	it('hands the pages it read to the hook, once', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro');
-		const { read, pagesRead } = generated();
-
-		await read('content');
-		await read('search');
-		await read('llms');
-
-		expect(pagesRead).toHaveBeenCalledTimes(1);
-		expect(pagesRead.mock.calls[0][0]).toEqual([
-			expect.objectContaining({ file: path.join(routesDir, 'docs', 'intro', '+page.md') })
-		]);
 	});
 
 	it('throws with the filename on invalid YAML frontmatter', async () => {
