@@ -11,7 +11,7 @@ order: 19
 </script>
 
 `Columns` sets content side by side: two columns, or three, each the same
-width. Below the small breakpoint they stack into one, so a phone reads them in
+width. Below Tailwind's `sm` breakpoint (yours, if you change it) they stack into one, so a phone reads them in
 order. For a grid of links, use [CardGrid](/docs/components/card) instead.
 
 <Columns>

@@ -15,26 +15,16 @@
 	} = $props();
 </script>
 
-<div class="docsmith-columns" class:docsmith-columns-3={cols === 3}>
+<!-- One column on phones; the site's own sm breakpoint and up, side by side. -->
+<div
+	class="docsmith-columns my-6 grid grid-cols-1 gap-6 {cols === 3
+		? 'docsmith-columns-3 sm:grid-cols-3'
+		: 'sm:grid-cols-2'}"
+>
 	{@render children()}
 </div>
 
 <style>
-	/* One column on phones. */
-	.docsmith-columns {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: 1.5rem;
-		margin: 1.5rem 0;
-	}
-	@media (min-width: 40rem) {
-		.docsmith-columns {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-		.docsmith-columns-3 {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-	}
 	/* Each child is a column. Its own margins would sit inside the grid cell
 	   and push it out of line with its neighbours. */
 	.docsmith-columns > :global(*) {
