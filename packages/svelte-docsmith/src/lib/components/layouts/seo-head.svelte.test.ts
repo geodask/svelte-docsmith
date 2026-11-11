@@ -4,7 +4,9 @@ import { resolveDocsPage, resolveVersions, type DocsmithSite } from '#lib/core/i
 import type { DocsContentItem } from '#lib/core/index.js';
 
 const site: DocsmithSite = vi.hoisted(() => ({ title: 'My Docs', description: 'Site blurb' }));
-vi.mock('svelte-docsmith/site', () => ({ site }));
+vi.mock('svelte-docsmith/site', async () =>
+	(await import('#lib/fallbacks/_fixtures/site-module.js')).siteModule({ site })
+);
 import Harness from './_fixtures/seo-head-harness.svelte';
 
 const content: DocsContentItem[] = [

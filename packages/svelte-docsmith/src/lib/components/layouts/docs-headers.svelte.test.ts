@@ -13,13 +13,13 @@ const site: DocsmithSite = vi.hoisted(() => ({
 // The count the plugin fetched at build time; each test sets it before rendering.
 const stars = vi.hoisted(() => ({ count: undefined as number | undefined }));
 // `/relative` is an outside path: served by something other than this app.
-vi.mock('svelte-docsmith/site', () => ({
-	site,
-	outside: ['/relative'],
-	get githubStars() {
-		return stars.count;
-	}
-}));
+vi.mock('svelte-docsmith/site', async () => {
+	const { siteModule } = await import('#lib/fallbacks/_fixtures/site-module.js');
+	return Object.defineProperty(siteModule({ site, outside: ['/relative'] }), 'githubStars', {
+		get: () => stars.count,
+		enumerable: true
+	});
+});
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/docs/guide') } }));
 // The mobile menu's scroll area measures itself; jsdom has no ResizeObserver.
 vi.stubGlobal(

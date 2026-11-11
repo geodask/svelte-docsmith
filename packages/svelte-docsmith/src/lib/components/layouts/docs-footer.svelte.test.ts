@@ -26,7 +26,12 @@ const site: DocsmithSite = vi.hoisted(() => ({
 	}
 }));
 // `/relative` is an outside path: served by something other than this app.
-vi.mock('svelte-docsmith/site', () => ({ site, outside: ['/relative'] }));
+vi.mock('svelte-docsmith/site', async () =>
+	(await import('#lib/fallbacks/_fixtures/site-module.js')).siteModule({
+		site,
+		outside: ['/relative']
+	})
+);
 import DocsFooter from './docs-footer.svelte';
 
 describe('DocsFooter', () => {

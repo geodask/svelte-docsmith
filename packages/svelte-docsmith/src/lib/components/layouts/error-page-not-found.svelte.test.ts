@@ -16,11 +16,9 @@ vi.mock('$app/navigation', () => ({
 	goto: vi.fn(),
 	afterNavigate: (callback: (typeof nav.callbacks)[number]) => nav.callbacks.push(callback)
 }));
-vi.mock('svelte-docsmith/site', () => ({
-	site: { title: 'My Docs' },
-	outside: [],
-	githubStars: undefined
-}));
+vi.mock('svelte-docsmith/site', async () =>
+	(await import('#lib/fallbacks/_fixtures/site-module.js')).siteModule()
+);
 const handler = vi.hoisted(() => vi.fn());
 vi.mock('svelte-docsmith/reader-events', () => ({ handler }));
 

@@ -1,31 +1,28 @@
-// The generated modules `./index.ts` reads, as the `docsmith()` Vite plugin
-// serves them. Declared here because the package's own exports point these
-// specifiers at `dist/fallbacks/*`, which doesn't exist until a build.
+// The generated modules, as the `docsmith()` Vite plugin serves them. Declared
+// here because the package's own exports point these specifiers at
+// `dist/fallbacks/*`, which doesn't exist until a build. Each fallback is the
+// one declaration of its module's exports, so these only point at them.
 
 declare module 'svelte-docsmith/content' {
-	export const content: import('../core/content.js').DocsContent;
+	export * from '#lib/fallbacks/content.js';
 }
 
 declare module 'svelte-docsmith/llms' {
-	export const docs: import('../core/content.js').LlmsDoc[];
+	export * from '#lib/fallbacks/llms.js';
 }
 
 declare module 'svelte-docsmith/search' {
-	export const docs: import('../core/content.js').SearchDoc[];
+	export * from '#lib/fallbacks/search.js';
 }
 
 declare module 'svelte-docsmith/changelog' {
-	export const releases: import('../core/changelog.js').ChangelogRelease[];
-	export const changelogPath: string;
+	export * from '#lib/fallbacks/changelog.js';
 }
 
 declare module 'svelte-docsmith/site' {
-	export const site: import('../core/config.js').DocsmithSite;
-	export const outside: string[];
-	export const githubStars: number | undefined;
-	export const ogColours: import('./og/colours.js').OgColours;
+	export * from '#lib/fallbacks/site.js';
 }
 
 declare module 'svelte-docsmith/reader-events' {
-	export const handler: import('../core/reader-events.js').ReaderEventHandler | undefined;
+	export * from '#lib/fallbacks/reader-events.js';
 }

@@ -3,7 +3,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { docsmith, type DocsmithOptions } from './index.js';
-import { ARCHIVE_MARKER, markerContents } from '../archives.js';
 import type { Plugin } from 'vite';
 
 // Plugin hooks are typed as ObjectHook unions; in these plugins they are plain
@@ -23,9 +22,6 @@ const pluginNamed = (name: string, options: TestOptions = {}): Plugin =>
 //
 // Each kind's page side is tested in `doc-imports/doc-imports.test.ts`; this
 // proves `docsmith()` serves them.
-
-const propsFixture = (name: string) =>
-	path.resolve(import.meta.dirname, '../props/_fixtures', `${name}.svelte`);
 
 describe('docsmith() doc imports', () => {
 	it('serves ?source and ?props imports through one plugin', async () => {
@@ -53,24 +49,12 @@ function writePage(relDir: string, frontmatter: string, body = '# body') {
 	fs.writeFileSync(path.join(dir, '+page.md'), `---\n${frontmatter}\n---\n\n${body}\n`);
 }
 
-/**
- * Mark a directory under the docs root as an archived version. The build
- * requires this of every declared archive, so a fixture that declares one has to
- * write it. See docs/adr/0003-the-archive-marker-defines-an-archive.md.
- */
-function markArchive(id: string) {
-	fs.writeFileSync(path.join(routesDir, 'docs', id, ARCHIVE_MARKER), markerContents(id));
-}
-
-/** Load one virtual module from a content plugin pointed at the fixture root. */
-function loadVirtual(id: string, options: Omit<TestOptions, 'content' | 'routes'> = {}) {
-	const plugin = pluginNamed('docsmith-content', {
-		content: path.join(routesDir, 'docs'),
-		routes: routesDir,
-		...options
-	});
-	const load = plugin.load as unknown as Load;
-	return load.call({ addWatchFile: vi.fn() }, id) as Promise<string>;
+/** Write a file under the fixture routes root and return its absolute path. */
+function writeFile(rel: string, contents: string) {
+	const file = path.join(routesDir, rel);
+	fs.mkdirSync(path.dirname(file), { recursive: true });
+	fs.writeFileSync(file, contents);
+	return file;
 }
 
 afterEach(() => {
@@ -78,58 +62,47 @@ afterEach(() => {
 });
 
 describe('docsmith() content plugin', () => {
-	it('resolves the content and search specifiers to virtual modules', () => {
+	// What each generated module holds is tested as data in
+	// `generated-modules.test.ts`. These prove the plugin serves that set.
+	it('resolves the generated module specifiers to virtual modules', () => {
 		const plugin = pluginNamed('docsmith-content');
 		const resolveId = plugin.resolveId as unknown as (id: string) => string | undefined;
 		expect(resolveId.call({}, 'svelte-docsmith/content')).toBe('\0svelte-docsmith:content');
 		expect(resolveId.call({}, 'svelte-docsmith/search')).toBe('\0svelte-docsmith:search');
 		expect(resolveId.call({}, 'svelte-docsmith/llms')).toBe('\0svelte-docsmith:llms');
+		expect(resolveId.call({}, 'svelte-docsmith/site')).toBe('\0svelte-docsmith:site');
 		expect(resolveId.call({}, 'something-else')).toBeUndefined();
 	});
 
-	it('loads the virtual module as an exported docs array', async () => {
+	it('loads a generated module as JavaScript, through the plugin context', async () => {
 		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro\norder: 1');
-
-		const out = await loadVirtual('\0svelte-docsmith:content');
-
-		expect(out).toContain('export const docs =');
-		expect(out).toContain('"title": "Intro"');
-		expect(out).toContain('"path": "/docs/intro"');
-		// The pages and the version manifest also go out together, for the shell.
-		expect(out).toContain('export const content = { docs, versions };');
-	});
-
-	it('serves the changelog route with the releases, so the feed links where they were dated', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-
-		const out = await loadVirtual('\0svelte-docsmith:changelog', {
-			changelog: { path: '/releases' }
+		writeFile('docs/examples/counter.svelte', '<p>counter</p>\n');
+		const page = path.join(routesDir, 'docs', 'examples', '+page.md');
+		writePage(
+			'docs/examples',
+			'title: Examples',
+			"<script>\n\timport counter from './counter.svelte?source';\n</script>\n\n<LiveExample source={counter} />"
+		);
+		const plugin = pluginNamed('docsmith-content', {
+			content: path.join(routesDir, 'docs'),
+			routes: routesDir
 		});
+		const example = path.join(routesDir, 'docs', 'examples', 'counter.svelte');
+		const ctx = {
+			addWatchFile: vi.fn(),
+			warn: vi.fn(),
+			resolve: vi.fn().mockResolvedValue({ id: example })
+		};
 
-		expect(out).toContain('export const changelogPath = "/releases";');
-	});
+		const out = await (plugin.load as unknown as Load).call(ctx, '\0svelte-docsmith:llms');
 
-	it('loads the search virtual module as an exported docs array', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro', 'Searchable body text.');
-
-		const out = await loadVirtual('\0svelte-docsmith:search');
-
-		expect(out).toContain('export const docs =');
-		expect(out).toContain('Searchable body text.');
-		expect(out).toContain('"path":"/docs/intro"');
-	});
-
-	it('loads the llms virtual module as an exported docs array', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro', 'Full body markdown.');
-
-		const out = await loadVirtual('\0svelte-docsmith:llms');
-
-		expect(out).toContain('export const docs =');
-		expect(out).toContain('Full body markdown.');
-		expect(out).toContain('"path":"/docs/intro"');
+		expect(out).toMatch(/^export const docs = \[\{.*"path":"\/docs\/examples".*\}\];\n$/);
+		expect(out).toContain('<p>counter</p>');
+		// The page's imports resolve as Vite resolves them, past this plugin.
+		expect(ctx.resolve).toHaveBeenCalledWith('./counter.svelte', page, { skipSelf: true });
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(page);
+		expect(ctx.addWatchFile).toHaveBeenCalledWith(example);
+		expect(await (plugin.load as unknown as Load).call(ctx, '/some/file.ts')).toBeUndefined();
 	});
 
 	it('never loads TypeScript for a site without props imports', async () => {
@@ -169,137 +142,6 @@ describe('docsmith() content plugin', () => {
 			vi.doUnmock('typescript');
 		}
 		expect(loadedTypeScript).not.toHaveBeenCalled();
-	});
-
-	it('dates the content index from git, and leaves the other two indexes dateless', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', "title: Intro\nlastUpdated: '2026-03-04'");
-
-		expect(await loadVirtual('\0svelte-docsmith:content')).toContain('"lastUpdated": "2026-03-04"');
-		expect(await loadVirtual('\0svelte-docsmith:search')).not.toContain('lastUpdated');
-		expect(await loadVirtual('\0svelte-docsmith:llms')).not.toContain('lastUpdated');
-	});
-
-	it('watches every page it read, so editing one re-runs the load', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro');
-		writePage('docs/untitled', 'description: not in the nav');
-
-		const ctx = { addWatchFile: vi.fn() };
-		const plugin = pluginNamed('docsmith-content', {
-			content: path.join(routesDir, 'docs'),
-			routes: routesDir
-		});
-		await (plugin.load as unknown as Load).call(ctx, '\0svelte-docsmith:content');
-
-		// Including the untitled page: adding a title to it has to rebuild the nav.
-		expect(ctx.addWatchFile).toHaveBeenCalledWith(
-			path.join(routesDir, 'docs', 'intro', '+page.md')
-		);
-		expect(ctx.addWatchFile).toHaveBeenCalledWith(
-			path.join(routesDir, 'docs', 'untitled', '+page.md')
-		);
-	});
-
-	it('throws with the filename on invalid YAML frontmatter', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const dir = path.join(routesDir, 'docs', 'broken');
-		fs.mkdirSync(dir, { recursive: true });
-		fs.writeFileSync(path.join(dir, '+page.md'), '---\ntitle: "unterminated\n---\n\n# body\n');
-
-		await expect(loadVirtual('\0svelte-docsmith:content')).rejects.toThrow(
-			/invalid YAML frontmatter in .*broken.*\+page\.md/s
-		);
-	});
-
-	it('fails the content index on frontmatter the schema rejects', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro\nordr: 2');
-		const schema: DocsmithOptions['schema'] = {
-			'~standard': {
-				version: 1,
-				vendor: 'test',
-				validate: (value) =>
-					'ordr' in (value as object)
-						? { issues: [{ message: 'Unrecognized key: "ordr"' }] }
-						: { value }
-			}
-		};
-
-		await expect(loadVirtual('\0svelte-docsmith:content', { schema })).rejects.toThrow(
-			/invalid frontmatter in 1 page\n.*intro\/\+page\.md\n {4}Unrecognized key: "ordr"/
-		);
-	});
-
-	it('builds without a schema, warning about a key that looks like a typo', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro\nordr: 2');
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		const out = await loadVirtual('\0svelte-docsmith:content');
-
-		expect(out).toContain('"ordr": 2');
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('ordr: did you mean `order`?'));
-		warn.mockRestore();
-	});
-
-	it('warns when the content dir does not exist', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		const out = await loadVirtual('\0svelte-docsmith:content');
-
-		expect(out).toContain('export const docs = [];');
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('content directory not found'));
-		warn.mockRestore();
-	});
-
-	it('leaves the search and llms modules empty and quiet on a missing content dir', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		// Only the content index reports it; two more copies of the same warning
-		// would say nothing new.
-		expect(await loadVirtual('\0svelte-docsmith:search')).toBe('export const docs = [];\n');
-		expect(await loadVirtual('\0svelte-docsmith:llms')).toBe('export const docs = [];\n');
-		expect(warn).not.toHaveBeenCalled();
-		warn.mockRestore();
-	});
-
-	it('warns when the content dir exists but has no titled pages', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		fs.mkdirSync(path.join(routesDir, 'docs'), { recursive: true });
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-		await loadVirtual('\0svelte-docsmith:content');
-
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('no doc pages found'));
-		warn.mockRestore();
-	});
-
-	it('emits a resolved versions manifest alongside docs when versions are declared', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro\norder: 1');
-		writePage('docs/v1/intro', 'title: Intro\norder: 1');
-		markArchive('v1');
-
-		const out = await loadVirtual('\0svelte-docsmith:content', {
-			versions: { current: { id: 'v2', label: 'v2' }, archived: [{ id: 'v1', label: 'v1' }] }
-		});
-
-		expect(out).toContain('export const versions =');
-		// The current version keeps the unprefixed docs root; only archives are prefixed.
-		expect(out).toContain('"basePath": "/docs"');
-		expect(out).toContain('"landing": "/docs/intro"');
-		expect(out).toContain('"basePath": "/docs/v1"');
-		expect(out).toContain('"version": "v2"'); // unprefixed page tagged as current
-	});
-
-	it('emits an empty versions manifest for an unversioned site', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage('docs/intro', 'title: Intro');
-
-		expect(await loadVirtual('\0svelte-docsmith:content')).toContain('export const versions = [];');
 	});
 
 	it('invalidates and full-reloads only when a page file changes', () => {
@@ -354,309 +196,9 @@ describe('docsmith() content plugin', () => {
 	});
 });
 
-// --- agent markdown host ---------------------------------------------------
-//
-// What agent markdown says is tested against a literal host in
-// `agent-markdown.test.ts`. These prove the host the plugin hands it: example
-// files resolved through the plugin context, as Vite resolves the page's own
-// imports (the fake `resolve` stands in for Vite's resolver, the app's aliases
-// included), read from disk, watched, and warned about through the context.
-
-const COUNTER =
-	'<script>\n\tlet count = $state(0);\n</script>\n\n<button onclick={() => count++}>{count}</button>\n';
-
-/** Write a file under the fixture routes root and return its absolute path. */
-function writeFile(rel: string, contents: string) {
-	const file = path.join(routesDir, rel);
-	fs.mkdirSync(path.dirname(file), { recursive: true });
-	fs.writeFileSync(file, contents);
-	return file;
-}
-
-/** A resolver like Vite's: relative to the importer, plus `#lib` and `$lib` aliases for `libDir`. */
-function fakeResolve(libDir: string) {
-	return vi.fn(async (specifier: string, importer?: string) => {
-		const alias = /^[#$]lib\//.exec(specifier);
-		const file = alias
-			? path.join(libDir, specifier.slice(alias[0].length))
-			: path.resolve(path.dirname(importer ?? ''), specifier);
-		return fs.existsSync(file) ? { id: file } : null;
-	});
-}
-
-/** Load the llms index with a full plugin context; each entry's content by path. */
-async function agentMarkdown() {
-	const plugin = pluginNamed('docsmith-content', {
-		content: path.join(routesDir, 'docs'),
-		routes: routesDir
-	});
-	const ctx = {
-		addWatchFile: vi.fn(),
-		warn: vi.fn(),
-		resolve: fakeResolve(path.join(routesDir, 'lib'))
-	};
-	const out = String(await (plugin.load as unknown as Load).call(ctx, '\0svelte-docsmith:llms'));
-	const docs = JSON.parse(out.replace(/^export const docs = /, '').replace(/;\n$/, '')) as {
-		path: string;
-		content: string;
-	}[];
-	return { content: Object.fromEntries(docs.map((d) => [d.path, d.content])), ctx };
-}
-
-describe('agent markdown through the plugin', () => {
-	it("resolves source imports through the app's aliases, from the page", async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writeFile('lib/examples/hash.svelte', '<p>hash</p>\n');
-		writeFile('lib/dollar.svelte', '<p>dollar</p>\n');
-		const page = path.join(routesDir, 'docs', 'aliases', '+page.md');
-		writePage(
-			'docs/aliases',
-			'title: Aliases',
-			'<script>\n\timport hash from \'#lib/examples/hash.svelte?source\';\n\timport dollar from "$lib/dollar.svelte?source";\n</script>\n\n<LiveExample source={hash}><Hash /></LiveExample>\n\n<LiveExample source={dollar} />'
-		);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content['/docs/aliases']).toBe(
-			'# Aliases\n\n```svelte\n<p>hash</p>\n```\n\n```svelte\n<p>dollar</p>\n```'
-		);
-		expect(ctx.resolve).toHaveBeenCalledWith('#lib/examples/hash.svelte', page, { skipSelf: true });
-		expect(ctx.resolve).toHaveBeenCalledWith('$lib/dollar.svelte', page, { skipSelf: true });
-	});
-
-	it('keeps a LiveExample whose source import does not resolve, and warns', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const body =
-			"<script>\n\timport gone from '#lib/gone.svelte?source';\n</script>\n\n<LiveExample source={gone}>\n\t<Gone />\n</LiveExample>";
-		writePage('docs/broken', 'title: Broken', body);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content['/docs/broken']).toBe(
-			'# Broken\n\n<LiveExample source={gone}>\n\t<Gone />\n</LiveExample>'
-		);
-		expect(ctx.warn).toHaveBeenCalledTimes(1);
-		expect(ctx.warn).toHaveBeenCalledWith(
-			expect.stringMatching(/docs\/broken\/\+page\.md: .*`#lib\/gone\.svelte\?source`/)
-		);
-	});
-
-	it('watches each example file it read, so editing one rebuilds the index', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		const example = writeFile('docs/examples/counter.svelte', COUNTER);
-		writePage(
-			'docs/examples',
-			'title: Examples',
-			"<script>\n\timport counterSource from './counter.svelte?source';\n</script>\n\n<LiveExample source={counterSource} />"
-		);
-
-		const { ctx } = await agentMarkdown();
-
-		expect(ctx.addWatchFile).toHaveBeenCalledWith(example);
-	});
-
-	it('watches an example file it could not read, so creating it rebuilds the index', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		// Resolves, but reading a directory fails.
-		const unreadable = path.join(routesDir, 'docs', 'examples', 'counter.svelte');
-		fs.mkdirSync(unreadable, { recursive: true });
-		writePage(
-			'docs/examples',
-			'title: Examples',
-			"<script>\n\timport counterSource from './counter.svelte?source';\n</script>\n\n<LiveExample source={counterSource} />"
-		);
-
-		const { ctx } = await agentMarkdown();
-
-		expect(ctx.addWatchFile).toHaveBeenCalledWith(unreadable);
-	});
-
-	it('leaves the search index as it was', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writeFile('docs/examples/counter.svelte', COUNTER);
-		writePage(
-			'docs/examples',
-			'title: Examples',
-			"<script>\n\timport counterSource from './counter.svelte?source';\n</script>\n\nTry it.\n\n<LiveExample source={counterSource} />"
-		);
-
-		const search = await loadVirtual('\0svelte-docsmith:search');
-
-		expect(search).toContain('"text":"Try it."');
-		expect(search).not.toContain('count');
-	});
-});
-
-// --- agent markdown host: props -------------------------------------------
-//
-// Props come from the shared extractor, which watches what they were read from
-// and passes on its warnings. Pages import the props extractor's fixture
-// components by absolute path. The first read builds a TypeScript program:
-// seconds on a cold coverage run.
-
-/** A page body whose `<script>` binds each `imports` name to a props import of its file. */
-const propsPage = (imports: Record<string, string>, body: string) =>
-	"<script>\n\timport { PropsTable } from 'svelte-docsmith';\n" +
-	Object.entries(imports)
-		.map(([local, file]) => `\timport ${local} from '${file}?props';\n`)
-		.join('') +
-	'</script>\n\n' +
-	body;
-
-describe('agent markdown props through the plugin', { timeout: 60_000 }, () => {
-	it('writes out what was extracted when extraction has problems, and warns with the file', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/untyped',
-			'title: Untyped',
-			propsPage({ untypedProps: propsFixture('untyped') }, '<PropsTable of={untypedProps} />')
-		);
-
-		const { content, ctx } = await agentMarkdown();
-
-		expect(content['/docs/untyped']).toBe(
-			[
-				'# Untyped',
-				'',
-				'## `Untyped`',
-				'',
-				'| Prop | Type | Default | Description |',
-				'| --- | --- | --- | --- |',
-				'| `label?` |  |  |  |',
-				'| `count?` *(bindable)* |  | `0` |  |',
-				"| `aria-label?` |  | `'x'` |  |"
-			].join('\n')
-		);
-		expect(ctx.warn).toHaveBeenCalledWith(
-			expect.stringMatching(/untyped\.svelte: `\$props\(\)` has no type annotation/)
-		);
-	});
-
-	it('reads props as markdown, watching each component and the files its types come from', async () => {
-		routesDir = fs.mkdtempSync(path.join(os.tmpdir(), 'routes-'));
-		writePage(
-			'docs/notice',
-			'title: Notice',
-			propsPage({ noticeProps: propsFixture('notice') }, '<PropsTable of={noticeProps} />')
-		);
-
-		const { content, ctx } = await agentMarkdown();
-
-		// Descriptions arrive as markdown, links and code spans included.
-		expect(content['/docs/notice']).toContain(
-			"| `tone?` | `'neutral' \\| 'info' \\| 'danger'` | `'neutral'` | Visual intent. See [tones](/docs/tones) and `Tone`. |"
-		);
-		expect(ctx.addWatchFile).toHaveBeenCalledWith(propsFixture('notice'));
-		expect(ctx.addWatchFile).toHaveBeenCalledWith(
-			path.resolve(import.meta.dirname, '../props/_fixtures/types.ts')
-		);
-	});
-});
-
 // --- site config, options, markdown ---------------------------------------
 
-/** The `svelte-docsmith/site` module's exports, each a JSON value or `undefined`. */
-function siteModuleExports(code: string | undefined): Record<string, unknown> {
-	const exports = String(code).matchAll(/^export const (\w+) = ([\s\S]*?);$/gm);
-	return Object.fromEntries(
-		[...exports].map(([, name, json]) => [
-			name,
-			json === 'undefined' ? undefined : JSON.parse(json)
-		])
-	);
-}
-
 describe('docsmith() site config', () => {
-	it('serves the site options as svelte-docsmith/site', async () => {
-		const site = {
-			title: 'My Docs',
-			url: 'https://x.dev',
-			nav: [{ label: 'Docs', href: '/docs' }]
-		};
-		const plugin = pluginNamed('docsmith-content', { site });
-		const resolveId = plugin.resolveId as unknown as (id: string) => string | undefined;
-		expect(resolveId.call({}, 'svelte-docsmith/site')).toBe('\0svelte-docsmith:site');
-
-		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
-		expect(siteModuleExports(out).site).toEqual(site);
-	});
-
-	it("serves the theme's OG image colours beside the site", async () => {
-		const plugin = pluginNamed('docsmith-content', { site: { title: 'T' }, theme: 'ocean' });
-		const out = siteModuleExports(
-			await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site')
-		);
-		expect(out.ogColours).toEqual({
-			background: expect.stringMatching(/^#[0-9a-f]{6}$/),
-			foreground: expect.stringMatching(/^#[0-9a-f]{6}$/),
-			muted: expect.stringMatching(/^#[0-9a-f]{6}$/),
-			primary: expect.stringMatching(/^#[0-9a-f]{6}$/),
-			border: expect.stringMatching(/^(#[0-9a-f]{6}|rgba\(.*\))$/)
-		});
-		const darkmatter = siteModuleExports(
-			await (
-				pluginNamed('docsmith-content', { site: { title: 'T' } }).load as unknown as Load
-			).call({}, '\0svelte-docsmith:site')
-		);
-		expect(out.ogColours).not.toEqual(darkmatter.ogColours);
-	});
-
-	describe('GitHub star count', () => {
-		const site = { title: 'Docs', github: 'https://github.com/o/r' };
-		const loadSite = (plugin: Plugin) =>
-			(plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
-		const stars = (count: number) =>
-			new Response(JSON.stringify({ stargazers_count: count }), { status: 200 });
-		afterEach(() => {
-			vi.unstubAllGlobals();
-			vi.restoreAllMocks();
-		});
-
-		it('serves it beside the site, fetched once per plugin', async () => {
-			const fetch = vi.fn().mockResolvedValue(stars(4321));
-			vi.stubGlobal('fetch', fetch);
-			const plugin = pluginNamed('docsmith-content', { site });
-			const out = siteModuleExports(await loadSite(plugin));
-			expect(out.githubStars).toBe(4321);
-			expect(out.site).toEqual(site);
-			await loadSite(plugin);
-			expect(fetch).toHaveBeenCalledTimes(1);
-		});
-
-		// A `dev` restart loads `vite.config` again, which calls `docsmith()` again.
-		it('fetches afresh for a new plugin, so a restart recovers from a failed fetch', async () => {
-			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-			const fetch = vi
-				.fn()
-				.mockRejectedValueOnce(new TypeError('fetch failed'))
-				.mockResolvedValueOnce(stars(5));
-			vi.stubGlobal('fetch', fetch);
-			expect(
-				siteModuleExports(await loadSite(pluginNamed('docsmith-content', { site }))).githubStars
-			).toBeUndefined();
-			expect(warn.mock.calls[0][0]).toMatch(
-				/could not fetch the GitHub star count for https:\/\/github\.com\/o\/r at build time\n {2}Could not reach/
-			);
-			expect(
-				siteModuleExports(await loadSite(pluginNamed('docsmith-content', { site }))).githubStars
-			).toBe(5);
-		});
-	});
-
-	it('serves no star count, and fetches nothing, with githubStars: false', async () => {
-		const fetch = vi.fn();
-		vi.stubGlobal('fetch', fetch);
-		try {
-			const site = { title: 'Docs', github: 'https://github.com/o/r', githubStars: false };
-			const plugin = pluginNamed('docsmith-content', { site });
-			const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
-			expect(out).toContain('export const githubStars = undefined;');
-			expect(fetch).not.toHaveBeenCalled();
-		} finally {
-			vi.unstubAllGlobals();
-		}
-	});
-
 	it('fails at startup without a site title, before anything is served', () => {
 		// @ts-expect-error — exercising the runtime guard for untyped callers
 		expect(() => docsmith({})).toThrow(/needs a `site` object/);
@@ -696,41 +238,6 @@ describe('docsmith() site config', () => {
 });
 
 describe('docsmith() reader events', () => {
-	const loadHandler = (options: TestOptions = {}) =>
-		(pluginNamed('docsmith-content', options).load as unknown as Load).call(
-			{},
-			'\0svelte-docsmith:reader-events'
-		);
-
-	it('resolves svelte-docsmith/reader-events to a virtual module', () => {
-		const resolveId = pluginNamed('docsmith-content').resolveId as unknown as (
-			id: string
-		) => string | undefined;
-		expect(resolveId.call({}, 'svelte-docsmith/reader-events')).toBe(
-			'\0svelte-docsmith:reader-events'
-		);
-	});
-
-	it('serves no handler when readerEvents names none', async () => {
-		expect(await loadHandler()).toBe('export const handler = undefined;\n');
-	});
-
-	it("re-exports the named module's default export as the handler", async () => {
-		const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docsmith-reader-events-'));
-		try {
-			const file = path.join(dir, 'reader-events.ts');
-			fs.writeFileSync(file, 'export default () => {};\n');
-			const cwd = vi.spyOn(process, 'cwd').mockReturnValue(dir);
-			const out = await loadHandler({ readerEvents: './reader-events.ts' });
-			cwd.mockRestore();
-			expect(out).toBe(
-				`export { default as handler } from ${JSON.stringify(file.replaceAll('\\', '/'))};\n`
-			);
-		} finally {
-			fs.rmSync(dir, { recursive: true, force: true });
-		}
-	});
-
 	it('fails at startup on a handler file that does not exist, naming it', () => {
 		expect(() => docsmith({ site: SITE, readerEvents: './src/lib/nope.ts' })).toThrow(
 			/reader event handler not found: .*src[\\/]lib[\\/]nope\.ts/
@@ -893,7 +400,7 @@ describe('docsmith() broken links', () => {
 
 		const out = await contentPlugin('build', { links: { broken: 'warn' } }).load();
 
-		expect(out).toContain('"path": "/docs/intro"');
+		expect(out).toContain('"path":"/docs/intro"');
 		expect(warn).toHaveBeenCalledWith(expect.stringMatching(REPORT_LINE));
 		warn.mockRestore();
 	});
@@ -938,7 +445,7 @@ describe('docsmith() broken links', () => {
 		expect(warn).toHaveBeenLastCalledWith(expect.stringMatching(REPORT_LINE));
 
 		// Serving the index never throws, even under the default `error`.
-		await expect(dev.load()).resolves.toContain('"path": "/docs/intro"');
+		await expect(dev.load()).resolves.toContain('"path":"/docs/intro"');
 
 		// A save that leaves the same links broken says nothing new, even when
 		// the link moved down a line.
@@ -1155,21 +662,5 @@ describe('docsmith() outside paths', () => {
 		expect(out.code).toContain('<a href="/relative/x" rel="external">');
 		expect(out.code).toContain('<a href="/relative" rel="external">');
 		expect(out.code).toContain('<a href="/docs">');
-	});
-
-	it('serves the outside paths beside the site config, for the shell links', async () => {
-		const plugin = pluginNamed('docsmith-content', {
-			links: { outside: ['/relative/', '/api'] }
-		});
-
-		const out = await (plugin.load as unknown as Load).call({}, '\0svelte-docsmith:site');
-
-		// Resolved, so the browser matches them exactly as the compiler does.
-		expect(siteModuleExports(out)).toMatchObject({ site: SITE, outside: ['/relative', '/api'] });
-		const none = await (pluginNamed('docsmith-content').load as unknown as Load).call(
-			{},
-			'\0svelte-docsmith:site'
-		);
-		expect(siteModuleExports(none).outside).toEqual([]);
 	});
 });

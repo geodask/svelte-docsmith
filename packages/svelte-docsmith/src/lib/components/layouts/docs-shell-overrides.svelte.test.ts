@@ -5,11 +5,9 @@ import type { DocsContentItem } from '#lib/core/index.js';
 // The shell needs a router and the served site config; jsdom has neither.
 vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/docs/guide') } }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), afterNavigate: vi.fn() }));
-vi.mock('svelte-docsmith/site', () => ({
-	site: { title: 'My Docs' },
-	outside: [],
-	githubStars: undefined
-}));
+vi.mock('svelte-docsmith/site', async () =>
+	(await import('#lib/fallbacks/_fixtures/site-module.js')).siteModule()
+);
 // mode-watcher reads localStorage as it loads, and the mobile menu's scroll
 // area measures itself: stub both before the imports.
 vi.hoisted(() => {
