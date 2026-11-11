@@ -2,9 +2,6 @@
 	import { page } from '$app/state';
 	import { outside, site } from 'svelte-docsmith/site';
 	import { siteLinkRel } from '#lib/core/outside-path.js';
-	import type { TocItem } from '#lib/toc/index.js';
-	import Sidebar from './sidebar.svelte';
-	import TableOfContents from '../chrome/table-of-contents.svelte';
 	import ModeToggle from '../chrome/mode-toggle.svelte';
 	import VersionSwitcher from '../chrome/version-switcher.svelte';
 	import { Button } from '#lib/components/shadcn/button/index.js';
@@ -20,42 +17,31 @@
 	import Menu from '@lucide/svelte/icons/menu';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import type { Snippet } from 'svelte';
-	import type { SidebarProps, TableOfContentsProps } from './parts.js';
 	import { cn } from '#lib/utils/cn.js';
 
 	const {
-		sidebar = false,
-		tocItems = [],
-		tocActiveId = null,
-		sidebarOverride,
-		tocOverride,
+		docs = false,
+		sidebar,
+		toc,
 		logo,
 		actions
 	}: {
-		/** Show the docs sidebar in the menu; off on non-doc pages (the `page` layout). */
-		sidebar?: boolean;
-		/** In-page TOC entries; the TOC popover is hidden when empty. */
-		tocItems?: TocItem[];
-		/** Id of the heading currently in view. */
-		tocActiveId?: string | null;
-		/** `DocsShell`'s `sidebar` override, rendered in the menu in place of the built-in sidebar. */
-		sidebarOverride?: Snippet<[SidebarProps]>;
-		/** `DocsShell`'s `toc` override, rendered in the popover in place of the built-in TOC. */
-		tocOverride?: Snippet<[TableOfContentsProps]>;
+		/** Whether this is the docs layout, where the bar names the page being read. */
+		docs?: boolean;
+		/** The shell's sidebar part, for the menu. Left out when there is none to show. */
+		sidebar?: Snippet;
+		/** The shell's table of contents part, for the "On this page" popover. Left out when the page has no headings. */
+		toc?: Snippet;
 		logo?: Snippet;
 		actions?: Snippet;
 	} = $props();
 
 	const search = useSearchSession();
-	// The header links, the sidebar and the title come off the shell's one
-	// resolved view, the same one the desktop header reads.
+	// The header links and the title come off the shell's one resolved view, the
+	// same one the desktop header reads.
 	const docsPage = useDocsPage();
-	const nav = $derived(sidebar ? docsPage.view.nav : []);
-	// An override decides for itself what an empty tree shows, so it always gets
-	// its place on the docs layout.
-	const showSidebar = $derived(sidebar && (Boolean(sidebarOverride) || nav.length > 0));
 	// Off the docs layout the bar names the site, as the menu does.
-	const title = $derived(sidebar ? docsPage.view.title : site.title);
+	const title = $derived(docs ? docsPage.view.title : site.title);
 
 	let isMenuOpen = $state(false);
 	let isTocOpen = $state(false);
@@ -112,17 +98,13 @@
 								</a>
 							{/each}
 						</nav>
-						{#if showSidebar}
+						{#if sidebar}
 							<Separator class="bg-border/60 mx-5 my-2" />
 						{/if}
 					{/if}
-					{#if showSidebar}
+					{#if sidebar}
 						<div class="px-4">
-							{#if sidebarOverride}
-								{@render sidebarOverride({ nav })}
-							{:else}
-								<Sidebar {nav} />
-							{/if}
+							{@render sidebar()}
 						</div>
 					{/if}
 				</ScrollArea>
@@ -147,7 +129,7 @@
 
 			<ModeToggle />
 
-			{#if tocItems.length > 0}
+			{#if toc}
 				<Popover.Root bind:open={isTocOpen}>
 					<Popover.Trigger>
 						{#snippet child({ props })}
@@ -161,11 +143,7 @@
 						{/snippet}
 					</Popover.Trigger>
 					<Popover.Content class="max-h-[60vh] w-64 overflow-y-auto p-4" align="end">
-						{#if tocOverride}
-							{@render tocOverride({ items: tocItems, activeId: tocActiveId })}
-						{:else}
-							<TableOfContents items={tocItems} activeId={tocActiveId} />
-						{/if}
+						{@render toc()}
 					</Popover.Content>
 				</Popover.Root>
 			{/if}

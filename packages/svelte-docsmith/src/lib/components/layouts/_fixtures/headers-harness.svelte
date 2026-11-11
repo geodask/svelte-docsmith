@@ -6,6 +6,7 @@
 	import { setDocsPage } from '../../docs-page-context.js';
 	import DocsHeader from '../docs-header.svelte';
 	import DocsMobileHeader from '../docs-mobile-header.svelte';
+	import Sidebar from '../sidebar.svelte';
 
 	let { view }: { view: DocsPageView } = $props();
 
@@ -13,4 +14,8 @@
 </script>
 
 <DocsHeader />
-<DocsMobileHeader sidebar />
+{#snippet sidebar()}
+	<Sidebar nav={view.nav} />
+{/snippet}
+
+<DocsMobileHeader docs {sidebar} />

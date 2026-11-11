@@ -30,95 +30,45 @@ afterEach(() => {
 		.forEach((node) => node.remove());
 });
 
-// What the page is (its entry, canonical URL and version) is resolved and tested
-// in `core/docs-page.ts`; this pins which tags the head emits from it.
-describe('SeoHead title and description', () => {
-	it("uses the doc page's frontmatter, suffixed with the site title", () => {
-		render(Harness, { props: { view: view('/docs/intro') } });
+// What the head says is resolved and tested with the rest of the page view in
+// `core/docs-page.ts`; this pins which tags the head writes from it.
+describe('SeoHead', () => {
+	it('writes the title, the description and the link preview tags from the view', () => {
+		render(Harness, {
+			props: { view: view('/docs/intro', { url: 'https://x.dev', ogImage: '/og.png' }) }
+		});
+
 		expect(document.title).toBe('Intro · My Docs');
 		expect(head('meta[name="description"]')).toHaveAttribute('content', 'Start here');
-	});
-
-	it('lets the shell override both', () => {
-		render(Harness, {
-			props: { view: view('/docs/intro'), title: 'Custom', description: 'Custom blurb' }
-		});
-		expect(document.title).toBe('Custom · My Docs');
-		expect(head('meta[name="description"]')).toHaveAttribute('content', 'Custom blurb');
-	});
-
-	it('falls back to the site title and description off a doc page', () => {
-		render(Harness, { props: { view: view('/') } });
-		expect(document.title).toBe('My Docs');
-		expect(head('meta[name="description"]')).toHaveAttribute('content', 'Site blurb');
-	});
-});
-
-describe('SeoHead robots', () => {
-	it('emits noindex on a version marked hidden', () => {
-		render(Harness, { props: { view: view('/docs/v1/intro') } });
-		expect(head('meta[name="robots"]')).toHaveAttribute('content', 'noindex, follow');
-	});
-
-	it('omits the robots meta by default (indexable)', () => {
-		render(Harness, { props: { view: view('/docs/intro') } });
+		expect(head('link[rel="canonical"]')).toHaveAttribute('href', 'https://x.dev/docs/intro');
 		expect(head('meta[name="robots"]')).toBeNull();
-	});
-});
 
-describe('SeoHead canonical', () => {
-	it("emits the canonical link and og:url from the view's canonical URL", () => {
-		render(Harness, { props: { view: view('/docs/v1/intro', { url: 'https://x.dev' }) } });
-		expect(head('link[rel="canonical"]')).toHaveAttribute('href', 'https://x.dev/docs/v1/intro');
-		expect(head('meta[property="og:url"]')).toHaveAttribute(
-			'content',
-			'https://x.dev/docs/v1/intro'
-		);
+		expect(head('meta[property="og:title"]')).toHaveAttribute('content', 'Intro');
+		expect(head('meta[property="og:description"]')).toHaveAttribute('content', 'Start here');
+		expect(head('meta[property="og:site_name"]')).toHaveAttribute('content', 'My Docs');
+		expect(head('meta[property="og:url"]')).toHaveAttribute('content', 'https://x.dev/docs/intro');
+		expect(head('meta[property="og:image"]')).toHaveAttribute('content', 'https://x.dev/og.png');
+
+		expect(head('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+		expect(head('meta[name="twitter:title"]')).toHaveAttribute('content', 'Intro');
+		expect(head('meta[name="twitter:image"]')).toHaveAttribute('content', 'https://x.dev/og.png');
 	});
 
-	it('omits both without site.url', () => {
-		render(Harness, { props: { view: view('/docs/intro') } });
+	it('leaves out what the view has none of, and shows a small card without an image', () => {
+		render(Harness, { props: { view: view('/docs/v1/intro', { description: undefined }) } });
+
+		expect(head('meta[name="description"]')).toBeNull();
+		expect(head('meta[property="og:description"]')).toBeNull();
 		expect(head('link[rel="canonical"]')).toBeNull();
 		expect(head('meta[property="og:url"]')).toBeNull();
-	});
-});
-
-describe('SeoHead image', () => {
-	afterEach(() => {
-		delete site.url;
-		delete site.ogImage;
-		delete site.ogImages;
+		expect(head('meta[property="og:image"]')).toBeNull();
+		expect(head('meta[name="twitter:image"]')).toBeNull();
+		expect(head('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary');
 	});
 
-	const image = () => head('meta[property="og:image"]')?.getAttribute('content');
-	const card = () => head('meta[name="twitter:card"]')?.getAttribute('content');
-
-	it("uses the site's image, absolute against site.url", () => {
-		Object.assign(site, { url: 'https://x.dev', ogImage: '/og.png' });
-		render(Harness, { props: { view: view('/docs/intro') } });
-		expect(image()).toBe('https://x.dev/og.png');
-		expect(card()).toBe('summary_large_image');
-	});
-
-	it('points a doc page at its own OG image when the site serves them', () => {
-		Object.assign(site, { url: 'https://x.dev', ogImage: '/og.png', ogImages: '/og' });
+	it('keeps a version marked hidden out of search results', () => {
 		render(Harness, { props: { view: view('/docs/v1/intro') } });
-		expect(image()).toBe('https://x.dev/og/docs/v1/intro.png');
-		expect(head('meta[name="twitter:image"]')).toHaveAttribute(
-			'content',
-			'https://x.dev/og/docs/v1/intro.png'
-		);
-	});
 
-	it("keeps the site's image off a doc page", () => {
-		Object.assign(site, { url: 'https://x.dev', ogImage: '/og.png', ogImages: '/og' });
-		render(Harness, { props: { view: view('/') } });
-		expect(image()).toBe('https://x.dev/og.png');
-	});
-
-	it('emits no image, and a small card, with neither', () => {
-		render(Harness, { props: { view: view('/docs/intro') } });
-		expect(image()).toBeUndefined();
-		expect(card()).toBe('summary');
+		expect(head('meta[name="robots"]')).toHaveAttribute('content', 'noindex, follow');
 	});
 });

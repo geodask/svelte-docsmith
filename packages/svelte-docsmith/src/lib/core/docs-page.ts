@@ -56,6 +56,24 @@ export type ArchivedBanner = {
 	href: string;
 };
 
+/** What the page's `<head>` says about it. Data, as the rest of the view: `SeoHead` writes the tags. */
+export type PageHead = {
+	/** The `<title>`: "Page · Site", or the site title alone when the two would repeat (the home page). */
+	title: string;
+	/** The title a link preview shows: the page's own, else the site's. */
+	socialTitle: string;
+	/** The page's description: the shell's `seo` override, the page's frontmatter, else the site's. */
+	description: string | undefined;
+	/**
+	 * The link preview image: a doc page's own OG image when the site serves
+	 * them (`site.ogImages`), else the site's one (`site.ogImage`). Absolute
+	 * when `site.url` is set or the image already is.
+	 */
+	image: string | undefined;
+	/** Whether to keep the page out of search results: its version is marked hidden. */
+	noindex: boolean;
+};
+
 /** Everything `DocsShell` and its chrome render about the current page. */
 export type DocsPageView = {
 	/** The current path, trailing slash stripped. Match content against this. */
@@ -126,6 +144,8 @@ export type DocsPageView = {
 	 * canonical would claim every page under whatever host served it.
 	 */
 	canonicalUrl: string | undefined;
+	/** What the page's `<head>` says: its title, description, image and robots rule. */
+	head: PageHead;
 };
 
 /**
@@ -139,6 +159,11 @@ export function resolveDocsPage(input: {
 	versions: ResolvedVersion[];
 	pathname: string;
 	site: DocsmithSite;
+	/**
+	 * `DocsShell`'s `seo` prop: a title and description for the head that win
+	 * over the page's frontmatter. For pages that are not doc pages.
+	 */
+	seo?: { title?: string; description?: string };
 }): DocsPageView {
 	const { content, versions, site } = input;
 	const pathname = normalizePath(input.pathname);
@@ -215,8 +240,38 @@ export function resolveDocsPage(input: {
 			active: isActiveLink(link, pathname)
 		})),
 		issueHref: entry ? feedbackIssueHref(site.github, entry.title, pathname) : undefined,
-		canonicalUrl: site.url ? join(site.url, pathname) : undefined
+		canonicalUrl: site.url ? join(site.url, pathname) : undefined,
+		head: pageHead(site, entry, input.seo, Boolean(active?.noindex))
 	};
+}
+
+/** The head of a page: `entry` when it is a doc page, with the shell's `seo` on top. */
+function pageHead(
+	site: DocsmithSite,
+	entry: DocsContentItem | undefined,
+	seo: { title?: string; description?: string } = {},
+	noindex: boolean
+): PageHead {
+	const title = seo.title ?? entry?.title;
+	return {
+		title: title && title !== site.title ? `${title} · ${site.title}` : site.title,
+		socialTitle: title ?? site.title,
+		description: seo.description ?? entry?.description ?? site.description,
+		image: previewImage(site, entry),
+		noindex
+	};
+}
+
+/**
+ * The link preview image for a page. A doc page's own OG image lives at its
+ * path under `site.ogImages` with `.png` on the end, which is where the
+ * `ogImages` route handler serves it.
+ */
+function previewImage(site: DocsmithSite, entry: DocsContentItem | undefined): string | undefined {
+	const src = site.ogImages && entry ? `${join(site.ogImages, entry.path)}.png` : site.ogImage;
+	if (!src) return undefined;
+	if (/^https?:\/\//.test(src)) return src;
+	return site.url ? join(site.url, src) : src;
 }
 
 /**

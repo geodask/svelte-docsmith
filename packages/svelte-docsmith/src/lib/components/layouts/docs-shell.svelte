@@ -24,6 +24,7 @@
 	import PageHeader from './page-header.svelte';
 	import PageFeedback from './page-feedback.svelte';
 	import SeoHead from './seo-head.svelte';
+	import ShellPart from './shell-part.svelte';
 	import VersionBanner from '../chrome/version-banner.svelte';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import TableOfContents from '../chrome/table-of-contents.svelte';
@@ -147,7 +148,7 @@
 	// (`core/docs-page.ts`): the active version and the content scoped to it, the
 	// sidebar, the entry, prev/next, breadcrumbs, the server-rendered TOC, and the
 	// chrome rules that need the site config (header links and which is active,
-	// the archived banner, the issue link, the canonical URL). Reading them off
+	// the archived banner, the issue link, the canonical URL, the head). Reading them off
 	// one view keeps the parts from disagreeing about which page or version is
 	// active. What stays here is presentation: locale formatting, the
 	// "min read" copy, and the live TOC.
@@ -156,7 +157,8 @@
 			content: Array.isArray(content) ? content : content.docs,
 			versions: Array.isArray(content) ? versions : content.versions,
 			pathname: page.url.pathname,
-			site
+			site,
+			seo
 		})
 	);
 
@@ -221,7 +223,18 @@
 	const tocProps: TableOfContentsProps = $derived({ items: tocItems, activeId: liveToc.activeId });
 </script>
 
-<SeoHead title={seo?.title} description={seo?.description} />
+<SeoHead />
+
+<!-- Each overridable part, resolved once: the override when there is one, else
+     the built-in part. The sidebar and the table of contents are drawn twice,
+     in their column and in the mobile header, from the same snippet. -->
+{#snippet sidebarPart()}
+	<ShellPart override={sidebar} builtIn={Sidebar} props={sidebarProps} />
+{/snippet}
+
+{#snippet tocPart()}
+	<ShellPart override={toc} builtIn={TableOfContents} props={tocProps} />
+{/snippet}
 
 <div class="relative isolate flex min-h-screen flex-col">
 	<!-- Keyboard skip link: first focusable element, visible only on focus. -->
@@ -260,12 +273,12 @@
 			{@render children()}
 		</main>
 	{:else}
+		<!-- An override decides for itself what an empty tree shows, so it always
+		     gets its place in the menu. The popover is hidden with no headings. -->
 		<DocsMobileHeader
-			sidebar
-			{tocItems}
-			tocActiveId={liveToc.activeId}
-			sidebarOverride={sidebar}
-			tocOverride={toc}
+			docs
+			sidebar={sidebar || view.nav.length ? sidebarPart : undefined}
+			toc={tocItems.length ? tocPart : undefined}
 			{logo}
 			{actions}
 		/>
@@ -276,11 +289,7 @@
 			     what goes inside. -->
 			<aside class="sticky top-24 hidden h-screen w-56 shrink-0 bg-transparent lg:block">
 				<div class="max-h-[calc(100vh-10rem)] overflow-y-auto px-4">
-					{#if sidebar}
-						{@render sidebar(sidebarProps)}
-					{:else}
-						<Sidebar {...sidebarProps} />
-					{/if}
+					{@render sidebarPart()}
 				</div>
 			</aside>
 
@@ -294,11 +303,7 @@
 					<VersionBanner {...view.archivedBanner} />
 				{/if}
 
-				{#if pageHeader}
-					{@render pageHeader(pageHeaderProps)}
-				{:else}
-					<PageHeader {...pageHeaderProps} />
-				{/if}
+				<ShellPart override={pageHeader} builtIn={PageHeader} props={pageHeaderProps} />
 				{@render children()}
 
 				{#if showFooterMeta}
@@ -338,11 +343,7 @@
 				{#if pager || view.prev || view.next}
 					<!-- The edit/last-updated row already draws a rule; don't draw two. -->
 					<div class={showFooterMeta ? 'mt-6' : 'border-border mt-8 border-t pt-8'}>
-						{#if pager}
-							{@render pager(pagerProps)}
-						{:else}
-							<Pager {...pagerProps} />
-						{/if}
+						<ShellPart override={pager} builtIn={Pager} props={pagerProps} />
 					</div>
 				{/if}
 			</main>
@@ -351,11 +352,7 @@
 			     never shifts the page. -->
 			<div class="hidden w-56 shrink-0 lg:block">
 				<div class="sticky top-24">
-					{#if toc}
-						{@render toc(tocProps)}
-					{:else}
-						<TableOfContents {...tocProps} />
-					{/if}
+					{@render tocPart()}
 				</div>
 			</div>
 		</div>
