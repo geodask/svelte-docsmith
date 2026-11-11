@@ -61,6 +61,10 @@ export { default as Tooltip } from './components/docs/tooltip.svelte';
 export { default as Video } from './components/docs/video.svelte';
 export { default as PropsTable } from './components/docs/props-table.svelte';
 export { default as Prop } from './components/docs/prop.svelte';
+export { default as Anatomy } from './components/docs/anatomy.svelte';
+export { default as Part } from './components/docs/part.svelte';
+export { default as Compare } from './components/docs/compare.svelte';
+export { default as SectionCards } from './components/docs/section-cards.svelte';
 
 // Generated props tables (experimental — outside the 1.0 stability promise).
 // A props import (`import props from './button.svelte?props'`, served by the
