@@ -3,7 +3,7 @@ title: Anatomy
 description: Label the parts of a live component with numbers and describe each one below it.
 section: Components
 order: 26
-since: '0.28'
+since: '0.29'
 ---
 
 <script>

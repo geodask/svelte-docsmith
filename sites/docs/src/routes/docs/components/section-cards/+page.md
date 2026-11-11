@@ -3,7 +3,7 @@ title: Section cards
 description: A card for each page in a section, kept up to date from the sidebar.
 section: Components
 order: 28
-since: '0.28'
+since: '0.29'
 ---
 
 <script>

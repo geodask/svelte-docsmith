@@ -3,7 +3,7 @@ title: Compare
 description: Two versions of one thing, one over the other, with a divider the reader drags.
 section: Components
 order: 27
-since: '0.28'
+since: '0.29'
 ---
 
 <script>
