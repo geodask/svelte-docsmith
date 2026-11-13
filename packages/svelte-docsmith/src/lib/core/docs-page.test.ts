@@ -428,3 +428,83 @@ describe('resolveDocsPage: canonicalUrl', () => {
 		expect(resolve('/docs/intro').canonicalUrl).toBeUndefined();
 	});
 });
+
+describe('resolveDocsPage: head', () => {
+	const described = content.map((item) =>
+		item.path === '/docs/intro' ? { ...item, description: 'Start here' } : item
+	);
+	const head = (pathname: string, over: Over = {}) =>
+		resolve(pathname, { content: described, ...over }).head;
+
+	it("titles a doc page with its frontmatter title, suffixed with the site's", () => {
+		expect(head('/docs/intro')).toMatchObject({
+			title: 'Intro · My Docs',
+			socialTitle: 'Intro',
+			description: 'Start here'
+		});
+	});
+
+	it('lets the shell override the title and the description', () => {
+		expect(
+			head('/docs/intro', { seo: { title: 'Custom', description: 'Custom blurb' } })
+		).toMatchObject({
+			title: 'Custom · My Docs',
+			socialTitle: 'Custom',
+			description: 'Custom blurb'
+		});
+	});
+
+	it('falls back to the site title and description off a doc page', () => {
+		expect(head('/', { site: { description: 'Site blurb' } })).toMatchObject({
+			title: 'My Docs',
+			socialTitle: 'My Docs',
+			description: 'Site blurb'
+		});
+	});
+
+	it('does not repeat a title that is the site title', () => {
+		expect(head('/', { seo: { title: 'My Docs' } }).title).toBe('My Docs');
+	});
+
+	it('has no description when nothing gives one', () => {
+		expect(head('/docs/guide').description).toBeUndefined();
+	});
+
+	it("uses the site's image, absolute against site.url", () => {
+		expect(head('/docs/intro', { site: { url: 'https://x.dev', ogImage: '/og.png' } }).image).toBe(
+			'https://x.dev/og.png'
+		);
+	});
+
+	it('keeps an image that is already absolute, and a relative one without site.url', () => {
+		expect(
+			head('/', { site: { url: 'https://x.dev', ogImage: 'https://cdn.dev/og.png' } }).image
+		).toBe('https://cdn.dev/og.png');
+		expect(head('/', { site: { ogImage: '/og.png' } }).image).toBe('/og.png');
+	});
+
+	it('points a doc page at its own OG image when the site serves them', () => {
+		const served = { url: 'https://x.dev', ogImage: '/og.png', ogImages: '/og' };
+
+		expect(head('/docs/v1/intro', { site: served }).image).toBe(
+			'https://x.dev/og/docs/v1/intro.png'
+		);
+		// Off a doc page there is no image of its own to point at.
+		expect(head('/', { site: served }).image).toBe('https://x.dev/og.png');
+	});
+
+	it('has no image with neither', () => {
+		expect(head('/docs/intro').image).toBeUndefined();
+	});
+
+	it('keeps a version marked hidden out of search results', () => {
+		const hidden = resolveVersions(
+			{ current: { id: 'v2', label: 'v2' }, archived: [{ id: 'v1', label: 'v1', noindex: true }] },
+			'/docs',
+			content
+		);
+
+		expect(head('/docs/v1/intro', { versions: hidden }).noindex).toBe(true);
+		expect(head('/docs/intro', { versions: hidden }).noindex).toBe(false);
+	});
+});

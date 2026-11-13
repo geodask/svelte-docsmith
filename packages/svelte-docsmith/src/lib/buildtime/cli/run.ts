@@ -11,6 +11,7 @@
  * may change in a minor until authors have used versioning for real.
  */
 import { archiveVersion } from './archive-version.js';
+import { markdownExtensions } from '../markdown.js';
 import { CliError } from './error.js';
 import { loadDocsmithOptions } from './load-options.js';
 import { parseThemeArgs, themeCommand, THEME_HELP, type ThemeIo } from './theme.js';
@@ -96,6 +97,7 @@ export async function run(argv: string[], io: CliIo = {}): Promise<void> {
 
 	const cwd = io.cwd ?? process.cwd();
 	const { id, label, config } = parseArchiveArgs(rest);
-	const { contentDir, routesDir, versions } = await loadDocsmithOptions(cwd, config);
-	archiveVersion({ id, label, contentDir, routesDir, versions, cwd }, log);
+	const { contentDir, routesDir, versions, markdown } = await loadDocsmithOptions(cwd, config);
+	const extensions = markdownExtensions(markdown);
+	archiveVersion({ id, label, contentDir, routesDir, versions, extensions, cwd }, log);
 }

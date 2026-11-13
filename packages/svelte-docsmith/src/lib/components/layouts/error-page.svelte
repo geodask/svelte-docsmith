@@ -53,11 +53,7 @@
 	// while the error page stays mounted (from the page the reader was on).
 	afterNavigate(({ from }) => {
 		if (!isNotFound) return;
-		report({
-			type: 'not_found',
-			path: page.url.pathname,
-			referrer: from?.url.href ?? (document.referrer || null)
-		});
+		report({ type: 'not_found', referrer: from?.url.href ?? (document.referrer || null) });
 	});
 
 	const resolvedTitle = $derived(title ?? (isNotFound ? 'Page not found' : 'Something went wrong'));

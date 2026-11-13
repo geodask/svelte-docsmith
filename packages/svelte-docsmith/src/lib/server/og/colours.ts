@@ -3,6 +3,8 @@
  * understands hex, `rgb()` and `hsl()`, and themes are written in `oklch()`, so
  * the conversion happens here, once, when the plugin reads the theme file.
  */
+import { oklchToHex, oklchToSrgb } from '../../core/colour.js';
+import type { ThemeTokens } from '../../core/theme-file.js';
 
 /** The five theme colours an OG image uses, each as a colour satori can read. */
 export type OgColours = {
@@ -32,10 +34,7 @@ export const DEFAULT_OG_COLOURS: OgColours = {
  * where most themes look their most distinctive, falling back to the light
  * one for a token the dark block leaves out, then to {@link DEFAULT_OG_COLOURS}.
  */
-export function ogColours(tokens: {
-	light: Record<string, string>;
-	dark: Record<string, string>;
-}): OgColours {
+export function ogColours(tokens: ThemeTokens): OgColours {
 	const pick = (name: string, fallback: string) =>
 		toSatoriColour(tokens.dark[name] ?? '') ?? toSatoriColour(tokens.light[name] ?? '') ?? fallback;
 	return {
@@ -73,8 +72,8 @@ function fromOklch(args: string): string | undefined {
 	const h = parts[2] === 'none' ? 0 : number(parts[2].replace(/deg$/, ''), 1);
 	const alpha = alphaPart === undefined ? 1 : number(alphaPart.trim(), 1);
 	if ([l, c, h, alpha].some((n) => n === undefined || Number.isNaN(n))) return undefined;
-	const [r, g, b] = oklchToSrgb(l!, c!, h!);
-	if (alpha! >= 1) return `#${[r, g, b].map((n) => n.toString(16).padStart(2, '0')).join('')}`;
+	if (alpha! >= 1) return oklchToHex([l!, c!, h!]);
+	const [r, g, b] = oklchToSrgb([l!, c!, h!]);
 	return `rgba(${r}, ${g}, ${b}, ${round(Math.max(0, alpha!), 3)})`;
 }
 
@@ -85,25 +84,6 @@ function number(text: string, percentOf: number): number | undefined {
 	const n = Number(percent ? text.slice(0, -1) : text);
 	if (text === '' || Number.isNaN(n)) return undefined;
 	return percent ? (n / 100) * percentOf : n;
-}
-
-/** OKLCH to 8-bit sRGB, clipped to the gamut (Björn Ottosson's matrices). */
-function oklchToSrgb(l: number, c: number, hDeg: number): [number, number, number] {
-	const h = (hDeg * Math.PI) / 180;
-	const a = c * Math.cos(h);
-	const b = c * Math.sin(h);
-	const l_ = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-	const m_ = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-	const s_ = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
-	const linear = [
-		4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
-		-1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
-		-0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_
-	];
-	return linear.map((x) => {
-		const encoded = x <= 0.0031308 ? 12.92 * x : 1.055 * Math.max(x, 0) ** (1 / 2.4) - 0.055;
-		return Math.round(Math.min(1, Math.max(0, encoded)) * 255);
-	}) as [number, number, number];
 }
 
 function round(n: number, digits: number): number {

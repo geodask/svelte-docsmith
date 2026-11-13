@@ -9,11 +9,9 @@ vi.mock('$app/state', () => ({
 }));
 vi.mock('$app/navigation', () => ({ goto: vi.fn(), afterNavigate: vi.fn() }));
 // The site config the docsmith() plugin would serve.
-vi.mock('svelte-docsmith/site', () => ({
-	site: { title: 'My Docs' },
-	outside: [],
-	githubStars: undefined
-}));
+vi.mock('svelte-docsmith/site', async () =>
+	(await import('#lib/fallbacks/_fixtures/site-module.js')).siteModule()
+);
 
 // The shell's theme provider pulls in mode-watcher, which reads localStorage as
 // it loads; jsdom's own is incomplete here, so stub one in before the imports.

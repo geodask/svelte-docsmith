@@ -4,16 +4,21 @@
  * src/lib/themes/*.css, shared by everything that lists them.
  *
  * The CSS files are the source of truth. Each file is one preset: its slug is
- * the file name, its display name comes from the header comment
- * (`svelte-docsmith theme — <Name>.`) and its tokens from the `:root` and
- * `.dark` blocks. The only thing the CSS can't say is the display order, so
- * that lives here in PRESET_ORDER, and readPresets() refuses a preset file that
- * isn't placed in it (or a slug with no file), so the two can't drift.
+ * the file name and its display name comes from the header comment
+ * (`svelte-docsmith theme — <Name>.`). The only thing the CSS can't say is the
+ * display order, so that lives here in PRESET_ORDER, and readPresets() refuses
+ * a preset file that isn't placed in it (or a slug with no file), so the two
+ * can't drift.
  *
- * Readers:
- * - sites/docs/scripts/generate-themes.mjs builds the showcase's token data.
- * - create-svelte-docsmith reads presets.json, written by this script, because
- *   the published CLI can't read the library's files at prompt time.
+ * The manifest says which presets there are, not what is in them: a preset's
+ * tokens are read from its CSS by src/lib/core/theme-file.ts, like any other
+ * theme file.
+ *
+ * Readers of presets.json, which this script writes:
+ * - create-svelte-docsmith's theme prompt, because the published CLI can't
+ *   read the library's files at prompt time.
+ * - the docs site's theme showcase (sites/docs/src/lib/themes-data.ts), for
+ *   the order and the names.
  *
  * Run it to rewrite presets.json after adding, renaming or reordering a preset:
  *
@@ -36,7 +41,11 @@ export const scaffolderManifestPath = path.resolve(
 	'../../create-svelte-docsmith/presets.json'
 );
 
-/** The preset a site gets when `docsmith()` names no theme. */
+/**
+ * The preset a site gets when `docsmith()` names no theme. A plain Node script
+ * can't import the library's TypeScript, so this repeats DEFAULT_PRESET from
+ * src/lib/core/theme-file.ts, and a test holds the two together.
+ */
 export const DEFAULT_PRESET = 'darkmatter';
 
 /**
@@ -58,33 +67,8 @@ export const PRESET_ORDER = [
 ];
 
 /**
- * @typedef {Record<string, string>} ThemeTokens
- * @typedef {{
- *   slug: string;
- *   name: string;
- *   default: boolean;
- *   light: ThemeTokens;
- *   dark: ThemeTokens;
- * }} Preset
+ * @typedef {{ slug: string; name: string; default: boolean }} Preset
  */
-
-/**
- * Every `--token: value;` declaration in the first block opened by `selector`
- * (a regex source, such as `:root` or `\\.dark`). Keys drop the leading `--`.
- *
- * @param {string} css
- * @param {string} selector
- * @returns {ThemeTokens}
- */
-export function parseTokens(css, selector) {
-	const body = css.match(new RegExp(`${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
-	/** @type {ThemeTokens} */
-	const tokens = {};
-	for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
-		tokens[name] = value.trim();
-	}
-	return tokens;
-}
 
 /**
  * The display name from the header comment `svelte-docsmith theme — <Name>.`
@@ -128,9 +112,7 @@ export function readPresets(dir = themesDir) {
 		return {
 			slug,
 			name: parseName(css, file),
-			default: slug === DEFAULT_PRESET,
-			light: parseTokens(css, ':root'),
-			dark: parseTokens(css, '\\.dark')
+			default: slug === DEFAULT_PRESET
 		};
 	});
 }

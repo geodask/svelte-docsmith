@@ -3,7 +3,6 @@ import {
 	ThemeLinkError,
 	readThemeLinkJson,
 	themeLinkPayload,
-	toThemeFile,
 	writeThemeLinkJson
 } from './theme-link.js';
 
@@ -44,15 +43,5 @@ describe('theme link JSON', () => {
 	it('takes the payload from a whole link or a bare payload', () => {
 		expect(themeLinkPayload('https://docsmith.geodask.com/themes#theme=abc-_ ')).toBe('abc-_');
 		expect(themeLinkPayload(' abc ')).toBe('abc');
-	});
-});
-
-describe('toThemeFile', () => {
-	it('lists :root in full and only what differs under .dark', () => {
-		expect(toThemeFile(tokens)).toBe(
-			'/* Made with the svelte-docsmith theme builder: https://docsmith.geodask.com/themes */\n' +
-				':root {\n\t--background: oklch(1 0 0);\n\t--primary: oklch(0.55 0.2 265);\n}\n\n' +
-				'.dark {\n\t--background: oklch(0.18 0 0);\n}\n'
-		);
 	});
 });

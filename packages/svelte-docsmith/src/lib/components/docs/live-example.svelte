@@ -7,7 +7,6 @@
 	import { untrack, type Snippet } from 'svelte';
 	import type { ExtractedProps } from '../../core/extracted-props.js';
 	import { Playground, type PlaygroundValues } from './playground.svelte.js';
-	import { page } from '$app/state';
 	import { report } from '../reader-events.js';
 
 	const {
@@ -51,12 +50,7 @@
 
 	// A `?source` import is always a Svelte component's source.
 	function copy() {
-		report({
-			type: 'copy_code',
-			path: page.url.pathname,
-			language: 'svelte',
-			source: 'live_example'
-		});
+		report({ type: 'copy_code', language: 'svelte', source: 'live_example' });
 		clipboard.copy();
 	}
 </script>

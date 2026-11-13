@@ -10,11 +10,14 @@
  *
  * The Vite plugin and agent markdown each loop over {@link DOC_IMPORT_KINDS};
  * neither names a kind. Adding one is a module here and a line in that list.
+ * Agent markdown turns each kind into one of its tag rewrites, beside the ones
+ * for docs components that import nothing (see `../agent-markdown.ts`).
  */
 import type { Plugin } from 'vite';
 import type { ExtractedProps } from '../../../core/extracted-props.js';
-import type { RenderCodeBlock } from '../../code-block.js';
-import type { PropsHook, PropsReader } from '../../props/reader.js';
+import { codeBlockRenderer, type RenderCodeBlock } from '../../code-block.js';
+import { createPropsReader, type PropsHook, type PropsReader } from '../../props/reader.js';
+import type { ResolvedDocsmithOptions } from '../options.js';
 import { propsImport } from './props.js';
 import { sourceImport } from './source.js';
 
@@ -37,6 +40,24 @@ export type DocImportDeps = {
 	/** The props reader the llms index shares. */
 	props: PropsReader;
 };
+
+/**
+ * The deps of one `docsmith()` call. One renderer for markdown fences and
+ * `?source` panels, so one code theme and one Shiki highlighter; and one props
+ * reader, so a page's `?props` imports and the llms index read components
+ * against one TypeScript program.
+ */
+export function docImportDeps(options: ResolvedDocsmithOptions): DocImportDeps {
+	return {
+		render: codeBlockRenderer({
+			codeTheme: options.codeTheme,
+			langs: options.markdown.langs,
+			lineNumbers: options.markdown.lineNumbers,
+			twoslash: options.markdown.twoslash
+		}),
+		props: createPropsReader({ tsconfig: options.tsconfig })
+	};
+}
 
 /** Where a tag sits in agent markdown, for the kind writing it out. */
 export type TagSite = {

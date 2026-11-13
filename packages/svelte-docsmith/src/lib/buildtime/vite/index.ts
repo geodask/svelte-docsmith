@@ -27,37 +27,21 @@
  *     `<PropsTable of={…}>`. Each kind lives in `./doc-imports/`, with the page
  *     side served here and the agent side written into the llms index.
  *
- * The options themselves are resolved in `./options.js`. Reading the docs root
- * lives in `./pages.js` and building each index from what it read lives in
+ * The options themselves are resolved in `./options.js`. What each generated
+ * module exports is described in `./generated-modules.js`, the one home of
+ * the six. Which files are doc pages, reading them and checking them lives in
+ * `./doc-pages.js`, and building each index from what it read lives in
  * `./collect.js`; props are read through `../props/reader.js`, which owns the
- * shared extractor, file watching and warn-once. Broken-link reporting lives
- * in `./broken-links.js`. This file owns the Vite plugins and, with that
- * reporter, is the only layer that reports to the console.
+ * shared extractor, file watching and warn-once. This file owns the Vite
+ * plugins, as adapters over those.
  */
-import fs from 'node:fs';
-import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
-import { codeBlockRenderer } from '../code-block.js';
-import { checkVersions, resolveVersions } from '../../core/version.js';
-import { ARCHIVE_MARKER, discoverArchives } from '../archives.js';
-import { docsBaseFrom } from '../paths.js';
-import { isPageFile, readSourcePages, withCommitDates, type SourcePage } from './pages.js';
-import { contentIndex, searchIndex } from './collect.js';
-import { llmsIndex } from './agent-markdown.js';
-import { collectReleases } from './releases.js';
-import { parseChangelog } from '../changelog.js';
-import { commitDates } from '../git.js';
-import { createPropsReader } from '../props/reader.js';
-import { docImportReads, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
-import { checkFrontmatter } from './frontmatter-schema.js';
+import { docPages } from './doc-pages.js';
+import { docImportDeps, docImportsPlugin, type DocImportDeps } from './doc-imports/index.js';
+import { generatedModules } from './generated-modules.js';
 import { markdownPlugin } from './markdown.js';
-import { markdownExtensions } from '../markdown.js';
 import { resolveOptions, type DocsmithOptions, type ResolvedDocsmithOptions } from './options.js';
-import { brokenLinksReporter } from './broken-links.js';
-import { checkOutsidePaths } from '../outside-paths.js';
-import { themePlugin, themeTokens } from './theme.js';
-import { ogColours } from '../../server/og/colours.js';
-import { siteGithubStars } from '../github-stars.js';
+import { themePlugin } from './theme.js';
 
 export type {
 	DocsmithOptions,
@@ -82,110 +66,35 @@ export type { DocsmithSite } from '../../core/config.js';
 export function docsmith(options: DocsmithOptions): Plugin[] {
 	const resolved = resolveOptions(options);
 	for (const notice of resolved.deprecations) console.warn(notice);
-	// One renderer for markdown fences and `?source` panels: one code theme,
-	// one Shiki highlighter.
-	const renderCodeBlock = codeBlockRenderer({
-		codeTheme: resolved.codeTheme,
-		langs: resolved.markdown.langs,
-		lineNumbers: resolved.markdown.lineNumbers,
-		twoslash: resolved.markdown.twoslash
-	});
-	// What doc imports read through on both sides: one props reader, so a
-	// page's `?props` imports and the llms index read components against one
-	// TypeScript program.
-	const docImports: DocImportDeps = {
-		render: renderCodeBlock,
-		props: createPropsReader({ tsconfig: resolved.tsconfig })
-	};
+	const docImports = docImportDeps(resolved);
 	return [
 		contentIndexPlugin(resolved, docImports, options),
-		markdownPlugin(resolved.markdown, renderCodeBlock, resolved.links.outside, resolved.routesDir),
+		markdownPlugin(
+			resolved.markdown,
+			docImports.render,
+			resolved.links.outside,
+			resolved.routesDir
+		),
 		docImportsPlugin(docImports),
 		themePlugin(resolved.themeFile)
 	];
 }
 
-// --- content / search / llms index --------------------------------------
-
-const CONTENT_SPECIFIER = 'svelte-docsmith/content';
-const VIRTUAL_CONTENT_ID = '\0svelte-docsmith:content';
-const SEARCH_SPECIFIER = 'svelte-docsmith/search';
-const VIRTUAL_SEARCH_ID = '\0svelte-docsmith:search';
-const LLMS_SPECIFIER = 'svelte-docsmith/llms';
-const VIRTUAL_LLMS_ID = '\0svelte-docsmith:llms';
-const CHANGELOG_SPECIFIER = 'svelte-docsmith/changelog';
-const VIRTUAL_CHANGELOG_ID = '\0svelte-docsmith:changelog';
-const SITE_SPECIFIER = 'svelte-docsmith/site';
-const VIRTUAL_SITE_ID = '\0svelte-docsmith:site';
-const READER_EVENTS_SPECIFIER = 'svelte-docsmith/reader-events';
-const VIRTUAL_READER_EVENTS_ID = '\0svelte-docsmith:reader-events';
+// --- generated modules ----------------------------------------------------
 
 /**
- * Tell the author when their docs root produced nothing, and why. An empty
- * sidebar is otherwise silent: the build succeeds and the site renders, so
- * without this the first sign of a misconfigured `content` is a missing nav.
+ * The plugin that serves the generated modules. An adapter and nothing more:
+ * what each module exports is described in `./generated-modules.js`, and this
+ * maps Vite's hooks onto that set.
  */
-function warnAboutDocsRoot(contentDir: string, exists: boolean, indexed: number) {
-	if (!exists) {
-		console.warn(
-			`[svelte-docsmith] content directory not found: ${contentDir}\n` +
-				`  The sidebar will be empty. Create your doc pages there, or point docsmith() at the right place with \`content\`.`
-		);
-	} else if (indexed === 0) {
-		console.warn(
-			`[svelte-docsmith] no doc pages found under ${contentDir}\n` +
-				`  Add \`+page.md\` files with at least a \`title:\` in their frontmatter to populate the sidebar.`
-		);
-	}
-}
-
 function contentIndexPlugin(
 	options: ResolvedDocsmithOptions,
 	docImports: DocImportDeps,
 	authored: DocsmithOptions
 ): Plugin {
-	const { contentDir, routesDir, versions, changelogFile, links } = options;
-	const docsBase = docsBaseFrom(routesDir, contentDir);
-	const changelogRoute = options.changelogPath;
-	const changelogOverrides = path.join(routesDir, changelogRoute);
-	const indexOptions = { contentDir, routesDir, versions, math: options.markdown?.math };
-	const brokenLinks = brokenLinksReporter({
-		indexOptions,
-		links,
-		markdownExtensions: markdownExtensions(options.markdown)
-	});
-
-	// One history walk, reused for the life of the plugin. A build loads this
-	// module once, so it is always fresh there; `dev` reloads it on every page
-	// save, and re-walking each time would cost git a process for dates that
-	// cannot have changed without a commit. The trade is that committing during
-	// `dev` leaves the dates as they were until the server restarts.
-	let dates: Map<string, string> | undefined;
-	const trackedDates = () =>
-		(dates ??= commitDates(contentDir, (reason) => {
-			// Truncation and shallow clones both refuse dates deliberately; the
-			// reason line says which. "Could not read" would misframe a shallow
-			// skip as a hard failure.
-			console.warn(
-				`[svelte-docsmith] skipping git-derived page dates under ${contentDir}\n` +
-					`  ${reason}\n` +
-					`  Pages will render without a last-updated date, and sitemap entries without \`lastmod\`.`
-			);
-		}));
-
-	// One star-count fetch for the life of the plugin. SvelteKit builds its
-	// server and client with shared plugins, so both halves get one count;
-	// a `dev` restart loads `vite.config` again, so it makes a new plugin and
-	// fetches afresh, failures included.
-	let stars: Promise<number | undefined> | undefined;
-	const trackedStars = () =>
-		(stars ??= siteGithubStars(options.site, (reason) => {
-			console.warn(
-				`[svelte-docsmith] could not fetch the GitHub star count for ${options.site.github} at build time\n` +
-					`  ${reason}\n` +
-					`  Readers' browsers will fetch the count instead. Set GITHUB_TOKEN to bake it in, or \`site.githubStars: false\` to turn it off.`
-			);
-		}));
+	const pages = docPages(options);
+	const generated = generatedModules(options, docImports, pages);
+	let serving = false;
 
 	return {
 		name: 'docsmith-content',
@@ -196,130 +105,38 @@ function contentIndexPlugin(
 		api: { docsmith: authored },
 
 		configResolved(config) {
-			brokenLinks.configResolved(config.command);
+			serving = config.command === 'serve';
+			pages.command(config.command);
+		},
+
+		// `vite build --watch` has no dev server to hear changes from. In `dev`
+		// the watcher in `configureServer` reports them, added and removed
+		// pages included.
+		watchChange(id) {
+			if (!serving) pages.changed(id);
 		},
 
 		resolveId(id) {
-			if (id === CONTENT_SPECIFIER) return VIRTUAL_CONTENT_ID;
-			if (id === SEARCH_SPECIFIER) return VIRTUAL_SEARCH_ID;
-			if (id === LLMS_SPECIFIER) return VIRTUAL_LLMS_ID;
-			if (id === CHANGELOG_SPECIFIER) return VIRTUAL_CHANGELOG_ID;
-			if (id === SITE_SPECIFIER) return VIRTUAL_SITE_ID;
-			if (id === READER_EVENTS_SPECIFIER) return VIRTUAL_READER_EVENTS_ID;
+			return generated.resolve(id);
 		},
 
-		async load(id) {
-			// Watch each page file (not the directory) so editing frontmatter or
-			// body re-runs this load. A directory here is treated as an
-			// unresolvable import by vite:import-analysis; new/removed pages are
-			// handled by the watcher in configureServer.
-			const watch = (pages: SourcePage[]) => {
-				for (const page of pages) this.addWatchFile(page.file);
-			};
-
-			if (id === VIRTUAL_SITE_ID) {
-				// Checked as plain data when the options were resolved, so JSON is
-				// the whole of the site. The outside paths ride along, resolved, so
-				// the shell's site config links match them exactly as the compiler
-				// does. The star count is a number, or `undefined` when there is none.
-				const githubStars = await trackedStars();
-				// The OG image colours, read from the theme file so a card matches
-				// the site's theme. Server code alone reads them, so they tree-shake
-				// out of the browser's bundle.
-				const colours = ogColours(themeTokens(fs.readFileSync(options.themeFile, 'utf8')));
-				return (
-					`export const site = ${JSON.stringify(options.site, null, 2)};\n` +
-					`export const outside = ${JSON.stringify(links.outside)};\n` +
-					`export const githubStars = ${githubStars ?? 'undefined'};\n` +
-					`export const ogColours = ${JSON.stringify(colours)};\n`
-				);
-			}
-			if (id === VIRTUAL_READER_EVENTS_ID) {
-				// The author's module, imported by its real path so editing it is an
-				// ordinary hot update. A module without a default export fails the
-				// import, which is the error the author needs.
-				const file = options.readerEventsFile;
-				if (!file) return `export const handler = undefined;\n`;
-				return `export { default as handler } from ${JSON.stringify(file.replaceAll('\\', '/'))};\n`;
-			}
-			if (id === VIRTUAL_CONTENT_ID) {
-				// Before anything is read: a config that disagrees with the docs root
-				// produces an index that is wrong rather than empty, so it has to fail
-				// here rather than render. Re-runs on invalidation, so archiving during
-				// `dev` reports immediately.
-				checkVersions(versions, discoverArchives(contentDir), ARCHIVE_MARKER);
-				const { pages, exists } = readSourcePages(contentDir);
-				watch(pages);
-				// A page under an outside path contradicts the config whether or not
-				// links are checked, so this runs under `broken: 'ignore'` too.
-				checkOutsidePaths(pages, indexOptions, links.outside);
-				// Checked here only: the docs layout always imports this index, so a
-				// bad page fails the build (or raises the dev overlay) once, not once
-				// per index.
-				const typos = await checkFrontmatter(pages, options.schema);
-				if (typos) console.warn(typos);
-				// Here for the same reason: once per build, with the pages already read.
-				brokenLinks.pagesRead(pages);
-				// The newest release marks the pages that are new in it. Watched, so a
-				// release in `dev` moves the dots without a restart.
-				let latestRelease: string | undefined;
-				if (changelogFile && fs.existsSync(changelogFile)) {
-					this.addWatchFile(changelogFile);
-					latestRelease = parseChangelog(fs.readFileSync(changelogFile, 'utf-8'))[0]?.version;
-				}
-				// Only this index has a date field, so only this one pays for git.
-				const docs = contentIndex(withCommitDates(pages, trackedDates()), {
-					...indexOptions,
-					latestRelease
-				});
-				warnAboutDocsRoot(contentDir, exists, docs.length);
-				const resolved = resolveVersions(versions, docsBase, docs);
-				return (
-					`export const docs = ${JSON.stringify(docs, null, 2)};\n` +
-					`export const versions = ${JSON.stringify(resolved, null, 2)};\n` +
-					`export const content = { docs, versions };\n`
-				);
-			}
-			if (id === VIRTUAL_SEARCH_ID) {
-				const { pages } = readSourcePages(contentDir);
-				watch(pages);
-				return `export const docs = ${JSON.stringify(searchIndex(pages, indexOptions))};\n`;
-			}
-			if (id === VIRTUAL_LLMS_ID) {
-				const { pages } = readSourcePages(contentDir);
-				watch(pages);
-				// What agents read: each page as agent markdown. Its imports resolve
-				// the way Vite resolves the page's own, and each kind reads the way its
-				// page side does, so pages without a props import never load TypeScript.
-				const docs = await llmsIndex(pages, indexOptions, {
-					resolve: async (specifier, importer) =>
-						(await this.resolve(specifier, importer, { skipSelf: true }))?.id,
-					watch: (file) => this.addWatchFile(file),
-					warn: (message) => this.warn(message),
-					...docImportReads(docImports, this)
-				});
-				return `export const docs = ${JSON.stringify(docs)};\n`;
-			}
-			if (id === VIRTUAL_CHANGELOG_ID) {
-				// The route goes out with the releases so the feed links to the page
-				// the plugin dated them against, not to a second default.
-				const route = `export const changelogPath = ${JSON.stringify(changelogRoute)};\n`;
-				if (!changelogFile) return `export const releases = [];\n` + route;
-				this.addWatchFile(changelogFile);
-				const releases = collectReleases(changelogFile, changelogOverrides, changelogRoute);
-				return `export const releases = ${JSON.stringify(releases)};\n` + route;
-			}
+		load(id) {
+			return generated.load(id, {
+				watch: (file) => this.addWatchFile(file),
+				resolve: async (specifier, importer) =>
+					(await this.resolve(specifier, importer, { skipSelf: true }))?.id,
+				warn: (message) => this.warn(message)
+			});
 		},
 
 		configureServer(server: ViteDevServer) {
-			server.watcher.add(contentDir);
-			brokenLinks.devStarted();
+			server.watcher.add(options.contentDir);
+			pages.devStarted();
 			const onChange = (file: string) => {
-				brokenLinks.fileChanged(file);
-				if (!isPageFile(file)) return;
+				if (!pages.changed(file)) return;
 				let invalidated = false;
-				for (const virtualId of [VIRTUAL_CONTENT_ID, VIRTUAL_SEARCH_ID, VIRTUAL_LLMS_ID]) {
-					const mod = server.moduleGraph.getModuleById(virtualId);
+				for (const id of generated.builtFromPages) {
+					const mod = server.moduleGraph.getModuleById(id);
 					if (!mod) continue;
 					server.moduleGraph.invalidateModule(mod);
 					invalidated = true;

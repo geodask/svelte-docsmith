@@ -3,7 +3,7 @@ import {
 	installCommands,
 	isInstallBlock,
 	withoutInstallFlag,
-	writeInstallBlocks
+	writeInstallBlock
 } from './install-block.js';
 
 /** An install block's code for each manager, as `{ pnpm, npm, yarn, bun }`. */
@@ -89,27 +89,38 @@ describe('installCommands', () => {
 	});
 });
 
-describe('writeInstallBlocks', () => {
-	it('writes each install block as one fence with every manager’s commands', () => {
-		expect(writeInstallBlocks('Install:\n\n```sh pkg\nnpm i a\n```\n\nDone.')).toBe(
-			'Install:\n\n```sh\n# pnpm\npnpm add a\n# npm\nnpm i a\n# yarn\nyarn add a\n# bun\nbun add a\n```\n\nDone.'
-		);
+describe('writeInstallBlock', () => {
+	const fence = (info: string, body: string[], indent = '') => ({
+		indent,
+		marker: '```',
+		info,
+		body
+	});
+
+	it('writes an install block as one fence with every manager’s commands', () => {
+		expect(writeInstallBlock(fence('sh pkg', ['npm i a']))).toEqual([
+			'```sh',
+			'# pnpm',
+			'pnpm add a',
+			'# npm',
+			'npm i a',
+			'# yarn',
+			'yarn add a',
+			'# bun',
+			'bun add a',
+			'```'
+		]);
 	});
 
 	it('keeps an indented block’s indentation', () => {
-		expect(writeInstallBlocks('1. Step\n\n   ```sh pkg\n   npm i a\n   ```')).toBe(
-			'1. Step\n\n   ```sh\n   # pnpm\n   pnpm add a\n   # npm\n   npm i a\n   # yarn\n   yarn add a\n   # bun\n   bun add a\n   ```'
-		);
+		const written = writeInstallBlock(fence('sh pkg', ['   npm i a'], '   '));
+
+		expect(written?.slice(0, 3)).toEqual(['   ```sh', '   # pnpm', '   pnpm add a']);
+		expect(written?.at(-1)).toBe('   ```');
 	});
 
-	it('reads and keeps CRLF line endings', () => {
-		expect(writeInstallBlocks('```sh pkg\r\nnpm i a\r\n```\r\n')).toBe(
-			'```sh\r\n# pnpm\r\npnpm add a\r\n# npm\r\nnpm i a\r\n# yarn\r\nyarn add a\r\n# bun\r\nbun add a\r\n```\r\n'
-		);
-	});
-
-	it('leaves other fences, and install blocks shown inside a sample, as written', () => {
-		const sample = '````md\n```sh pkg\nnpm i a\n```\n````\n\n```sh\nnpm i b\n```';
-		expect(writeInstallBlocks(sample)).toBe(sample);
+	it('leaves any other fence alone', () => {
+		expect(writeInstallBlock(fence('sh', ['npm i a']))).toBeUndefined();
+		expect(writeInstallBlock(fence('', ['npm i a']))).toBeUndefined();
 	});
 });

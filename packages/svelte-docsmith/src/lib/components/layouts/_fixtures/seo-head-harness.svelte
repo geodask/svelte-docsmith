@@ -5,10 +5,9 @@
 	import { setDocsPage } from '../../docs-page-context.js';
 	import SeoHead from '../seo-head.svelte';
 
-	let { view, title, description }: { view: DocsPageView; title?: string; description?: string } =
-		$props();
+	let { view }: { view: DocsPageView } = $props();
 
 	setDocsPage(() => view);
 </script>
 
-<SeoHead {title} {description} />
+<SeoHead />

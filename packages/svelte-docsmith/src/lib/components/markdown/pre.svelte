@@ -3,7 +3,6 @@
 	import type { Snippet } from 'svelte';
 	import { ScrollArea } from '../shadcn/scroll-area/index.js';
 	import CopyButton from '../chrome/copy-button.svelte';
-	import { page } from '$app/state';
 	import { report } from '../reader-events.js';
 
 	const clipboard = useClipboard();
@@ -27,12 +26,7 @@
 	} = $props();
 
 	function copy() {
-		report({
-			type: 'copy_code',
-			path: page.url.pathname,
-			language: language ?? null,
-			source: 'fence'
-		});
+		report({ type: 'copy_code', language: language ?? null, source: 'fence' });
 		clipboard.copy();
 	}
 

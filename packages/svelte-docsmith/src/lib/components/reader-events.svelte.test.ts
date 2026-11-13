@@ -13,7 +13,15 @@ vi.mock('svelte-docsmith/reader-events', () => ({
 		return reader.handler;
 	}
 }));
-vi.mock('$app/state', () => ({ page: { url: new URL('http://localhost/docs/intro') } }));
+// Where the reader is. Swapped per test through `location.url`.
+const location = vi.hoisted(() => ({ url: new URL('http://localhost/docs/intro') }));
+vi.mock('$app/state', () => ({
+	page: {
+		get url() {
+			return location.url;
+		}
+	}
+}));
 
 import { report } from './reader-events.js';
 import PageFeedback from './layouts/page-feedback.svelte';
@@ -24,6 +32,7 @@ import LiveExample from './docs/live-example.svelte';
 let events: ReaderEvent[];
 beforeEach(() => {
 	events = [];
+	location.url = new URL('http://localhost/docs/intro');
 	reader.handler = (event) => events.push(event as ReaderEvent);
 	vi.stubGlobal('navigator', {
 		...navigator,
@@ -37,14 +46,23 @@ afterEach(() => {
 });
 
 describe('report', () => {
-	it('hands the event to the handler', () => {
-		report({ type: 'feedback', path: '/docs/intro', vote: 'up' });
+	it('hands the handler what happened, on the page the reader is on', () => {
+		report({ type: 'feedback', vote: 'up' });
 		expect(events).toEqual([{ type: 'feedback', path: '/docs/intro', vote: 'up' }]);
+	});
+
+	it('names a page by one path, whatever the trailing slash setting', () => {
+		location.url = new URL('http://localhost/docs/intro/?tab=npm#install');
+		report({ type: 'copy_code', language: 'ts', source: 'fence' });
+		location.url = new URL('http://localhost/');
+		report({ type: 'not_found', referrer: null });
+
+		expect(events.map((event) => event.path)).toEqual(['/docs/intro', '/']);
 	});
 
 	it('does nothing without a handler', () => {
 		reader.handler = undefined;
-		expect(() => report({ type: 'feedback', path: '/docs/intro', vote: 'up' })).not.toThrow();
+		expect(() => report({ type: 'feedback', vote: 'up' })).not.toThrow();
 	});
 
 	it('logs a handler that throws, and carries on', () => {
@@ -52,7 +70,7 @@ describe('report', () => {
 		reader.handler = () => {
 			throw new Error('provider not ready');
 		};
-		expect(() => report({ type: 'feedback', path: '/docs/intro', vote: 'down' })).not.toThrow();
+		expect(() => report({ type: 'feedback', vote: 'down' })).not.toThrow();
 		expect(error).toHaveBeenCalledWith(
 			'[svelte-docsmith] the reader event handler threw on',
 			'feedback',

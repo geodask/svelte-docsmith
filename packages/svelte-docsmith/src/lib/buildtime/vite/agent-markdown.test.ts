@@ -586,6 +586,35 @@ describe('agent markdown install blocks', () => {
 		expect(markdown).toContain('# bun\nbunx sv create');
 		expect(markdown).toContain('```svelte\n<button />\n```');
 	});
+
+	it('leaves other fences, and an install block shown inside a sample, as written', async () => {
+		const sample = '````md\n```sh pkg\nnpm i a\n```\n````\n\n```sh\nnpm i b\n```';
+		const pages = [page('install', 'title: Install', sample)];
+
+		expect((await agentMarkdown(pages, literalHost()))['/docs/install']).toBe(
+			`# Install\n\n${sample}`
+		);
+	});
+
+	it('reads a page with CRLF line endings, and writes them back throughout', async () => {
+		const crlf = (text: string) => text.replace(/\n/g, '\r\n');
+		const pages = [
+			toPage(
+				pageFile('install'),
+				crlf(
+					'---\ntitle: Install\nsection: Start\n---\n\n```sh pkg\nnpm i a\n```\n\n<SectionCards />\n'
+				)
+			),
+			page('next', 'title: Next\nsection: Start')
+		];
+
+		expect((await agentMarkdown(pages, literalHost()))['/docs/install']).toBe(
+			crlf(
+				'# Install\n\n```sh\n# pnpm\npnpm add a\n# npm\nnpm i a\n# yarn\nyarn add a\n# bun\nbun add a\n```\n\n' +
+					'- [Next](/docs/next)'
+			)
+		);
+	});
 });
 
 describe('agent markdown section cards', () => {
@@ -631,6 +660,35 @@ describe('agent markdown section cards', () => {
 		const pages = [...section, page('home', 'title: Home', '```svelte\n<SectionCards />\n```')];
 		expect((await agentMarkdown(pages, literalHost()))['/docs/home']).toBe(
 			'# Home\n\n```svelte\n<SectionCards />\n```'
+		);
+	});
+
+	it('keeps a tag with something between its open and close tags', async () => {
+		const pages = [
+			...section,
+			page('home', 'title: Home', '<SectionCards>\nText.\n</SectionCards>')
+		];
+		expect((await agentMarkdown(pages, literalHost()))['/docs/home']).toBe(
+			'# Home\n\n<SectionCards>\nText.\n</SectionCards>'
+		);
+	});
+
+	it('never reads what another rewrite wrote', async () => {
+		// The example's own source opens with a tag another rewrite answers for.
+		const host = literalHost({
+			sources: { [docsFile('home/demo.svelte')]: '<SectionCards />\n\n```\n<SectionCards />' }
+		});
+		const pages = [
+			...section,
+			page(
+				'home',
+				'title: Home\nsection: Guides',
+				"<script>\n\timport source from './demo.svelte?source';\n</script>\n\n<LiveExample {source} />\n\n<SectionCards />"
+			)
+		];
+
+		expect((await agentMarkdown(pages, host))['/docs/home']).toBe(
+			'# Home\n\n````svelte\n<SectionCards />\n\n```\n<SectionCards />\n````\n\n- [Start](/docs/guides/start)'
 		);
 	});
 });

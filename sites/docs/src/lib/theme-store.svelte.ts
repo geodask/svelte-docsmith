@@ -1,3 +1,4 @@
+import { modeTokens } from '../../../../packages/svelte-docsmith/src/lib/core/theme-file.ts';
 import { themes } from './themes-data';
 
 // Docs-site only: paints a theme's tokens on <html> at runtime so a reader can
@@ -98,8 +99,7 @@ export function applyActiveTheme(
 		return;
 	}
 
-	// `.dark` inherits what it doesn't set from `:root`, as theme files do.
-	const tokens = dark ? { ...source.light, ...source.dark } : source.light;
+	const tokens = modeTokens(source, dark ? 'dark' : 'light');
 	const resolved: Record<string, string> = {};
 	for (const [key, value] of Object.entries(tokens)) {
 		root.style.setProperty(`--${key}`, value);

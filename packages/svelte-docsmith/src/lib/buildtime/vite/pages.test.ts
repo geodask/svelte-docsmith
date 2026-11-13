@@ -21,7 +21,7 @@ describe('readSourcePages', () => {
 		root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-root-'));
 		writePage('introduction', '---\ntitle: Introduction\norder: 1\n---\n\n# body\n');
 
-		const { pages, exists } = readSourcePages(root);
+		const { pages, exists } = readSourcePages(root, ['.md']);
 
 		expect(exists).toBe(true);
 		expect(pages).toHaveLength(1);
@@ -35,7 +35,7 @@ describe('readSourcePages', () => {
 		writePage('guides/deep/nested', '---\ntitle: Nested\n---\n');
 		fs.writeFileSync(path.join(root, 'notes.md'), '# not a route');
 
-		const { pages } = readSourcePages(root);
+		const { pages } = readSourcePages(root, ['.md']);
 
 		expect(pages.map((p) => path.relative(root, p.file))).toEqual([
 			path.join('guides', 'deep', 'nested', '+page.md')
@@ -43,14 +43,14 @@ describe('readSourcePages', () => {
 	});
 
 	it('reports a missing docs root rather than passing off an empty one', () => {
-		expect(readSourcePages('/no/such/dir')).toEqual({ pages: [], exists: false });
+		expect(readSourcePages('/no/such/dir', ['.md'])).toEqual({ pages: [], exists: false });
 	});
 
 	it('reads a page without frontmatter as an empty frontmatter object', () => {
 		root = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-root-'));
 		writePage('bare', '# just a body\n');
 
-		expect(readSourcePages(root).pages[0].frontmatter).toEqual({});
+		expect(readSourcePages(root, ['.md']).pages[0].frontmatter).toEqual({});
 	});
 });
 

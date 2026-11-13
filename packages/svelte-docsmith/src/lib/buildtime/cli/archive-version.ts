@@ -33,7 +33,8 @@ import {
 import { ARCHIVE_MARKER, discoverArchives, markerContents } from '../archives.js';
 import { commitDates } from '../git.js';
 import { docsBaseFrom } from '../paths.js';
-import { isPageFile } from '../vite/pages.js';
+import { markdownExtensions } from '../markdown.js';
+import { isDocPage } from '../vite/pages.js';
 import { CliError } from './error.js';
 
 export type ArchiveVersionOptions = {
@@ -50,6 +51,11 @@ export type ArchiveVersionOptions = {
 	routesDir: string;
 	/** The site's declared versions, from `docsmith({ versions })`. */
 	versions?: DocsVersions;
+	/**
+	 * The extensions compiled as markdown, from `docsmith({ markdown: { extensions } })`:
+	 * a `+page` file in one of them is a doc page. Default: `['.md']`.
+	 */
+	extensions?: string[];
 	/** Working directory paths are reported relative to. */
 	cwd?: string;
 };
@@ -68,6 +74,7 @@ export function archiveVersion(
 ): number {
 	const cwd = options.cwd ?? process.cwd();
 	const { id, contentDir, routesDir, versions } = options;
+	const extensions = options.extensions ?? markdownExtensions({});
 
 	try {
 		assertValidVersionId(id);
@@ -152,7 +159,7 @@ export function archiveVersion(
 	const crossings: string[] = [];
 
 	for (const { file, source } of eachCopiedFile()) {
-		if (!isPageFile(path.basename(file))) continue;
+		if (!isDocPage(file, extensions)) continue;
 		pages++;
 		const text = fs.readFileSync(file, 'utf-8');
 

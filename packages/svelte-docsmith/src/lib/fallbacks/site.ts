@@ -24,6 +24,7 @@
  * file by the plugin. Without it, the default preset's.
  */
 import type { DocsmithSite } from '#lib/core/config.js';
+import type { OutsidePaths } from '#lib/core/outside-path.js';
 import { missingPluginError } from './missing-plugin.js';
 import { DEFAULT_OG_COLOURS, type OgColours } from '#lib/server/og/colours.js';
 
@@ -35,7 +36,7 @@ export const site: DocsmithSite = new Proxy({} as DocsmithSite, {
 	}
 });
 
-export const outside: string[] = [];
+export const outside: OutsidePaths = [];
 
 export const githubStars: number | undefined = undefined;
 

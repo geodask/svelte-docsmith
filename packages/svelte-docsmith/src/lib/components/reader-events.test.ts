@@ -8,7 +8,7 @@ import { report } from './reader-events.js';
 // The server project runs without the browser condition, as SSR and prerender do.
 describe('report during SSR', () => {
 	it('never calls the handler', () => {
-		report({ type: 'not_found', path: '/docs/missing', referrer: null });
+		report({ type: 'not_found', referrer: null });
 		expect(handler).not.toHaveBeenCalled();
 	});
 });

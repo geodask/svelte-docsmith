@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 
 // `/relative` is an outside path: served by something other than this app.
-vi.mock('svelte-docsmith/site', () => ({ site: { title: 'My Docs' }, outside: ['/relative'] }));
+vi.mock('svelte-docsmith/site', async () =>
+	(await import('#lib/fallbacks/_fixtures/site-module.js')).siteModule({ outside: ['/relative'] })
+);
 import AnnouncementBar from './announcement-bar.svelte';
 
 describe('AnnouncementBar', () => {

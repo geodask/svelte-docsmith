@@ -8,7 +8,7 @@
  *
  * {@link installCommands} turns the fence's code into each manager's version,
  * one line at a time. The code block renderer draws them as synced tabs, and
- * agent markdown writes them all out with {@link writeInstallBlocks}, so a
+ * agent markdown writes them all out with {@link writeInstallBlock}, so a
  * reader and an agent get the same four commands.
  *
  * Only commands with a clear equivalent are converted: `npm install`/`npm i`
@@ -19,6 +19,7 @@
  *
  * Pure, and safe anywhere: no Node or Svelte imports.
  */
+import type { Stretch } from './markdown-source.js';
 
 /** The managers an install block shows, in tab order. */
 export const PACKAGE_MANAGERS = ['pnpm', 'npm', 'yarn', 'bun'] as const;
@@ -134,52 +135,30 @@ export function installCommands(code: string): InstallCommands[] {
 	}));
 }
 
-/** A fence opener: indentation, the marker run, and the info string. */
-const FENCE_OPEN = /^([ \t]*)(`{3,}|~{3,})(.*)$/;
-
 /**
- * `markdown` with every install block written out for agents: one fence of
- * the same language holding each manager's commands under a `# <manager>`
- * comment. A fence inside another fence is sample code, and is left alone.
+ * A fenced block written out for agents, when it is an install block: one
+ * fence of the same language holding each manager's commands under a
+ * `# <manager>` comment, as lines. `undefined` for any other fence.
  */
-export function writeInstallBlocks(markdown: string): string {
-	// Pages aren't normalised, so a Windows checkout's CRLF lines are read
-	// without their \r and written back with it.
-	const eol = markdown.includes('\r\n') ? '\r\n' : '\n';
-	const lines = markdown.split(/\r?\n/);
-	const out: string[] = [];
-	for (let i = 0; i < lines.length; i++) {
-		const open = FENCE_OPEN.exec(lines[i]);
-		if (!open || (open[2][0] === '`' && open[3].includes('`'))) {
-			out.push(lines[i]);
-			continue;
-		}
-		const [, indent, marker, info] = open;
-		const closer = new RegExp(
-			String.raw`^[ \t]*${marker[0] === '`' ? '`' : '~'}{${marker.length},}[ \t]*$`
-		);
-		const closeAt = lines.findIndex((line, j) => j > i && closer.test(line));
-		const end = closeAt === -1 ? lines.length : closeAt;
-		const body = lines.slice(i + 1, end);
-		const [lang = '', ...meta] = info.trim().split(/\s+/);
-		if (isInstallBlock(meta.join(' '))) {
-			const code = body.map((line) => (line.startsWith(indent) ? line.slice(indent.length) : line));
-			const written = installCommands(code.join('\n')).flatMap(({ manager, code }) => [
-				`# ${manager}`,
-				code
-			]);
-			out.push(
-				`${indent}${marker}${lang}`,
-				...written
-					.join('\n')
-					.split('\n')
-					.map((line) => indent + line),
-				`${indent}${marker}`
-			);
-		} else {
-			out.push(lines[i], ...body, ...(closeAt === -1 ? [] : [lines[end]]));
-		}
-		i = end;
-	}
-	return out.join(eol);
+export function writeInstallBlock(
+	fence: Pick<Extract<Stretch, { kind: 'fence' }>, 'indent' | 'marker' | 'info' | 'body'>
+): string[] | undefined {
+	const [lang = '', ...meta] = fence.info.split(/\s+/);
+	if (!isInstallBlock(meta.join(' '))) return undefined;
+	const { indent, marker } = fence;
+	const code = fence.body.map((line) =>
+		line.startsWith(indent) ? line.slice(indent.length) : line
+	);
+	const written = installCommands(code.join('\n')).flatMap(({ manager, code }) => [
+		`# ${manager}`,
+		code
+	]);
+	return [
+		`${indent}${marker}${lang}`,
+		...written
+			.join('\n')
+			.split('\n')
+			.map((line) => indent + line),
+		`${indent}${marker}`
+	];
 }

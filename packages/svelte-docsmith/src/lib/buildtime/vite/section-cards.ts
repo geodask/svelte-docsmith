@@ -1,16 +1,12 @@
 /**
  * `<SectionCards />` in agent markdown. The page renders the cards from the
  * content index, so the tag as written says nothing an agent can follow. Here
- * each tag starting a line is replaced by the same cards written as a list of
- * links, from the same pages: the page's own version, in reading order.
+ * the tag is written out as the same cards, as a list of links, from the same
+ * pages: the page's own version, in reading order.
  */
-import { outsideCodeFenceRuns } from '../markdown-source.js';
 import { relativeToCwd } from '../paths.js';
-import { sectionCards, type SectionPage } from '../../core/section-cards.js';
-
-/** `<SectionCards …/>` (or with an empty body) starting a line; group 2 is its attributes. */
-const TAG =
-	/^([ \t]*)<SectionCards\b((?:[^>{}]|\{[^{}]*\})*?)(?:\/>|>\s*<\/SectionCards\s*>)[ \t]*$/gm;
+import { sectionCards } from '../../core/section-cards.js';
+import type { TagRewrite } from './agent-markdown.js';
 
 /** `section="…"`, `section='…'` or `section={…}`. */
 const SECTION = /(?:^|\s)section\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^{}]*)\})/;
@@ -19,40 +15,34 @@ const SECTION = /(?:^|\s)section\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^{}]*)\})/;
 const STRING = /"([^"\\]*)"|'([^'\\]*)'|`([^`\\$]*)`/g;
 
 /**
- * Write out each `<SectionCards />` in `content` as a list of links, the way
- * the page renders them. `page` is the page being written, `pages` every page
- * of its version. A `section` value that isn't literal strings can't be read
- * here, so that tag is kept as written, with a warning.
+ * `<SectionCards />` written out as a list of links, the way the page renders
+ * the cards. A `section` value that isn't literal strings can't be read here,
+ * so that tag is kept as written, with a warning; so is a tag with anything
+ * between its open and close tags, which the component doesn't take.
  */
-export function writeSectionCards(
-	content: string,
-	page: SectionPage & { file: string },
-	pages: SectionPage[],
-	warn: (message: string) => void
-): string {
-	if (!content.includes('<SectionCards')) return content;
-	return outsideCodeFenceRuns(content, (prose) =>
-		prose.replace(TAG, (tag, indent: string, attributes: string) => {
-			const section = sectionOf(attributes);
-			if (section === null) {
-				warn(
-					`${relativeToCwd(page.file)}: could not read the \`section\` of ${tag.trim()}, ` +
-						`so agent markdown keeps the tag. Write it as a string or an array of strings.`
-				);
-				return tag;
-			}
-			const cards = sectionCards(pages, section ?? page.section, page.path);
-			// The page renders nothing for an empty section, and so does this.
-			return cards
-				.map(
-					(card) =>
-						`${indent}- [${card.title}](${card.href})` +
-						(card.description ? `: ${card.description}` : '')
-				)
-				.join('\n');
-		})
-	);
-}
+export const sectionCardsRewrite: TagRewrite = {
+	tag: 'SectionCards',
+	write(tag, page) {
+		if (tag.body?.trim()) return undefined;
+		const section = sectionOf(tag.attributes);
+		if (section === null) {
+			page.warn(
+				`${relativeToCwd(page.file)}: could not read the \`section\` of ${tag.raw.trim()}, ` +
+					`so agent markdown keeps the tag. Write it as a string or an array of strings.`
+			);
+			return undefined;
+		}
+		const cards = sectionCards(page.pages, section ?? page.section, page.path);
+		// The page renders nothing for an empty section, and so does this.
+		return cards
+			.map(
+				(card) =>
+					`${tag.indent}- [${card.title}](${card.href})` +
+					(card.description ? `: ${card.description}` : '')
+			)
+			.join('\n');
+	}
+};
 
 /**
  * The `section` attribute's value: `undefined` when there is none, `null` when
